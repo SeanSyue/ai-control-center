@@ -1,0 +1,93 @@
+[
+  {
+    "label": "W1 降級那一段整個不做（他關掉的那一格照樣拿著寫入權限去跑——畫面上開關還是關的，只有事後看 git diff 才發現）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        if not read_only and not self.may_write_files(role):",
+    "with": "        if False and not self.may_write_files(role):",
+    "test": "tests/test_a_seat_told_not_to_write_still_gets_the_job.py::test_the_seat_he_muted_still_runs_and_its_words_still_travel"
+  },
+  {
+    "label": "W2 降級改成整條線一起（那是設定頁那一個開關，不是這一格的——他沒動過的那一格也變成唯讀，而這一格的開關就白做了）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        if not read_only and not self.may_write_files(role):",
+    "with": "        if not read_only:",
+    "test": "tests/test_a_seat_told_not_to_write_still_gets_the_job.py::test_the_seat_he_muted_still_runs_and_its_words_still_travel"
+  },
+  {
+    "label": "W3 降級改成拒絕（跟改職責沒有兩樣：那一格這一輪一句話都不說，下一格拿到的脈絡中間缺一塊）",
+    "file": "app/core/orchestrator.py",
+    "replace": "            read_only = True\n        # ⛔ 這裡 2026-09-01 之前有一條「Codex 不准寫檔」的拒絕。",
+    "with": "            raise NotImplementedError(\"這一格關掉寫檔了\")\n        # ⛔ 這裡 2026-09-01 之前有一條「Codex 不准寫檔」的拒絕。",
+    "test": "tests/test_a_seat_told_not_to_write_still_gets_the_job.py::test_muting_a_seat_is_not_the_same_as_changing_its_duty"
+  },
+  {
+    "label": "W4 算「動不動得了檔案」時不看開關（欄位存了、頁面也畫了，而引擎從來沒讀過它）",
+    "file": "app/core/lineup.py",
+    "replace": "        return self.writes_files != WRITES_OFF",
+    "with": "        return True",
+    "test": "tests/test_a_seat_told_not_to_write_still_gets_the_job.py::test_the_seat_he_muted_still_runs_and_its_words_still_travel"
+  },
+  {
+    "label": "W5 這一欄變成給得出權限（他排成「複查」的那一格填一個 on 就動得了他的檔案——權限只准由職責給）",
+    "file": "app/core/lineup.py",
+    "replace": "        if self.duty != DUTY_WORK:\n            return False",
+    "with": "        if self.duty != DUTY_WORK:\n            return self.writes_files == WRITES_ON",
+    "test": "tests/test_a_seat_told_not_to_write_still_gets_the_job.py::test_the_switch_can_take_write_away_but_never_hand_it_out"
+  },
+  {
+    "label": "W6 舊檔那一欄空的時候讀成「不准寫」（每一個既有專案的執行那一格在升級的當下靜靜變成唯讀，而他看到的是「跑完了，一個檔案都沒有變」）",
+    "file": "app/core/lineup.py",
+    "replace": "                writes_files=str(data.get(\"writes_files\", WRITES_INHERIT)),",
+    "with": "                writes_files=str(data.get(\"writes_files\", WRITES_OFF)),",
+    "test": "tests/test_a_seat_told_not_to_write_still_gets_the_job.py::test_an_old_sessions_json_keeps_exactly_the_powers_it_had"
+  },
+  {
+    "label": "W7 讀不懂的值退回「沿用職責」（一個讀不懂的權限被讀成「可以」是無聲的授權，而那一格看起來完全正常）",
+    "file": "app/core/lineup.py",
+    "replace": "            raise LineupError(\n                t(\"lineup.unknown_writes_switch\", value=self.writes_files),\n                field=FIELD_WRITES,\n            )",
+    "with": "            writes = WRITES_INHERIT",
+    "test": "tests/test_a_seat_told_not_to_write_still_gets_the_job.py::test_a_switch_this_build_cannot_read_is_not_guessed_either_way"
+  },
+  {
+    "label": "W8 存檔的時候不寫這一欄（他在陣容頁動任何一格都會走一趟存檔，於是關掉的開關下一次讀回來就是開的）",
+    "file": "app/core/lineup.py",
+    "replace": "            \"writes_files\": self.writes_files,\n",
+    "with": "",
+    "test": "tests/test_a_seat_told_not_to_write_still_gets_the_job.py::test_the_page_can_flip_it_without_touching_the_duty"
+  },
+  {
+    "label": "W9 每次執行重建陣容時漏抄這一欄（回到具名參數一個一個抄的寫法——陣容頁上開關是關的，而開始執行的當下它變回開的）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "            replace(slot, session_id=session_for(slot))",
+    "with": "            AgentSlot(\n                role=slot.role,\n                provider=slot.provider,\n                session_id=session_for(slot),\n                credential=slot.credential,\n                identity=slot.identity,\n                duty=slot.duty,\n            )",
+    "test": "tests/test_a_seat_told_not_to_write_still_gets_the_job.py::test_the_seat_he_muted_still_runs_and_its_words_still_travel"
+  },
+  {
+    "label": "W10 頁面收到的是三個字面值不是算好的答案（「空字串是什麼意思」變成頁面自己那一份推論——這一頁已經為同一個形狀壞過兩次）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            \"writes_files\": slot.may_write_files,",
+    "with": "            \"writes_files\": slot.writes_files,",
+    "test": "tests/test_a_seat_told_not_to_write_still_gets_the_job.py::test_the_page_can_flip_it_without_touching_the_duty"
+  },
+  {
+    "label": "W11 陣容頁那顆開關順手把職責也改掉（他按的是「照跑，但別動我的檔案」，得到的是「這一輪沒有人做事」）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            self._lineup = self._lineup.with_writes_files(\n                slots[index].role, writes\n            )",
+    "with": "            self._lineup = self._lineup.with_writes_files(\n                slots[index].role, writes\n            ).with_duty(slots[index].role, \"review\")",
+    "test": "tests/test_a_seat_told_not_to_write_still_gets_the_job.py::test_the_page_can_flip_it_without_touching_the_duty"
+  },
+  {
+    "label": "W12 存成模式的時候漏掉這一欄（他存好的表格套用回去，那一格變回可以寫，而表格的名字看起來一模一樣）",
+    "file": "app/services/lineup_presets.py",
+    "replace": "                    \"writes_files\": slot.writes_files,\n",
+    "with": "",
+    "test": "tests/test_a_seat_does_not_quietly_lose_a_field.py::test_a_saved_table_comes_back_with_every_field_it_had"
+  },
+  {
+    "label": "W13 這一欄沒有推給畫面（做完了、存下來了、而畫面永遠畫不出那顆勾選框——待接清單也就永遠不知道自己該少一筆）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            \"writes_files\": slot.may_write_files,",
+    "with": "            \"can_write_placeholder\": slot.may_write_files,",
+    "test": "tests/test_no_field_is_pushed_into_the_void.py::test_the_debt_list_has_not_gone_stale"
+  }
+]

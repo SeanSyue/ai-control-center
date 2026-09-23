@@ -1,0 +1,37 @@
+[
+  {
+    "label": "V1 引擎自己補一句理由（一個本來蓋不出來的審查章成立，拍板檢查從「缺章」翻成「章齊了」）",
+    "file": "app/core/steps/reviewing.py",
+    "replace": "    return (\n        str(data.get(\"summary\") or \"\").strip()\n    )",
+    "with": "    return (\n        str(data.get(\"summary\") or \"\").strip()\n        or t(\"review.pass_without_reason\")\n    )",
+    "test": "tests/test_a_review_that_never_said_why_is_not_a_pass.py"
+  },
+  {
+    "label": "V2 說可以卻沒說憑什麼照樣算通過（不擋，只是安靜地少一個章）",
+    "file": "app/core/steps/reviewing.py",
+    "replace": "        if not why:",
+    "with": "        if False:",
+    "test": "tests/test_a_review_that_never_said_why_is_not_a_pass.py"
+  },
+  {
+    "label": "V3 不蓋章、也不說為什麼（使用者只看到「還缺一個章」，不知道是複查沒寫理由）",
+    "file": "app/core/steps/reviewing.py",
+    "replace": "            orchestrator.timeline.append(",
+    "with": "            (lambda *a, **k: None)(",
+    "test": "tests/test_a_review_that_never_said_why_is_not_a_pass.py"
+  },
+  {
+    "label": "V4 一條意見都沒列的 FIX 照樣升級成 PASS（那句反對的話變成「憑什麼同意」）",
+    "file": "app/core/steps/reviewing.py",
+    "replace": "            if data[\"note_issues\"]:",
+    "with": "            if True:",
+    "test": "tests/test_a_review_that_never_said_why_is_not_a_pass.py"
+  },
+  {
+    "label": "V5 審查章整批不見（「那句反對不在同意的理由裡」於是變成一句恆真的話——這一條守的是那條斷言問不問得到東西）",
+    "file": "app/core/steps/reviewing.py",
+    "replace": "    for seat, why in agreed:",
+    "with": "    for seat, why in []:",
+    "test": "tests/test_a_review_that_never_said_why_is_not_a_pass.py::test_an_objection_never_becomes_the_reason_a_stamp_says_yes"
+  }
+]

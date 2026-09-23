@@ -1,0 +1,23 @@
+[
+  {
+    "label": "T1 工具那一側在 `.aicc/` 底下開一個誰都沒決定過的資料夾（2026-08-24 之前這一刀是綠的：掃描寫死了 app/）",
+    "file": "tools/claude-hooks/pre_compact.py",
+    "replace": "ROOT / \"AIControlCenter\" / \".aicc\" / \"knowledge\"",
+    "with": "ROOT / \"AIControlCenter\" / \".aicc\" / \"knowledge-v2\"",
+    "test": "tests/test_every_setting_lives_in_one_home.py::test_nothing_new_appears_under_aicc"
+  },
+  {
+    "label": "T2 工具第一層也一樣（子資料夾過了不代表 tools/*.py 本身有進來）",
+    "file": "tools/inspect_run.py",
+    "replace": "project / \".aicc\" / \"runs\"",
+    "with": "project / \".aicc\" / \"runs-v2\"",
+    "test": "tests/test_every_setting_lives_in_one_home.py::test_nothing_new_appears_under_aicc"
+  },
+  {
+    "label": "T3 掃描範圍縮回 app/（測試名字還是全稱句，而工具那一側從此沒有人看——這就是 FG16 本身）",
+    "file": "tests/test_every_setting_lives_in_one_home.py",
+    "replace": "    for path in _python_files():\n        tree = ast.parse(path.read_text(encoding=\"utf-8-sig\"))\n        for node in ast.walk(tree):\n            if not isinstance(node, ast.BinOp)",
+    "with": "    for path in Path(\"app\").rglob(\"*.py\"):\n        tree = ast.parse(path.read_text(encoding=\"utf-8-sig\"))\n        for node in ast.walk(tree):\n            if not isinstance(node, ast.BinOp)",
+    "test": "tests/test_every_setting_lives_in_one_home.py::test_the_aicc_scan_also_reaches_the_tools_side"
+  }
+]

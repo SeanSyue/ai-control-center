@@ -1,0 +1,16 @@
+[
+  {
+    "label": "L1 通知又變成同步的：send_push 回到 GUI 執行緒、呼叫端等它回來",
+    "file": "app/ui/main_window.py",
+    "replace": "        self._run_line_notify_worker(\n            message,\n            functools.partial(\n                self._on_line_notify_completed, project_path, run_id\n            ),\n            functools.partial(self._on_line_notify_failed, project_path),\n        )",
+    "with": "        self._on_line_notify_completed(\n            project_path, run_id, self.line_notifier.send_push(message)\n        )",
+    "test": "tests/test_main_window_runtime.py::test_send_pending_line_notification_does_not_block_gui_thread"
+  },
+  {
+    "label": "L2 完成通知不再回到 GUI 執行緒（第四件事實：放行之後有送達）",
+    "file": "app/ui/main_window.py",
+    "replace": "            worker.completed.connect(BoundSlot(on_completed, parent=self).run)\n",
+    "with": "",
+    "test": "tests/test_main_window_runtime.py::test_send_pending_line_notification_does_not_block_gui_thread"
+  }
+]

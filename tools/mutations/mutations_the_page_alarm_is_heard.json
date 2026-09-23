@@ -1,0 +1,30 @@
+[
+  {
+    "label": "K1 頁面喊的話又接回牆裡（每一頁都有偵測「推下來的跟畫出來的對不上」的機制，而它們喊的方式是 console.warn）",
+    "file": "app/ui/web_panel.py",
+    "replace": "        self.view.setPage(_PageThatIsHeard(self.view))",
+    "with": "        pass  # 破壞：不裝會聽的頁面",
+    "test": "tests/test_the_page_alarm_is_heard.py::test_every_panel_gets_the_page_that_listens"
+  },
+  {
+    "label": "K2 warn 被吞掉（畫面上一切正常，而設定頁剛把他關掉的開關彈回開著）",
+    "file": "app/ui/web_panel.py",
+    "replace": "        if name == \"info\":",
+    "with": "        if name in (\"info\", \"warn\"):",
+    "test": "tests/test_the_page_alarm_is_heard.py::test_a_warning_from_the_page_reaches_somebody"
+  },
+  {
+    "label": "K3 喊出來卻不講哪一頁哪一行（「有東西不對」寫進 stderr 等於沒寫——看到的人要知道去哪裡找）",
+    "file": "app/ui/web_panel.py",
+    "replace": "print(f\"[page {name}] {where}:{line} {message}\", file=sys.stderr)",
+    "with": "print(f\"[page {name}] {message}\", file=sys.stderr)",
+    "test": "tests/test_the_page_alarm_is_heard.py::test_it_says_which_page_and_which_line"
+  },
+  {
+    "label": "K4 連 info 都端出來（頁面自己的除錯輸出會把真的警報淹掉——一個永遠在響的警報等於沒有警報）",
+    "file": "app/ui/web_panel.py",
+    "replace": "        if name == \"info\":\n            return",
+    "with": "        if False:\n            return",
+    "test": "tests/test_the_page_alarm_is_heard.py::test_the_page_chatter_does_not_drown_the_alarm"
+  }
+]

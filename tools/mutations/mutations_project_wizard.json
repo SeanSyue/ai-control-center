@@ -1,0 +1,58 @@
+[
+  {
+    "label": "W1 精靈長出第四題（每一題單看都合理，而第七題出現的那天它就從「三題就能開始」變成又一份要填的表格）",
+    "file": "app/services/project_wizard.py",
+    "replace": "    rules: str = \"\"\n",
+    "with": "    rules: str = \"\"\n    notify: bool = False\n",
+    "test": "tests/test_the_wizard_asks_three_questions.py::test_the_wizard_asks_exactly_three_questions"
+  },
+  {
+    "label": "W2 「自訂」變回空字串（畫面把它讀成「沒有選中」，第四個模式在畫面上不存在）",
+    "file": "app/services/project_wizard.py",
+    "replace": "CHOICE_CUSTOM = \"custom\"",
+    "with": "CHOICE_CUSTOM = \"\"",
+    "test": "tests/test_the_wizard_asks_three_questions.py::test_custom_is_a_fourth_mode_not_an_empty_answer"
+  },
+  {
+    "label": "W3 「自訂」從空白開始（新使用者看到一張空表格，不知道第一格要填什麼）",
+    "file": "app/services/project_wizard.py",
+    "replace": "    CHOICE_CUSTOM: 1,",
+    "with": "    CHOICE_CUSTOM: 0,",
+    "test": "tests/test_the_wizard_asks_three_questions.py::test_custom_starts_from_the_two_person_shape_not_from_blank"
+  },
+  {
+    "label": "W4 不認得的選項回一張預設表格（他拿到一張自己沒選過的陣容，而完全看不出來）",
+    "file": "app/services/project_wizard.py",
+    "replace": "    if choice not in CHOICES:\n        raise WizardError(f\"不認得的選項：{choice!r}\")",
+    "with": "    if choice not in CHOICES:\n        choice = CHOICE_TWO",
+    "test": "tests/test_the_wizard_asks_three_questions.py::test_an_unknown_choice_raises_rather_than_quietly_defaulting"
+  },
+  {
+    "label": "W5 精靈開始自己發明存放位置（.aicc/ 底下多一個誰都沒決定過的檔）",
+    "file": "app/services/project_wizard.py",
+    "replace": "path = Path(project_path) / \".aicc\" / \"knowledge\" / PROJECT_RULES_FILE",
+    "with": "path = Path(project_path) / \".aicc\" / \"wizard\" / PROJECT_RULES_FILE",
+    "test": "tests/test_the_wizard_asks_three_questions.py::test_the_wizard_writes_nothing_outside_its_declared_homes"
+  },
+  {
+    "label": "W6 跳過第③題卻寫一個空檔案（派工把它當成「這個專案有規矩」，教每個 NODE 把一個空標題當真）",
+    "file": "app/services/project_wizard.py",
+    "replace": "    if answers.rules.strip():",
+    "with": "    if True:",
+    "test": "tests/test_the_wizard_asks_three_questions.py::test_skipping_the_rules_writes_no_file_at_all"
+  },
+  {
+    "label": "W7 一題寫不進去就整個精靈失敗（他只知道「精靈失敗了」，不知道是哪一題）",
+    "file": "app/services/project_wizard.py",
+    "replace": "        except OSError as exc:\n            result.problems.append(f\"專案規矩沒存成：{exc}\")",
+    "with": "        except OSError:\n            raise",
+    "test": "tests/test_the_wizard_asks_three_questions.py::test_one_question_failing_does_not_take_the_other_two_down"
+  },
+  {
+    "label": "W8 出廠表格有一格沒配職責（職責會從名字推，中文名字推不出來，會落到「複查」——於是一張叫「一人」的表格排出來之後沒有任何一格能寫檔案）",
+    "file": "app/services/lineup_presets.py",
+    "replace": "((\"role.worker\", \"claude\", DUTY_WORK),),",
+    "with": "((\"role.worker\", \"claude\", \"\"),),",
+    "test": "tests/test_the_wizard_asks_three_questions.py::test_every_preset_has_someone_who_can_write_files"
+  }
+]

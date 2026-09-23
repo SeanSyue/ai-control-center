@@ -1,0 +1,65 @@
+[
+  {
+    "label": "N1 prompt 又被塞回 argv（`claude -p <整份多行 prompt>`，也就是修之前的樣子）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        arguments = [\n            \"claude\",\n            \"-p\",\n            \"--output-format\",",
+    "with": "        arguments = [\n            \"claude\",\n            \"-p\",\n            prompt,\n            \"--output-format\",",
+    "test": "tests/test_the_prompt_never_rides_in_argv.py::test_the_p_flag_is_a_flag_and_nothing_follows_it"
+  },
+  {
+    "label": "N1b 同一個破壞，換一條測試看：整輪跑完不准有含換行的參數",
+    "file": "app/core/orchestrator.py",
+    "replace": "        arguments = [\n            \"claude\",\n            \"-p\",\n            \"--output-format\",",
+    "with": "        arguments = [\n            \"claude\",\n            \"-p\",\n            prompt,\n            \"--output-format\",",
+    "test": "tests/test_the_prompt_never_rides_in_argv.py::test_a_whole_development_run_puts_nothing_multi_line_in_argv"
+  },
+  {
+    "label": "N2 prompt 不再走標準輸入（argv 乾淨，但對面什麼都沒收到）",
+    "file": "app/core/orchestrator.py",
+    "replace": "            timeout_seconds=timeout_seconds,\n            input_text=prompt,",
+    "with": "            timeout_seconds=timeout_seconds,\n            input_text=None,",
+    "test": "tests/test_the_prompt_never_rides_in_argv.py::test_both_vendors_receive_the_whole_prompt_on_standard_input"
+  },
+  {
+    "label": "N3 只送第一行（cmd.exe 當初做的那件事，換成引擎自己做）",
+    "file": "app/core/orchestrator.py",
+    "replace": "            timeout_seconds=timeout_seconds,\n            input_text=prompt,",
+    "with": "            timeout_seconds=timeout_seconds,\n            input_text=prompt.splitlines()[0],",
+    "test": "tests/test_the_prompt_never_rides_in_argv.py::test_both_vendors_receive_the_whole_prompt_on_standard_input"
+  },
+  {
+    "label": "N4 送出去的跟紀錄下來的不是同一份（步驟紀錄的斷言改讀 stdin 之後還有沒有牙齒）",
+    "file": "app/core/orchestrator.py",
+    "replace": "            timeout_seconds=timeout_seconds,\n            input_text=prompt,",
+    "with": "            timeout_seconds=timeout_seconds,\n            input_text=prompt + \"\\n（偷加的一句）\",",
+    "test": "tests/test_step_log.py::test_the_recorded_prompt_is_the_one_the_cli_was_given"
+  },
+  {
+    "label": "N5 引擎這一側的守門關掉（假的 CliRunner 底下就再也擋不住）",
+    "file": "app/core/orchestrator.py",
+    "replace": "            if \"\\r\" in item or \"\\n\" in item or \"\\x00\" in item:",
+    "with": "            if False:",
+    "test": "tests/test_the_prompt_never_rides_in_argv.py::test_the_engine_stops_a_payload_in_argv_before_it_reaches_the_runner"
+  },
+  {
+    "label": "N6 守門嚴到把正常呼叫也擋掉（反面：不准用「一律 raise」通過 N5）",
+    "file": "app/core/orchestrator.py",
+    "replace": "            if \"\\r\" in item or \"\\n\" in item or \"\\x00\" in item:",
+    "with": "            if True:",
+    "test": "tests/test_the_prompt_never_rides_in_argv.py::test_a_single_line_argument_still_goes_through"
+  },
+  {
+    "label": "N7 CliRunner 的同一條規則縮回 Windows + .cmd 才生效（同一支程式在兩個 OS 上兩種行為）",
+    "file": "app/adapters/cli_runner.py",
+    "replace": "        unsendable = self._argument_a_command_line_cannot_carry(popen_args)",
+    "with": "        unsendable = (\n            self._argument_a_command_line_cannot_carry(popen_args)\n            if suffix in {\".cmd\", \".bat\"}\n            else None\n        )",
+    "test": "tests/test_cli_runner.py::test_a_newline_argument_is_refused_for_every_target_not_just_cmd"
+  },
+  {
+    "label": "N8 CliRunner 不再認得換行參數（連 .cmd 那條老路也一起失守）",
+    "file": "app/adapters/cli_runner.py",
+    "replace": "            if \"\\r\" in item or \"\\n\" in item:",
+    "with": "            if False and (\"\\r\" in item or \"\\n\" in item):",
+    "test": "tests/test_cli_runner.py::test_cmd_shim_refuses_a_newline_argument_instead_of_truncating"
+  }
+]

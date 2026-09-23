@@ -1,0 +1,58 @@
+[
+  {
+    "label": "F1 維護共同記憶那一步又寫死出廠名字（五格全部跑完、複查 PASS、章都齊了之後才炸——五次派工的額度已經花完）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        seat = self.required_seat_with_duty(DUTY_REVIEW)\n        prompt = prompt_builder.build_memory_update_prompt(",
+    "with": "        seat = ROLE_REVIEWER\n        prompt = prompt_builder.build_memory_update_prompt(",
+    "test": "tests/test_a_line_up_with_his_own_names_still_runs.py::test_no_dispatch_entry_point_hands_a_factory_name_to_the_engine"
+  },
+  {
+    "label": "F2 依職責挑人的時候挑第一格而不是最後一格（兩格複查的話，第二格看過第一格的東西——挑錯的那一格沒看過後面發生的事）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        return seats[-1] if seats else fallback",
+    "with": "        return seats[0] if seats else fallback",
+    "test": "tests/test_a_line_up_with_his_own_names_still_runs.py::test_every_duty_finds_the_seat_he_named"
+  },
+  {
+    "label": "F3 排不到職責的時候自己挑一格代打（那一格會拿到使用者從來沒有授權給它的工作，而畫面上看起來一切正常）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        seats = [slot.role for slot in self.lineup if slot.duty == duty]\n        return seats[-1] if seats else fallback",
+    "with": "        seats = [slot.role for slot in self.lineup if slot.duty == duty]\n        return seats[-1] if seats else list(self.lineup)[-1].role",
+    "test": "tests/test_a_line_up_with_his_own_names_still_runs.py::test_a_missing_duty_falls_back_instead_of_guessing_a_seat"
+  },
+  {
+    "label": "F4 工作表又改回用名字當鍵（使用者一改名字，陣容頁把每一格都畫成虛線紅框加「不會被執行」，而引擎照跑照付錢）",
+    "file": "app/core/orchestrator.py",
+    "replace": "            if duty in entry[\"jobs\"]",
+    "with": "            if duty in (\"author\", \"reviewer\", \"planner\")",
+    "test": "tests/test_a_line_up_with_his_own_names_still_runs.py::test_the_screen_says_what_each_seat_does_this_round"
+  },
+  {
+    "label": "F5 核准那一種又從工作表上消失（每一個排了核准的座位被畫成「不會被執行」，而 steps/approval.py 真的會派工給它）",
+    "file": "app/core/orchestrator.py",
+    "replace": "                DUTY_APPROVE: \"job.approve\",\n            },\n        },\n        # 計畫序列裡**沒有**擬做法那一種",
+    "with": "            },\n        },\n        # 計畫序列裡**沒有**擬做法那一種",
+    "test": "tests/test_a_line_up_with_his_own_names_still_runs.py::test_the_screen_says_what_each_seat_does_this_round"
+  },
+  {
+    "label": "F6 工作欄的字又跟職責欄撞（同一列上重複的字沒有告訴使用者任何事，只會讓他以為畫面壞了）",
+    "file": "app/i18n.py",
+    "replace": "    \"job.plan\": \"這一輪：出做法\",",
+    "with": "    \"job.plan\": \"擬做法\",",
+    "test": "tests/test_a_line_up_with_his_own_names_still_runs.py::test_the_two_columns_never_print_the_same_word"
+  },
+  {
+    "label": "F7 出廠座位名又跟職責欄撞（三人模式排出來的那一列，名字欄與職責欄印著同一個字）",
+    "file": "app/i18n.py",
+    "replace": "    \"role.worker\": \"執行者\",",
+    "with": "    \"role.worker\": \"執行\",",
+    "test": "tests/test_a_line_up_with_his_own_names_still_runs.py::test_the_two_columns_never_print_the_same_word"
+  },
+  {
+    "label": "F8 陣容頁又改回送名字給工作表（引擎修好了而畫面送錯東西，結果一模一樣）——第一版指到一條用出廠名字的測試，而出廠名字走相容路徑會推回原值，所以它是綠的",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            duties=tuple(slot.duty for slot in self._lineup),",
+    "with": "            roles=self._lineup.roles,",
+    "test": "tests/test_a_seat_keeps_its_duty_through_every_button.py::test_the_page_is_told_what_each_of_his_seats_does_this_round"
+  }
+]

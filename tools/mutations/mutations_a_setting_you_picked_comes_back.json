@@ -1,0 +1,65 @@
+[
+  {
+    "label": "Q1 `_apply` 沒有 drive_sync 這一格（按了會亮、什麼都沒存、下次自己彈回去——FG27 底下那個真的 bug）",
+    "file": "app/ui/settings_web_panel.py",
+    "replace": "        elif key == \"drive_sync\":\n            # 機器層的設定，不在專案的 AISettings 裡，所以自己寫自己推。\n            self._set_drive_sync(value not in (\"\", \"false\", \"0\"))\n            return",
+    "with": "        elif key == \"drive_sync_this_branch_is_gone\":\n            return",
+    "test": "tests/test_a_setting_you_picked_comes_back_the_same.py::test_a_setting_you_picked_comes_back_the_same[drive_sync]"
+  },
+  {
+    "label": "Q2 「LINE 通知」變回一顆按不動的開關（引擎那一側沒有它的分支）",
+    "file": "app/ui/web/settings_v1.html",
+    "replace": "    rowIf('line_notify','LINE 通知','任務完成、失敗、或有 Decision Gate 時推播',\n      ()=>`<span class=\"bdg ${S.line_notify?'mint':'grey'}\">${S.line_notify?'會推播':'不會推播'}</span>`),",
+    "with": "    rowIf('line_notify','LINE 通知','任務完成、失敗、或有 Decision Gate 時推播',()=>sw('line_notify')),",
+    "test": "tests/test_a_setting_you_picked_comes_back_the_same.py::test_every_control_the_page_can_draw_is_listed_here"
+  },
+  {
+    "label": "Q3 權限模式的查表回到對不上的那一版（三個選項全部存成全自動）",
+    "file": "app/ui/settings_web_panel.py",
+    "replace": "PERMISSION = {\"ask\": \"default\", \"edits\": \"acceptEdits\", \"auto\": \"auto\"}",
+    "with": "PERMISSION = {\"ask\": \"ask\", \"acceptEdits\": \"edit\", \"auto\": \"auto\"}",
+    "test": "tests/test_a_setting_you_picked_comes_back_the_same.py::test_the_permission_you_chose_is_the_one_written_to_disk"
+  },
+  {
+    "label": "Q4 回覆詳細度的查表回到兩邊都錯的那一版（三格從來沒有一格是亮的）",
+    "file": "app/ui/settings_web_panel.py",
+    "replace": "VERBOSITY = {\"low\": \"concise\", \"medium\": \"standard\", \"high\": \"detailed\"}",
+    "with": "VERBOSITY = {\"concise\": \"low\", \"balanced\": \"medium\", \"detailed\": \"high\"}",
+    "test": "tests/test_a_setting_you_picked_comes_back_the_same.py::test_a_setting_you_picked_comes_back_the_same[verbosity]"
+  },
+  {
+    "label": "Q5 敏感度那一格不寫檔（他把專案改成客戶等級，逐字紀錄照樣往外同步）",
+    "file": "app/ui/settings_web_panel.py",
+    "replace": "        elif key == \"profile\" and self._project is not None:\n            ProjectRegistry.set_sensitivity(self._project, value)\n            changed = False",
+    "with": "        elif key == \"profile\" and False:\n            changed = False",
+    "test": "tests/test_a_setting_you_picked_comes_back_the_same.py::test_a_setting_you_picked_comes_back_the_same[profile]"
+  },
+  {
+    "label": "Q6 掃描認不得 `sw(...)` 那一種寫法（清單少兩格，而少掉的正是開關那兩格）",
+    "file": "tests/test_a_setting_you_picked_comes_back_the_same.py",
+    "replace": "    r\"\\bsw\\('([a-z_]+)'\",",
+    "with": "    # r\"\\bsw\\('([a-z_]+)'\",",
+    "test": "tests/test_a_setting_you_picked_comes_back_the_same.py::test_every_control_the_page_can_draw_is_listed_here"
+  },
+  {
+    "label": "Q7 開始推 verify_command 而 `_apply` 沒有它的分支（那一列會冒出來，按下去什麼都不存——`drive_sync` 當初那條路）",
+    "file": "app/ui/settings_web_panel.py",
+    "replace": "            \"long_task\": settings.long_task_mode,",
+    "with": "            \"long_task\": settings.long_task_mode,\n            \"verify_command\": \"pytest -q\",",
+    "test": "tests/test_a_setting_you_picked_comes_back_the_same.py::test_a_row_the_page_can_draw_but_python_never_pushes_is_named_here"
+  },
+  {
+    "label": "Q8 頁面長出一格沒有人推的新開關（那一列整列不出現，使用者讀成「這個設定不存在」，而唯一的抗議是一句沒有人收得到的 console.warn）",
+    "file": "app/ui/web/settings_v1.html",
+    "replace": "    rowIf('drive_sync','Google Drive 同步','把共享記憶與文件索引同步到雲端資料夾',()=>sw('drive_sync')),",
+    "with": "    rowIf('drive_sync','Google Drive 同步','把共享記憶與文件索引同步到雲端資料夾',()=>sw('drive_sync')),\n    rowIf('backup_nightly','每晚備份','出廠關著',()=>sw('backup_nightly')),",
+    "test": "tests/test_a_setting_you_picked_comes_back_the_same.py::test_a_row_the_page_can_draw_but_python_never_pushes_is_named_here"
+  },
+  {
+    "label": "Q9 `NEVER_PUSHED` 留著一個頁面上已經沒有的名字（一個沒有對應物的豁免，會在下一次有人剛好用同一個名字時無聲生效）",
+    "file": "tests/test_a_setting_you_picked_comes_back_the_same.py",
+    "replace": "    \"verify_timeout\": (",
+    "with": "    \"a_row_that_no_longer_exists\": \"頁面上已經沒有這一格了\",\n    \"verify_timeout\": (",
+    "test": "tests/test_a_setting_you_picked_comes_back_the_same.py::test_every_control_the_page_can_draw_is_listed_here"
+  }
+]

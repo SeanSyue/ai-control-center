@@ -1,0 +1,37 @@
+[
+  {
+    "label": "T1 章又變回只記錄不擋（缺章的執行照樣報告完成，而那份紀錄事後回溯不出來）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "                undecided = self._decision_blocked(",
+    "with": "                undecided = None and self._decision_blocked(",
+    "test": "tests/test_a_run_without_all_its_stamps_is_not_done.py"
+  },
+  {
+    "label": "T2 缺章被講成失敗（使用者會去修一個沒壞的東西，而那個紅燈跟一次真的失敗長得一模一樣）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "            workflow_status=\"NOT_DECIDABLE\",\n            review_status=\"PASS\",",
+    "with": "            workflow_status=\"CODEX_ERROR\",\n            review_status=\"FAIL\",",
+    "test": "tests/test_a_run_without_all_its_stamps_is_not_done.py"
+  },
+  {
+    "label": "T3 停下來卻不說缺誰的章（補不了的缺跟一個假的通過一樣壞）",
+    "file": "app/core/run_stamps.py",
+    "replace": "    if verdict.missing:\n        gaps = ",
+    "with": "    if False:\n        gaps = ",
+    "test": "tests/test_a_run_without_all_its_stamps_is_not_done.py"
+  },
+  {
+    "label": "T4 記帳算不出來就把執行擋下來（記帳變成一種新的失敗方式，比沒有它更糟）",
+    "file": "app/core/steps/approval.py",
+    "replace": "    if verdict is None or verdict.can_decide:",
+    "with": "    if verdict is not None and verdict.can_decide:",
+    "test": "tests/test_a_run_without_all_its_stamps_is_not_done.py"
+  },
+  {
+    "label": "T5 這一關連好的執行也擋（一道會擋掉本來就該過的執行的關卡，造成的損害比它防的多）",
+    "file": "app/core/steps/approval.py",
+    "replace": "    if verdict is None or verdict.can_decide:\n        return None",
+    "with": "    if verdict is None:\n        return None",
+    "test": "tests/test_a_run_without_all_its_stamps_is_not_done.py"
+  }
+]

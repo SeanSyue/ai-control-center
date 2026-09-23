@@ -1,0 +1,79 @@
+[
+  {
+    "label": "N1 核准那一格整步不跑（五節點流程的最後一句在引擎裡不存在，沒有人審閱所有簽章）",
+    "file": "app/core/steps/approval.py",
+    "replace": "    checker = chain_checker(orchestrator.lineup)\n    if not checker:",
+    "with": "    checker = \"\"\n    if not checker:",
+    "test": "tests/test_the_last_seat_reads_every_stamp.py"
+  },
+  {
+    "label": "N2 它同意了卻不蓋章（「有人審閱過所有簽章」這件事沒有憑據，而那正是它存在的意義）",
+    "file": "app/core/steps/approval.py",
+    "replace": "        stamper.approved(",
+    "with": "        (lambda **kw: None)(",
+    "test": "tests/test_the_last_seat_reads_every_stamp.py"
+  },
+  {
+    "label": "N3 有紅的機器章還是派它去看（花一次錢買一個蓋不掉事實的意見，而那意見會以一個章的形狀留下來）",
+    "file": "app/core/steps/approval.py",
+    "replace": "    if not red:\n        return None",
+    "with": "    if True:\n        return None",
+    "test": "tests/test_the_last_seat_reads_every_stamp.py"
+  },
+  {
+    "label": "N4 看不懂它的回覆就當成同意（蓋一個沒有人真的說過的章，而它讀起來跟真的一模一樣）",
+    "file": "app/core/steps/approval.py",
+    "replace": "    if not decision[\"decided\"]:",
+    "with": "    if False:",
+    "test": "tests/test_the_last_seat_reads_every_stamp.py"
+  },
+  {
+    "label": "N5 說可以但沒寫理由也放行（一個沒有理由的「我同意」，事後回溯回答不了憑什麼）",
+    "file": "app/core/orchestrator_parsing.py",
+    "replace": "        if not reasoning:\n            return {\n                \"decided\": False,",
+    "with": "        if False:\n            return {\n                \"decided\": False,",
+    "test": "tests/test_the_last_seat_reads_every_stamp.py"
+  },
+  {
+    "label": "N6 它拿到的是打勾表不是憑據（看不到每個章憑什麼成立，而判斷那個正是它的工作）",
+    "file": "app/core/run_stamps.py",
+    "replace": "            f\"  憑什麼：{why}\"",
+    "with": "            \"\"",
+    "test": "tests/test_the_last_seat_reads_every_stamp.py"
+  },
+  {
+    "label": "N7 核准那一格拿到寫入權限（它改的東西上面沒有任何人的章，而它剛蓋章說看過了）",
+    "file": "app/core/orchestrator.py",
+    "replace": "            event_type=\"approval\",\n            read_only=True,",
+    "with": "            event_type=\"approval\",\n            read_only=False,",
+    "test": "tests/test_the_last_seat_reads_every_stamp.py"
+  },
+  {
+    "label": "N8 複查的章寫死掛在 reviewer 名下（使用者取名「複查」之後，那個章掛在不存在的角色底下，拍板永遠缺一個而且補不出來）",
+    "file": "app/core/steps/reviewing.py",
+    "replace": "        site.stamper.reviewed(deliverable=git_diff, reasoning=why, role=seat)",
+    "with": "        site.stamper.reviewed(\n            deliverable=git_diff, reasoning=why, role=ROLE_REVIEWER\n        )",
+    "test": "tests/test_the_last_seat_reads_every_stamp.py"
+  },
+  {
+    "label": "N9 最後一格沒有被叫去驗簽章（跑完之後沒有人說過「這條鏈站得住」）",
+    "file": "app/core/steps/approval.py",
+    "replace": "    approvers = [checker]",
+    "with": "    approvers = []",
+    "test": "tests/test_the_last_seat_reads_every_stamp.py::test_the_last_seat_checks_the_chain_even_with_no_approver_seat"
+  },
+  {
+    "label": "N10 只跑最後一格複查（使用者排了兩格，引擎跑一格，而執行紀錄回報一切正常）",
+    "file": "app/core/steps/reviewing.py",
+    "replace": "    for seat in seats:\n        site.say(f\"{shown_name(seat)}正在複查\")",
+    "with": "    for seat in seats[-1:]:\n        site.say(f\"{shown_name(seat)}正在複查\")",
+    "test": "tests/test_the_last_seat_reads_every_stamp.py"
+  },
+  {
+    "label": "N11 有一格說要改還繼續問下一格（多出來的那幾次問的是一份即將被改掉的東西）",
+    "file": "app/core/steps/reviewing.py",
+    "replace": "        if status != \"PASS\":",
+    "with": "        if False:",
+    "test": "tests/test_the_last_seat_reads_every_stamp.py"
+  }
+]

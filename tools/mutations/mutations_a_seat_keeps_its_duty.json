@@ -1,0 +1,37 @@
+[
+  {
+    "label": "D1 「挑對話」又改回逐個位置參數重建（那一格從執行變成複查，畫面上一個字都不說，而那是他一定會按的一步）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "        slots[index] = replace(current, session_id=session_id)",
+    "with": "        slots[index] = AgentSlot(\n            current.role,\n            current.provider,\n            session_id,\n            current.credential,\n            current.identity,\n        )",
+    "test": "tests/test_a_seat_keeps_its_duty_through_every_button.py::test_a_button_changes_only_what_it_says_it_changes"
+  },
+  {
+    "label": "D2 「換廠牌」又改回逐個位置參數重建（同一個病，第二個入口）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "        slots[index] = replace(\n            current,\n            provider=provider,\n            session_id=session_id,\n            credential=current.credential if provider == current.provider else \"\",\n        )",
+    "with": "        slots[index] = AgentSlot(\n            current.role,\n            provider,\n            session_id,\n            current.credential if provider == current.provider else \"\",\n            current.identity,\n        )",
+    "test": "tests/test_a_seat_keeps_its_duty_through_every_button.py::test_a_button_changes_only_what_it_says_it_changes"
+  },
+  {
+    "label": "D3 「上下移動」的職責又改回從名字回推（移動一次，他自己取名的那一格就從執行變成複查——做事的那一格沒有了）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            self._lineup = self._lineup.moved(slots[index].role, target)",
+    "with": "            self._lineup = Lineup.of([\n                replace(new, duty=\"\")\n                for new in self._lineup.moved(slots[index].role, target)\n            ])",
+    "test": "tests/test_a_seat_keeps_its_duty_through_every_button.py::test_moving_a_seat_carries_the_duty_with_the_seat"
+  },
+  {
+    "label": "D4 「上下移動」的職責被留在位置上（2026-08-27 之前就是這樣：箭頭變成「順便把工作交換給隔壁那一格」，而卡片上的名字沒有動）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            self._lineup = self._lineup.moved(slots[index].role, target)",
+    "with": "            self._lineup = Lineup.of([\n                replace(new, duty=old.duty)\n                for new, old in zip(self._lineup.moved(slots[index].role, target), slots)\n            ])",
+    "test": "tests/test_a_seat_keeps_its_duty_through_every_button.py::test_moving_a_seat_carries_the_duty_with_the_seat"
+  },
+  {
+    "label": "D5 整條路走完沒有一格會做事（分開每一顆按鈕都可能是綠的，而使用者是連著按的——這一條走的就是五節點測試的第一步）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "        slots[index] = replace(current, session_id=session_id)",
+    "with": "        slots[index] = replace(current, session_id=session_id, duty=\"\")",
+    "test": "tests/test_a_seat_keeps_its_duty_through_every_button.py::test_the_seat_can_still_be_dispatched_after_the_whole_sequence"
+  }
+]

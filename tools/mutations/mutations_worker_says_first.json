@@ -1,0 +1,44 @@
+[
+  {
+    "label": "S1 「先交做法」那一步整個不跑（叫它先別動手變回一句叮嚀，而叮嚀會漏）",
+    "file": "app/core/steps/building.py",
+    "replace": "    existing = orchestrator.stored_work_intent(seat)\n    if existing.strip():\n        return existing, None, None",
+    "with": "    existing = \"\"\n    if True:\n        return existing, None, None",
+    "test": "tests/test_the_worker_says_what_it_will_do_first.py"
+  },
+  {
+    "label": "S2 說的時候就拿到寫入權限（它可以直接把東西做出來，然後那條定案只剩一句話）",
+    "file": "app/core/orchestrator.py",
+    "replace": "            event_type=\"work_intent\",\n            read_only=True,",
+    "with": "            event_type=\"work_intent\",\n            read_only=False,",
+    "test": "tests/test_the_worker_says_what_it_will_do_first.py"
+  },
+  {
+    "label": "S3 它自己說的做法沒有送到下一次派工手上（說了等於沒說，而那一次呼叫照樣要等）",
+    "file": "app/core/steps/building.py",
+    "replace": "                    work_plan=plan, role=at, discussion=talk, own_intent=mine",
+    "with": "                    work_plan=plan, role=at, discussion=talk, own_intent=\"\"",
+    "test": "tests/test_the_worker_says_what_it_will_do_first.py"
+  },
+  {
+    "label": "S4 它自己說的掛在「規劃者提出的」底下（兩格陣容裡根本沒有規劃者，它會照著一句不存在的話理解自己拿到的東西）",
+    "file": "app/core/prompt_builder.py",
+    "replace": "你剛才自己說的做法（照它做；發現它有錯就改，並在說明裡指出來）：",
+    "with": "規劃者提出的做法（照它做；發現它有錯就改，並在說明裡指出來）：",
+    "test": "tests/test_the_worker_says_what_it_will_do_first.py"
+  },
+  {
+    "label": "S5 續跑又問一次（再等一輪，而且拿到的做法可能不一樣，它做的東西跟它前面說的對不起來）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        return self.timeline.read_artifact(\n            self.run_id, self._artifact_name(\"work_intent\", role)\n        )",
+    "with": "        return \"\"",
+    "test": "tests/test_the_worker_says_what_it_will_do_first.py"
+  },
+  {
+    "label": "S6 有規劃者就不問它自己怎麼想（規劃者的做法是別人的理解，而沒對齊要等到東西做出來才會發現）",
+    "file": "app/core/steps/building.py",
+    "replace": "    existing = orchestrator.stored_work_intent(seat)",
+    "with": "    existing = orchestrator.stored_work_intent(seat) or \"x\"",
+    "test": "tests/test_the_worker_says_what_it_will_do_first.py"
+  }
+]

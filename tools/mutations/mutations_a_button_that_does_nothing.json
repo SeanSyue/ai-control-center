@@ -1,0 +1,44 @@
+[
+  {
+    "label": "T1 儀表板那顆「全部暫停」長回來（正常樣式、按得下去、什麼都不送——FG28 本身）",
+    "file": "app/ui/web/dashboard_v5.html",
+    "replace": "        <button class=\"btn q\" onclick=\"toggleAll(true)\">全部展開</button>",
+    "with": "        <button class=\"btn q\" onclick=\"toggleAll(true)\">全部展開</button>\n        <button class=\"btn q\">全部暫停</button>",
+    "test": "tests/test_a_button_you_can_press_does_something.py::test_no_button_is_shipped_with_nobody_listening"
+  },
+  {
+    "label": "T2 「＋ 新專案」那顆死分身長回來（shell 那顆是會動的，這一顆哪份文件都沒提）",
+    "file": "app/ui/web/dashboard_v5.html",
+    "replace": "        <button class=\"btn q\" onclick=\"toggleAll(true)\">全部展開</button>",
+    "with": "        <button class=\"btn q\" onclick=\"toggleAll(true)\">全部展開</button>\n        <button class=\"btn\">＋ 新專案</button>",
+    "test": "tests/test_a_button_you_can_press_does_something.py::test_no_button_is_shipped_with_nobody_listening"
+  },
+  {
+    "label": "T3 shell.js 的「新增專案」掉了 data-shell-act（只掃 .html 的話這顆一輩子不會被問到）",
+    "file": "app/ui/web/shell.js",
+    "replace": "<button data-shell-act=\"new_project\">",
+    "with": "<button>",
+    "test": "tests/test_a_button_you_can_press_does_something.py::test_no_button_is_shipped_with_nobody_listening"
+  },
+  {
+    "label": "T4 稽核頁的「預覽匯出」掉了 data-act（證明掃的不只是儀表板那一頁）",
+    "file": "app/ui/web/audit_v1.html",
+    "replace": "<button class=\"btn\" data-act=\"export_preview\">",
+    "with": "<button class=\"btn\">",
+    "test": "tests/test_a_button_you_can_press_does_something.py::test_no_button_is_shipped_with_nobody_listening"
+  },
+  {
+    "label": "T5 掃描範圍縮成只有儀表板一頁（前提檢查要看得出來，否則縮範圍是無聲的）",
+    "file": "tests/test_a_button_you_can_press_does_something.py",
+    "replace": "    return sorted(p for p in WEB.iterdir() if p.suffix in SHIPPED_SUFFIXES)",
+    "with": "    return [WEB / \"dashboard_v5.html\"]",
+    "test": "tests/test_a_button_you_can_press_does_something.py::test_the_scan_really_reaches_every_shipped_page"
+  },
+  {
+    "label": "T6 那顆按鈕帶著一個沒有人讀的 data-（有屬性不等於有人接——委派只認它 closest() 的那個名字）",
+    "file": "app/ui/web/dashboard_v5.html",
+    "replace": "        <button class=\"btn q\" onclick=\"toggleAll(true)\">全部展開</button>",
+    "with": "        <button class=\"btn q\" onclick=\"toggleAll(true)\">全部展開</button>\n        <button class=\"btn q\" data-pausealltheprojects=\"1\">全部暫停</button>",
+    "test": "tests/test_a_button_you_can_press_does_something.py::test_no_button_is_shipped_with_nobody_listening"
+  }
+]

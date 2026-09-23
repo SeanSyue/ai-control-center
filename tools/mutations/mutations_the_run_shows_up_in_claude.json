@@ -1,0 +1,44 @@
+[
+  {
+    "label": "V1 引擎不再去登記（登記器自己的測試照樣全綠，因為沒有人叫它）",
+    "file": "app/core/orchestrator.py",
+    "replace": "            self._register_in_vendor_sidebar(result.session_id, title)",
+    "with": "            pass",
+    "test": "tests/test_the_run_shows_up_in_claude.py"
+  },
+  {
+    "label": "V2 官方的 --name 不再送（事後在 /resume 選單裡找不到 AICC 跑過什麼）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        arguments.extend([\"--name\", self._session_display_name(role)])",
+    "with": "        pass",
+    "test": "tests/test_the_run_shows_up_in_claude.py"
+  },
+  {
+    "label": "V3 寫完不再讀回來比對（無聲失敗——照樣寫、照樣沒錯誤、側邊欄就是不出現）",
+    "file": "app/services/vendor_session_index.py",
+    "replace": "        return self._verify(target, entry)",
+    "with": "        return Registration(True, \"\", str(target))",
+    "test": "tests/test_the_run_shows_up_in_claude.py"
+  },
+  {
+    "label": "V4 標題標成使用者親手打的（桌面版會以為他命名過，之後不再更新那個名字）",
+    "file": "app/services/vendor_session_index.py",
+    "replace": "                \"titleSource\": \"auto\",",
+    "with": "                \"titleSource\": \"user\",",
+    "test": "tests/test_the_run_shows_up_in_claude.py"
+  },
+  {
+    "label": "V5 登記失敗默默吞掉（最貴的那一種：跟「這次沒跑」在畫面上一模一樣）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        if problem:\n            self.timeline.append(",
+    "with": "        if False:\n            self.timeline.append(",
+    "test": "tests/test_the_run_shows_up_in_claude.py"
+  },
+  {
+    "label": "V6 同一段對話每次都新增（側邊欄被同一個任務洗版，比看不到還糟）",
+    "file": "app/services/vendor_session_index.py",
+    "replace": "        existing = self._existing_entry(workspace, cli_session_id)",
+    "with": "        existing = None",
+    "test": "tests/test_the_run_shows_up_in_claude.py"
+  }
+]

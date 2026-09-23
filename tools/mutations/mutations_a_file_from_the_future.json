@@ -1,0 +1,44 @@
+[
+  {
+    "label": "V1 版本號寫出去但沒有人讀（新版寫的陣容被舊版靜靜蓋掉，使用者不會收到一個字）",
+    "file": "app/services/session_registry.py",
+    "replace": "    def written_by_a_newer_build(self) -> bool:\n        return self.stored_version() > self.VERSION",
+    "with": "    def written_by_a_newer_build(self) -> bool:\n        return False",
+    "test": "tests/test_a_file_from_the_future_is_not_overwritten.py::test_a_newer_sessions_file_is_not_overwritten"
+  },
+  {
+    "label": "V2 版本號根本沒寫進檔案（下一版打開它的時候分不出這是第幾版）",
+    "file": "app/services/session_registry.py",
+    "replace": "            \"version\": self.VERSION,",
+    "with": "            \"version\": 0,",
+    "test": "tests/test_a_file_from_the_future_is_not_overwritten.py::test_the_version_actually_reaches_the_file"
+  },
+  {
+    "label": "V3 「太新」的訊息不講是第幾版（使用者只知道存不了，不知道能做什麼）",
+    "file": "app/services/session_registry.py",
+    "replace": "                f\"{self.path} 是第 {self.stored_version()} 版寫的，\"\n                f\"這個版本只認得到第 {self.VERSION} 版。\"\n                \"沒有動它——請更新 AICC，或者把那個檔案移開再開一次。\"",
+    "with": "                \"存不了。\"",
+    "test": "tests/test_a_file_from_the_future_is_not_overwritten.py::test_the_refusal_says_which_version_and_what_to_do"
+  },
+  {
+    "label": "V4 舊檔案（沒有版本號）也被當成太新（每個既有專案在升級的當下變成唯讀）",
+    "file": "app/services/session_registry.py",
+    "replace": "            return int(raw.get(\"version\", 0))",
+    "with": "            return int(raw.get(\"version\", 99))",
+    "test": "tests/test_a_file_from_the_future_is_not_overwritten.py::test_an_old_file_without_a_version_still_saves"
+  },
+  {
+    "label": "V5 模式檔太新照樣蓋（同一個病的第二個入口）",
+    "file": "app/services/lineup_presets.py",
+    "replace": "        if version > FORMAT_VERSION:",
+    "with": "        if False:",
+    "test": "tests/test_a_file_from_the_future_is_not_overwritten.py::test_a_newer_preset_file_is_not_overwritten"
+  },
+  {
+    "label": "V6 兩份檔案的版本號各走各的（存得進模式、讀不進專案）",
+    "file": "app/services/lineup_presets.py",
+    "replace": "FORMAT_VERSION = 1",
+    "with": "FORMAT_VERSION = 2",
+    "test": "tests/test_a_file_from_the_future_is_not_overwritten.py::test_the_two_files_agree_on_what_version_one_means"
+  }
+]

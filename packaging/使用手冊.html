@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>AI Control Center 使用手冊</title>
+<style>
+  body {
+    font-family: "Microsoft JhengHei", "Segoe UI", sans-serif;
+    max-width: 760px;
+    margin: 40px auto;
+    padding: 0 20px;
+    line-height: 1.7;
+    color: #222;
+  }
+  h1 { font-size: 1.8em; border-bottom: 3px solid #2b6cb0; padding-bottom: 8px; }
+  h2 { font-size: 1.3em; color: #2b6cb0; margin-top: 2em; }
+  h3 { font-size: 1.05em; color: #333; }
+  code {
+    background: #f0f2f5;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: Consolas, monospace;
+  }
+  .warn {
+    background: #fff8e1;
+    border-left: 4px solid #f5a623;
+    padding: 10px 16px;
+    margin: 16px 0;
+  }
+  .note {
+    background: #e8f1fc;
+    border-left: 4px solid #2b6cb0;
+    padding: 10px 16px;
+    margin: 16px 0;
+  }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+  th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+  th { background: #f0f2f5; }
+  footer { margin-top: 3em; color: #888; font-size: 0.9em; border-top: 1px solid #eee; padding-top: 1em; }
+</style>
+</head>
+<body>
+
+<h1>AI Control Center 使用手冊</h1>
+<p>版本 0.9.0.1</p>
+
+<p>AI Control Center（以下簡稱 AICC）是一個本機優先的桌面工具，用來協調 <strong>Claude Code</strong> 與 <strong>Codex</strong> 這兩個 AI 命令列工具，讓它們針對同一個專案自動規劃、開發、測試、互相審查，只有真正需要你做決定的時候才會停下來等你。</p>
+
+<p>AICC 本身<strong>不會取代</strong> Claude Code 或 Codex，也不是雲端服務——它是安裝在你電腦上、協調這兩個已經裝好的工具的控制台。</p>
+
+<h2>安裝前必看：系統需求</h2>
+
+<div class="warn">
+<strong>這是最容易卡關的地方，請務必先確認：</strong> AICC 本身不包含 Claude Code 或 Codex，你的電腦上必須<strong>已經安裝並登入</strong>這兩套工具，AICC 才有東西可以協調。如果還沒裝，AICC 打開後會找不到任何可用的對話或執行環境。
+</div>
+
+<table>
+<tr><th>需要的東西</th><th>用途</th></tr>
+<tr><td>Windows 10 / 11（64 位元）</td><td>目前只支援 Windows。</td></tr>
+<tr><td>Claude Code CLI（已登入）</td><td>AICC 呼叫它來實際寫程式、跑測試。</td></tr>
+<tr><td>Codex CLI（已登入）</td><td>AICC 呼叫它來規劃、審查 Claude 的成果。</td></tr>
+<tr><td>Git</td><td>大多數專案會需要，用來追蹤變更。</td></tr>
+</table>
+
+<p>如果你還沒裝 Claude Code 或 Codex，請先到各自官方管道安裝、登入，確認在終端機裡可以直接打 <code>claude</code> 或 <code>codex</code> 指令且能正常對話後，再回來使用 AICC。</p>
+
+<h2>安裝</h2>
+
+<ol>
+<li>雙擊 <code>AI Control Center Setup.exe</code>。</li>
+<li>依精靈指示完成（預設會裝在你自己的使用者資料夾底下，不需要系統管理員權限，也不會跳出 UAC 視窗）。</li>
+<li>選擇是否要建立桌面捷徑。</li>
+<li>安裝完成後可以直接勾選「啟動 AI Control Center」。</li>
+</ol>
+
+<p>之後要解除安裝，到 Windows「設定 → 應用程式」或開始選單裡的「解除安裝 AI Control Center」即可，會乾淨移除所有安裝的檔案與捷徑。</p>
+
+<h2>第一次啟動</h2>
+
+<p>第一次打開 AICC 時，如果你的電腦上還沒有任何 AICC 專案，它會自動在你的「文件」資料夾底下建立一個 <code>AI Control Center</code> 資料夾當作起點。你可以直接開始用這個資料夾，或按「新增專案」改指到你真正想開發的專案資料夾。</p>
+
+<p><strong>「專案」對 AICC 來說就是一個資料夾。</strong> 你可以隨時用「新增專案」把任何已有的專案資料夾加進來，AICC 會在裡面建立一個 <code>.aicc/</code> 子資料夾存放它自己的執行記錄、設定與共同記憶，不會動到你原本的程式碼。</p>
+
+<h2>主畫面導覽</h2>
+
+<p>視窗中間是分頁區，由左到右：</p>
+
+<table>
+<tr><th>分頁</th><th>用途</th></tr>
+<tr><td>連接對話</td><td>搜尋你電腦上既有的 Claude / Codex 對話紀錄，可以把某段對話直接綁到目前專案，或用一組對話建立新專案。</td></tr>
+<tr><td>Dashboard</td><td>同時管理多個專案：哪些正在執行、哪些在等你回答問題、佇列與同時執行上限設定都在這裡。</td></tr>
+<tr><td>Claude × Codex 對話</td><td>目前專案的 Claude / Codex session 時間軸，可以預覽、重新命名、續接。</td></tr>
+<tr><td>專案資料</td><td>這個專案匯入的文件、共同記憶內容（AICC 自動維護的專案知識庫）。</td></tr>
+<tr><td>Roadmap</td><td>這個專案自己的開發路線圖文件（如果有的話）。</td></tr>
+<tr><td>即時紀錄</td><td>工作流程執行中，Claude/Codex 的即時輸出會即時顯示在這裡。</td></tr>
+</table>
+
+<p>視窗最上方是專案選擇下拉選單、專案敏感度設定，以及「開始執行」等主要操作按鈕。</p>
+
+<h2>執行你的第一個工作流程</h2>
+
+<ol>
+<li>用最上方的專案下拉選單，選擇（或用「新增專案」加入）你要處理的專案資料夾。</li>
+<li>展開下方的「AI 執行設定」，選擇規劃模式（Codex 先想清楚再做）或開發模式（Claude 先動手、跑測試、Codex 再審查），並填寫這次要做的任務描述。</li>
+<li>按「開始執行」。</li>
+<li>切到「即時紀錄」分頁，即時看 Claude / Codex 在做什麼。</li>
+<li>你可以隨時切換到 Dashboard 或其他專案，AICC 會在背景繼續跑，不會因為你切換畫面而中斷。</li>
+</ol>
+
+<h2>Decision Gate：什麼時候會需要你</h2>
+
+<div class="note">
+AICC 刻意設計成<strong>不會自動彈出視窗打斷你</strong>。工作流程如果卡在一個需要你判斷的問題上，畫面上「開始執行」按鈕會變成「回答問題」，Dashboard 的「等待決策」欄位也會顯示這個專案在等你。你需要主動切換到那個專案、按下「回答問題」才會看到問題內容——這是刻意的設計，避免你在做別的事情時被突然彈出的視窗打斷。
+</div>
+
+<p>如果你設定過 LINE 通知，AICC 等待一段時間後也會發一則 LINE 訊息提醒你（純通知，不能透過 LINE 回覆來操作電腦）。</p>
+
+<h2>專案敏感度設定</h2>
+
+<p>每個專案可以設定三種敏感度等級，會影響匯出 / 雲端同步的嚴格程度：</p>
+
+<table>
+<tr><th>等級</th><th>說明</th></tr>
+<tr><td>個人專案</td><td>預設等級，一般開發用途。</td></tr>
+<tr><td>客戶專案</td><td>牽涉客戶資料，匯出/同步前的安全檢查會更嚴格。</td></tr>
+<tr><td>高敏感度／KYC</td><td>最嚴格等級，完全禁止匯出 Workspace 或同步到雲端，沒有例外。適合處理身分驗證、合約等高度敏感資料的專案。</td></tr>
+</table>
+
+<h2>常見問題</h2>
+
+<h3>按了「開始執行」沒有反應，或很快就顯示錯誤</h3>
+<p>最常見原因是 Claude Code 或 Codex CLI 沒有正確安裝/登入。請先在終端機（命令提示字元）裡直接打 <code>claude</code> 或 <code>codex</code>，確認能正常互動，再回到 AICC 重試。</p>
+
+<h3>可以同時跑好幾個專案嗎？</h3>
+<p>可以。AICC 支援在同一個視窗裡真正同時執行多個專案的工作流程，不只是切換畫面焦點——在 Dashboard 分頁可以看到全部專案的狀態，並設定同時執行上限。</p>
+
+<h3>資料會被上傳到雲端嗎？</h3>
+<p>不會，AICC 是本機優先設計，所有執行都在你自己的電腦上進行。只有你自己主動設定並啟用 Google Drive 資料夾同步時，才會把指定的檔案複製到你自己的雲端硬碟資料夾。</p>
+
+<h3>如何設定 LINE 通知？</h3>
+<p>在主畫面按「LINE 設定」，填入你自己的 LINE Notify / Messaging API 憑證即可。這一步完全是選用的，不設定也不影響 AICC 正常使用。</p>
+
+<footer>
+本手冊隨 AI Control Center 0.9.0.1 安裝程式一併提供。
+</footer>
+
+</body>
+</html>

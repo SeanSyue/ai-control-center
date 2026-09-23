@@ -1,0 +1,65 @@
+[
+  {
+    "label": "X1 派工又回到八份全塞（分三層變成一個只存在於文件裡的詞）",
+    "file": "app/services/project_knowledge.py",
+    "replace": "        if duty:\n            wanted = tuple(",
+    "with": "        if False:\n            wanted = tuple(",
+    "test": "tests/test_each_seat_only_gets_its_own_block.py::test_the_big_ones_are_not_pushed_any_more"
+  },
+  {
+    "label": "X2 底座改成只給指標（AI 不會主動去讀一份限制自己的檔案）",
+    "file": "app/core/rule_layers.py",
+    "replace": "    files = list(BASE_FILES)",
+    "with": "    files = []",
+    "test": "tests/test_each_seat_only_gets_its_own_block.py::test_the_safety_rules_still_arrive_word_for_word"
+  },
+  {
+    "label": "X3 只給索引不點名（「AI 可能不去讀」那個風險原封不動留著）",
+    "file": "app/core/rule_layers.py",
+    "replace": "    if must_read:",
+    "with": "    if False:",
+    "test": "tests/test_each_seat_only_gets_its_own_block.py::test_the_seat_is_told_which_ones_to_read"
+  },
+  {
+    "label": "X4 每一種職責點名同一份（角色積木這個詞存在，行為跟全量下發一樣）",
+    "file": "app/core/rule_layers.py",
+    "replace": "    return _READ_BEFORE_STARTING.get(duty, _FALLBACK)",
+    "with": "    return _FALLBACK",
+    "test": "tests/test_each_seat_only_gets_its_own_block.py::test_two_duties_do_not_get_the_same_thing"
+  },
+  {
+    "label": "X5 索引列出這個專案沒有的檔案（AI 去讀、讀不到、開始猜，那一輪浪費在我們造的謎題上）",
+    "file": "app/core/rule_layers.py",
+    "replace": "        if name in available and name not in pushed_files(True)",
+    "with": "        if name not in pushed_files(True)",
+    "test": "tests/test_each_seat_only_gets_its_own_block.py::test_the_pointer_never_names_a_file_that_is_not_there"
+  },
+  {
+    "label": "X6 使用者訂的規矩派工時沒送到（他寫了，而沒有一格看得到）",
+    "file": "app/services/project_knowledge.py",
+    "replace": "                for name in rule_layers.pushed_files(\n                    PROJECT_RULES_FILE in available\n                )",
+    "with": "                for name in rule_layers.pushed_files(False)",
+    "test": "tests/test_each_seat_only_gets_its_own_block.py::test_the_users_own_rules_are_pushed_word_for_word"
+  },
+  {
+    "label": "X7 給人看的文件那條路也被砍成底座（交接包從此少六份）",
+    "file": "app/services/project_knowledge.py",
+    "replace": "        return self._memory_context(duty=\"\")\n\n    def build_dispatch_context",
+    "with": "        return self._memory_context(duty=\"work\")\n\n    def build_dispatch_context",
+    "test": "tests/test_each_seat_only_gets_its_own_block.py::test_the_document_path_is_untouched"
+  },
+  {
+    "label": "X8 memory_budget 不再量派工那條路（規則分三層上線之後它對著沒人跑的路徑印綠燈）",
+    "file": "tools/memory_budget.py",
+    "replace": "            if body and body not in dispatched:",
+    "with": "            if False:",
+    "test": "tests/test_memory_budget_tool.py::test_it_goes_red_when_the_dispatch_path_gets_cut"
+  },
+  {
+    "label": "X9 工具不再印「這一格送了哪幾份」（「該送的」變成一句沒有人能反駁的話）",
+    "file": "tools/memory_budget.py",
+    "replace": "    print(\"   派工時每一格實際收到什麼（規則分三層）\")",
+    "with": "    pass",
+    "test": "tests/test_memory_budget_tool.py::test_it_shows_which_files_each_seat_gets"
+  }
+]

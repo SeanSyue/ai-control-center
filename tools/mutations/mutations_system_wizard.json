@@ -1,0 +1,51 @@
+[
+  {
+    "label": "S1 系統精靈長出第三題（第①題是 CLI 檢查不是問句，多一個欄位就是精靈開始長胖）",
+    "file": "app/services/system_wizard.py",
+    "replace": "    depth: str = DEPTH_THRIFTY\n    look: str = LOOK_NIGHT",
+    "with": "    depth: str = DEPTH_THRIFTY\n    look: str = LOOK_NIGHT\n    notify: bool = False",
+    "test": "tests/test_the_system_wizard_asks_three_questions.py::test_it_asks_two_questions_and_runs_one_check"
+  },
+  {
+    "label": "S2 精靈自己再寫一份深淺的值（跟設定庫漂開之後，profile() 靜靜落到最省的那一張——不是報錯，是給他別的東西）",
+    "file": "app/services/system_wizard.py",
+    "replace": "DEPTH_DEEP = ai_settings.PROFILE_DEEP",
+    "with": "DEPTH_DEEP = \"deep_thinking\"",
+    "test": "tests/test_the_system_wizard_asks_three_questions.py::test_the_depth_names_match_what_the_settings_store_understands"
+  },
+  {
+    "label": "S3 「自訂」從最省的那張起跳（他按自訂是為了調深，結果起點比他原本的還淺）",
+    "file": "app/services/system_wizard.py",
+    "replace": "_CUSTOM_STARTS_FROM = DEPTH_STANDARD",
+    "with": "_CUSTOM_STARTS_FROM = DEPTH_THRIFTY",
+    "test": "tests/test_the_system_wizard_asks_three_questions.py::test_custom_starts_from_standard_not_from_blank"
+  },
+  {
+    "label": "S4 不認得的深淺回一張預設（他選了深入、付了他以為的代價，拿到省額度的結果）",
+    "file": "app/services/system_wizard.py",
+    "replace": "    if depth not in DEPTHS:\n        raise SystemWizardError(f\"不認得的深淺：{depth!r}\")",
+    "with": "    if depth not in DEPTHS:\n        depth = DEPTH_THRIFTY",
+    "test": "tests/test_the_system_wizard_asks_three_questions.py::test_an_unknown_depth_raises_rather_than_quietly_defaulting"
+  },
+  {
+    "label": "S5 服務層又去 import 畫面層（系統精靈變成只有開得起視窗才測得動的東西，而它的邏輯一行畫面都沒有）",
+    "file": "app/services/system_wizard.py",
+    "replace": "    ui_preferences.set_mode(look)",
+    "with": "    from app.ui.web_panel import THEME\n\n    THEME.set_mode(look)",
+    "test": "tests/test_the_system_wizard_asks_three_questions.py::test_the_wizard_does_not_import_the_screen"
+  },
+  {
+    "label": "S6 三個深淺套出來一模一樣（名字不同、內容相同，使用者選什麼都拿到同一個東西）",
+    "file": "app/services/ai_settings.py",
+    "replace": "        if normalized_name == PROFILE_STANDARD:",
+    "with": "        if False:",
+    "test": "tests/test_the_system_wizard_asks_three_questions.py::test_the_three_depths_are_actually_different"
+  },
+  {
+    "label": "S7 深淺跟輪數反過來（深入比標準給的輪數還少，畫面上完全看不出來，使用者只覺得這工具很不穩定）",
+    "file": "app/services/ai_settings.py",
+    "replace": "                planning_rounds=2,",
+    "with": "                planning_rounds=0,",
+    "test": "tests/test_the_system_wizard_asks_three_questions.py::test_deeper_costs_more_not_less"
+  }
+]

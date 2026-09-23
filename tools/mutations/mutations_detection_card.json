@@ -1,0 +1,58 @@
+[
+  {
+    "label": "D1 沒有證據也填一個看起來很合理的測試指令（一個永遠不會失敗的驗證指令＝每一次執行都拿到綠燈）",
+    "file": "app/services/project_detection.py",
+    "replace": "    return Finding(\n        t(\"detect.cell.verify\"), \"\", t(\"detect.because.no_test_config\"), UNKNOWN\n    )",
+    "with": "    return Finding(\n        t(\"detect.cell.verify\"), \"pytest\", t(\"detect.because.no_test_config\"), UNKNOWN\n    )",
+    "test": "tests/test_the_detection_card_says_how_sure_it_is.py::test_no_marker_means_unknown_not_a_made_up_command"
+  },
+  {
+    "label": "D2 「查不到版本控制」被寫成「沒有版本控制」（他以為 AICC 檢查過了，而 repo 的根可能在上一層）",
+    "file": "app/services/project_detection.py",
+    "replace": "    return Finding(\n        t(\"detect.cell.version_control\"),\n        \"\",\n        t(\"detect.because.no_git\"),\n        UNKNOWN,\n    )",
+    "with": "    return Finding(\n        t(\"detect.cell.version_control\"),\n        \"沒有\",\n        t(\"detect.because.no_git\"),\n        SURE,\n    )",
+    "test": "tests/test_the_detection_card_says_how_sure_it_is.py::test_no_git_says_cannot_tell_not_says_none"
+  },
+  {
+    "label": "D3 專案名稱被相對路徑吃成空白（卡片看起來像「AICC 查不到你的專案叫什麼」，而那是假象）",
+    "file": "app/services/project_detection.py",
+    "replace": "    resolved = project.expanduser().resolve()",
+    "with": "    resolved = project",
+    "test": "tests/test_the_detection_card_says_how_sure_it_is.py::test_the_project_name_is_never_blank_because_of_a_relative_path"
+  },
+  {
+    "label": "D4 每一格都標成「要注意」（全部標等於沒有標，那格空的驗證指令淹沒在裡面）",
+    "file": "app/services/project_detection.py",
+    "replace": "        return self.confidence in (GUESSED, UNKNOWN)",
+    "with": "        return True",
+    "test": "tests/test_the_detection_card_says_how_sure_it_is.py::test_the_cells_he_should_look_at_are_singled_out"
+  },
+  {
+    "label": "D5 偵測開始跑他專案裡的指令（AICC 在使用者按下同意之前就執行了他的程式碼）",
+    "file": "app/services/project_detection.py",
+    "replace": "from dataclasses import dataclass",
+    "with": "import subprocess\nfrom dataclasses import dataclass",
+    "test": "tests/test_the_detection_card_says_how_sure_it_is.py::test_detection_runs_nothing_and_writes_nothing"
+  },
+  {
+    "label": "D6 有一格不講憑什麼（這張卡變成一份不知道從哪來的設定，他只能全部相信或全部重填）",
+    "file": "app/services/project_detection.py",
+    "replace": "                t(\"detect.because.saw_marker\", marker=marker),\n                LIKELY,",
+    "with": "                \"\",\n                LIKELY,",
+    "test": "tests/test_the_detection_card_says_how_sure_it_is.py::test_every_cell_says_what_it_is_and_why"
+  },
+  {
+    "label": "D7 有一級把握沒有人產得出來（等於在說一件產品不會做的事，而它 2026-08-24 之前就是這樣）",
+    "file": "app/services/project_detection.py",
+    "replace": "    (\"pyproject.toml\", \"pytest\", GUESSED),\n    (\"package.json\", \"npm test\", GUESSED),",
+    "with": "    (\"pyproject.toml\", \"pytest\", LIKELY),\n    (\"package.json\", \"npm test\", LIKELY),",
+    "test": "tests/test_the_detection_card_says_how_sure_it_is.py::test_no_confidence_level_is_dead"
+  },
+  {
+    "label": "D8 「看到 pyproject.toml 就填 pytest」被當成有證據（那一格看起來跟看到 pytest.ini 一樣可信，而它填錯會讓每次執行都拿到假綠燈）",
+    "file": "app/services/project_detection.py",
+    "replace": "    (\"pyproject.toml\", \"pytest\", GUESSED),",
+    "with": "    (\"pyproject.toml\", \"pytest\", SURE),",
+    "test": "tests/test_the_detection_card_says_how_sure_it_is.py::test_a_generic_marker_is_a_guess_not_a_likelihood"
+  }
+]

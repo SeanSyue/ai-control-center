@@ -1,0 +1,107 @@
+[
+  {
+    "label": "D1 回頭直接信 run.json 的 RUNNING（老闆打開 App，首頁說他唯一那個專案「執行中」，而那一次執行六天前就死了；佇列永遠不排它）",
+    "file": "app/services/project_dashboard.py",
+    "replace": "                if self.is_really_running(path, latest.run_id):",
+    "with": "                if True:",
+    "test": "tests/test_a_run_that_died_is_not_still_called_running.py::test_a_run_nobody_holds_the_lock_for_is_not_called_running"
+  },
+  {
+    "label": "D2 凍住的那一半：說它在跑 → can_start=False、can_start_more=False，那個專案再也不會被排到",
+    "file": "app/services/project_dashboard.py",
+    "replace": "                if self.is_really_running(path, latest.run_id):",
+    "with": "                if True:",
+    "test": "tests/test_a_run_that_died_is_not_still_called_running.py::test_the_queue_can_reach_a_project_whose_last_run_died"
+  },
+  {
+    "label": "D3 反過來：一律不信，真的在跑的專案被畫成中斷（他會去按重跑，然後被鎖擋下來，而畫面沒說為什麼）",
+    "file": "app/services/project_dashboard.py",
+    "replace": "        if not run_id:\n            return False\n        if cls.lock_holder(project_path) != run_id:",
+    "with": "        if True:\n            return False\n        if cls.lock_holder(project_path) != run_id:",
+    "test": "tests/test_a_run_that_died_is_not_still_called_running.py::test_a_run_that_really_holds_the_lock_is_still_called_running"
+  },
+  {
+    "label": "D4 只看「有沒有鎖」，不看鎖上寫的是哪一次（別的執行留下的鎖替這一次背書——**含有那個名字不等於是那個名字**的同一種錯）",
+    "file": "app/services/project_dashboard.py",
+    "replace": "        if cls.lock_holder(project_path) != run_id:\n            return False",
+    "with": "        if not cls.lock_path(project_path).is_file():\n            return False",
+    "test": "tests/test_a_run_that_died_is_not_still_called_running.py::test_a_lock_held_by_a_different_run_does_not_vouch_for_this_one"
+  },
+  {
+    "label": "D5 過期的鎖照樣算背書（那個專案凍在「執行中」，而排程器同時說它 stale_lock——畫面跟排程器講的不是同一件事）",
+    "file": "app/services/project_dashboard.py",
+    "replace": "        return not cls.is_stale_lock(project_path)",
+    "with": "        return True",
+    "test": "tests/test_a_run_that_died_is_not_still_called_running.py::test_a_stale_lock_does_not_vouch_for_a_running_claim"
+  },
+  {
+    "label": "D6 讀不出來的鎖回一個不是空字串的東西（「不知道是誰握著」開始有機會被當成「就是你」——一個壞掉的鎖檔就能讓那個專案永遠凍在「執行中」）",
+    "file": "app/services/project_dashboard.py",
+    "replace": "        except (OSError, ValueError, json.JSONDecodeError, TypeError):\n            return \"\"\n        if not isinstance(payload, dict):",
+    "with": "        except (OSError, ValueError, json.JSONDecodeError, TypeError):\n            return \"?\"\n        if not isinstance(payload, dict):",
+    "test": "tests/test_a_run_that_died_is_not_still_called_running.py::test_a_lock_we_cannot_read_does_not_vouch_for_anything"
+  },
+  {
+    "label": "D7 中斷落回「待命」（跟一個從來沒跑過的專案一個像素都不差——這個專案已經為同一個形狀修過兩次）",
+    "file": "app/services/project_dashboard.py",
+    "replace": "                    status = \"dash.state.interrupted\"",
+    "with": "                    status = \"dash.state.idle\"",
+    "test": "tests/test_a_run_that_died_is_not_still_called_running.py::test_a_run_nobody_holds_the_lock_for_is_not_called_running"
+  },
+  {
+    "label": "D8 中斷跟執行中畫在同一條泳道（卡片一樣會跳，而跳動的意思是「現在正在動」——它沒有在動）",
+    "file": "app/ui/dashboard_web_panel.py",
+    "replace": "    (\"dash.state.interrupted\", (\"gate\", \"needs_you\")),",
+    "with": "    (\"dash.state.interrupted\", (\"run\", \"run\")),",
+    "test": "tests/test_a_run_that_died_is_not_still_called_running.py::test_the_card_does_not_look_like_a_running_one"
+  },
+  {
+    "label": "D9 中斷在 codex 那一欄寫「待命」（卡片正面說中斷、旁邊那一欄說待命，兩句話同時在畫面上）",
+    "file": "app/ui/dashboard_web_panel.py",
+    "replace": "        if item.status == \"dash.state.interrupted\":\n            return t(\"dash.state.interrupted\")",
+    "with": "        if False:\n            return t(\"dash.state.interrupted\")",
+    "test": "tests/test_a_run_that_died_is_not_still_called_running.py::test_the_codex_column_does_not_call_an_interrupted_run_idle"
+  },
+  {
+    "label": "D10 兩種中斷合成一種（「直接重跑」跟「先去看一眼那個資料夾」變成同一句話，而它們的下一步不一樣）",
+    "file": "app/services/project_dashboard.py",
+    "replace": "                    return cls.INTERRUPTED_STOPPED_MIDWAY\n            except FileNotFoundError:",
+    "with": "                    return cls.INTERRUPTED_NEVER_STARTED\n            except FileNotFoundError:",
+    "test": "tests/test_a_run_that_died_is_not_still_called_running.py::test_a_run_that_left_a_timeline_behind_says_so"
+  },
+  {
+    "label": "D11 只看 timeline.jsonl，不看 steps.jsonl（有步驟紀錄卻沒有時間軸的那一次被說成「連開始都沒開始」，而他會直接重跑掉一份還躺在那裡的紀錄）",
+    "file": "app/services/project_dashboard.py",
+    "replace": "for name in (\"timeline.jsonl\", \"steps.jsonl\"):",
+    "with": "for name in (\"timeline.jsonl\",):",
+    "test": "tests/test_a_run_that_died_is_not_still_called_running.py::test_a_run_with_only_a_step_log_says_it_got_somewhere"
+  },
+  {
+    "label": "D12 畫面那張表少一種中斷（那一列整列不見，卡片上只剩一個狀態字，而它不回答「我現在該做什麼」）",
+    "file": "app/ui/dashboard_web_panel.py",
+    "replace": "    ProjectDashboardService.INTERRUPTED_NEVER_STARTED:\n        \"dash.interrupted.never_started\",\n",
+    "with": "",
+    "test": "tests/test_a_run_that_died_is_not_still_called_running.py::test_the_card_says_what_to_do_next"
+  },
+  {
+    "label": "D13 那句話的 key 打錯一個字（走到那一列才炸，而那一列只在「上一次中斷了」的時候走得到——平常永遠是綠的）",
+    "file": "app/ui/dashboard_web_panel.py",
+    "replace": "        \"dash.interrupted.stopped_midway\",",
+    "with": "        \"dash.interrupted.stopped_halfway\",",
+    "test": "tests/test_a_run_that_died_is_not_still_called_running.py::test_the_card_says_what_to_do_next"
+  },
+  {
+    "label": "D14 兩種中斷寫成同一句話（分了兩種，而畫面上長一樣——等於沒有分）",
+    "file": "app/i18n.py",
+    "replace": "    \"dash.interrupted.never_started\": \"還沒開始就中斷了。直接重跑，不會少掉什麼。\",",
+    "with": "    \"dash.interrupted.never_started\": \"跑到一半中斷了。紀錄留在 .aicc/runs 裡，重跑前可以先看一眼。\",",
+    "test": "tests/test_a_run_that_died_is_not_still_called_running.py::test_the_card_says_what_to_do_next"
+  },
+  {
+    "label": "D15 拿「被更新過沒」當證據（**這條 2026-08-28 量到是錯的**：8/26 那兩筆什麼都沒跑，updated_at 卻晚了 1.5 毫秒——每一次中斷都會被說成「跑到一半」，然後他去翻一個空資料夾）",
+    "file": "app/services/project_dashboard.py",
+    "replace": "        return cls.INTERRUPTED_NEVER_STARTED",
+    "with": "        if run.created_at and run.updated_at and run.updated_at != run.created_at:\n            return cls.INTERRUPTED_STOPPED_MIDWAY\n        return cls.INTERRUPTED_NEVER_STARTED",
+    "test": "tests/test_a_run_that_died_is_not_still_called_running.py::test_being_updated_a_millisecond_later_is_not_progress"
+  }
+]

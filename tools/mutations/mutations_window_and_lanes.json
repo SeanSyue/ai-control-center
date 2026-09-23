@@ -1,0 +1,51 @@
+[
+  {
+    "label": "W1 時間軸那一頁不再自己捲（658 直接撐開外層，而外層一捲決策橫幅就被推出畫面上緣——那是「AI 停下來等你」唯一的視覺訊號）",
+    "file": "app/ui/main_window.py",
+    "replace": "    PAGES_WITH_THEIR_OWN_SCROLL = frozenset({\"SessionTimelinePanel\"})",
+    "with": "    PAGES_WITH_THEIR_OWN_SCROLL = frozenset()",
+    "test": "tests/test_the_window_fits_what_it_ships_with.py::test_the_content_column_does_not_force_the_outer_scrollbar"
+  },
+  {
+    "label": "W2 包一層之後導覽對不起來（被包起來的那一頁永遠切不過去，而 setCurrentWidget 對不在堆疊裡的東西是靜靜地什麼都不做）",
+    "file": "app/ui/main_window.py",
+    "replace": "        self.page_stack.setCurrentWidget(self._page_holder.get(key, widget))",
+    "with": "        self.page_stack.setCurrentWidget(widget)",
+    "test": "tests/test_the_window_fits_what_it_ships_with.py::test_wrapping_a_page_did_not_hide_it_from_navigation"
+  },
+  {
+    "label": "W3  裡放的變成那層容器（action_failed 接不上，每一支拿 _pages 的測試都拿到沒有那些方法的東西）",
+    "file": "app/ui/main_window.py",
+    "replace": "        self._pages[key] = widget\n        # 堆疊裡放的可能是",
+    "with": "        self._pages[key] = self._within_budget(widget)\n        # 堆疊裡放的可能是",
+    "test": "tests/test_the_window_fits_what_it_ships_with.py::test_the_wrapped_page_is_still_the_panel_itself"
+  },
+  {
+    "label": "L1 「要你處理」又掉回閒置泳道（16 種要他動手的收場排在標著「閒置」的那一段底下，跟從來沒跑過長得一樣）",
+    "file": "app/ui/dashboard_web_panel.py",
+    "replace": "    (\"dash.needs_you\", (\"gate\", \"needs_you\")),",
+    "with": "",
+    "test": "tests/test_every_ending_has_a_lane_on_the_home_page.py::test_needs_you_is_not_buried_in_the_idle_lane"
+  },
+  {
+    "label": "L2 查不到又回一個預設值（沒有人替它決定畫法的收場，靜靜地畫成灰色的閒置——三個月沒有人會發現）",
+    "file": "app/ui/dashboard_web_panel.py",
+    "replace": "    raise UnmappedLane(status_key)",
+    "with": "    return (\"idle\", \"idle\")",
+    "test": "tests/test_every_ending_has_a_lane_on_the_home_page.py::test_an_unmapped_status_is_not_quietly_painted_idle"
+  },
+  {
+    "label": "L3 「要你處理」改用金色（金色會跳，而跳動的意思是「AI 還在線上等你回一句話」——這一種沒有人在等）",
+    "file": "app/ui/dashboard_web_panel.py",
+    "replace": "    (\"dash.needs_you\", (\"gate\", \"needs_you\")),",
+    "with": "    (\"dash.needs_you\", (\"gate\", \"gate\")),",
+    "test": "tests/test_every_ending_has_a_lane_on_the_home_page.py::test_needs_you_is_not_buried_in_the_idle_lane"
+  },
+  {
+    "label": "L4 引擎吐一個頁面畫不出來的色調（卡片上的標籤變成沒有底色的裸字，看起來像壞掉）",
+    "file": "app/ui/dashboard_web_panel.py",
+    "replace": "    (\"dash.needs_you\", (\"gate\", \"needs_you\")),",
+    "with": "    (\"dash.needs_you\", (\"gate\", \"amber\")),",
+    "test": "tests/test_every_ending_has_a_lane_on_the_home_page.py::test_the_page_can_draw_every_tone_this_table_emits"
+  }
+]

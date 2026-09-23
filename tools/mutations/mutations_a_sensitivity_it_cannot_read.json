@@ -1,0 +1,16 @@
+[
+  {
+    "label": "V1 敏感度答不出來的時候倒回最寬鬆的「個人」（設定檔壞掉的客戶專案，那一格看起來跟他親手選的一模一樣，而它決定逐字紀錄准不准外流）",
+    "file": "app/ui/settings_web_panel.py",
+    "replace": "            except Exception:\n                profile = FAIL_CLOSED_SENSITIVITY",
+    "with": "            except Exception:\n                profile = \"personal\"",
+    "test": "tests/test_a_sensitivity_that_cannot_be_read_is_not_the_loosest_one.py::test_a_sensitivity_that_cannot_be_read_is_not_shown_as_personal"
+  },
+  {
+    "label": "V2 整格寫死成最嚴的那一級（每個新專案都掛著 KYC，於是那個等級失去意義——前提檢查要看得出來）",
+    "file": "app/ui/settings_web_panel.py",
+    "replace": "        profile = FAIL_CLOSED_SENSITIVITY\n        if self._project is not None:",
+    "with": "        profile = FAIL_CLOSED_SENSITIVITY\n        if False:",
+    "test": "tests/test_a_sensitivity_that_cannot_be_read_is_not_the_loosest_one.py::test_a_project_that_reads_fine_is_still_whatever_he_chose"
+  }
+]

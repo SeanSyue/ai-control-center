@@ -1,0 +1,16 @@
+[
+  {
+    "label": "G1 新寫的「已修」沒有附同型的其他位置（那 9 條復發就是這樣來的——修一個實例，紀錄上跟修一類長得一模一樣）",
+    "file": "docs/WHY.md",
+    "replace": "## 2026-08-24　「碰到才搬」是叮嚀，不是機制",
+    "with": "## 2026-08-25　一則新的「已修」，而它沒有說隔壁在哪　#機制\n\n那個 bug 修好了。\n\n---\n\n## 2026-08-24　「碰到才搬」是叮嚀，不是機制",
+    "test": "tests/test_a_fix_note_says_where_else_the_same_thing_lives.py::test_every_fix_note_written_after_the_rule_says_where_else_it_lives"
+  },
+  {
+    "label": "G2 這條檢查變成恆真（規則生效後一則「已修」都掃不到，而它照樣是綠的）",
+    "file": "tests/test_a_fix_note_says_where_else_the_same_thing_lives.py",
+    "replace": "    found = re.findall(r\"20\\d\\d-\\d\\d-\\d\\d\", heading)",
+    "with": "    found = re.findall(r\"19\\d\\d-\\d\\d-\\d\\d\", heading)",
+    "test": "tests/test_a_fix_note_says_where_else_the_same_thing_lives.py::test_the_guard_would_actually_catch_something"
+  }
+]

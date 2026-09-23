@@ -1,0 +1,44 @@
+[
+  {
+    "label": "P1 那句謊話原封不動放回去（2026-08-27 之前的樣子：陣容頁在他的第五格印「這一輪：拍板」，而 _run_planning 一次都沒有碰過核准那一格——他排的五格，頁面說派工給 2 格，引擎實際派 0 格）",
+    "file": "app/core/orchestrator.py",
+    "replace": "                DUTY_WORK: \"job.read_plan\",\n                DUTY_REVIEW: \"job.write_plan\",",
+    "with": "                DUTY_WORK: \"job.read_plan\",\n                DUTY_REVIEW: \"job.write_plan\",\n                DUTY_APPROVE: \"job.approve\",",
+    "test": "tests/test_the_plan_sequence_only_promises_seats_it_really_dispatches.py::test_the_seats_the_page_promises_are_the_seats_the_engine_dispatches"
+  },
+  {
+    "label": "P2 換一行**別的**謊話（擬做法那一種被畫成有工作，而這條序列本身就是在擬——這一條證明測試問的是行為，不是照著那張表再抄一份字面）",
+    "file": "app/core/orchestrator.py",
+    "replace": "                DUTY_WORK: \"job.read_plan\",",
+    "with": "                DUTY_PLAN: \"job.plan\",\n                DUTY_WORK: \"job.read_plan\",",
+    "test": "tests/test_the_plan_sequence_only_promises_seats_it_really_dispatches.py::test_the_seats_the_page_promises_are_the_seats_the_engine_dispatches"
+  },
+  {
+    "label": "P3 反方向：引擎改派給表上沒寫的那一種（審計畫改派給擬做法那一格——畫面上「執行」那一格印著「這一輪：讀計畫」而它整輪沒說過一句話，跑的是旁邊那一格）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        seat = self.required_seat_with_duty(DUTY_WORK)\n        knowledge_context = self._knowledge_context_for_round(\n            task, first_round=round_number == 1\n        )",
+    "with": "        seat = self.required_seat_with_duty(DUTY_PLAN)\n        knowledge_context = self._knowledge_context_for_round(\n            task, first_round=round_number == 1\n        )",
+    "test": "tests/test_the_plan_sequence_only_promises_seats_it_really_dispatches.py::test_the_seats_the_page_promises_are_the_seats_the_engine_dispatches"
+  },
+  {
+    "label": "P4 漏講：真的會跑的那一種從表上不見了（審計畫那一格被畫成虛線圈「這次不會跑」，而引擎照樣派工給它、照樣花額度——空白的那一格他不會去看，而那正是這一輪唯一在讀計畫的人）",
+    "file": "app/core/orchestrator.py",
+    "replace": "                DUTY_WORK: \"job.read_plan\",\n                DUTY_REVIEW: \"job.write_plan\",",
+    "with": "                DUTY_REVIEW: \"job.write_plan\",",
+    "test": "tests/test_the_plan_sequence_only_promises_seats_it_really_dispatches.py::test_the_two_seats_that_do_run_are_the_ones_on_the_table"
+  },
+  {
+    "label": "P5 過修：照著「拿掉那一行」順手把開發序列的核准也拿掉（開發序列那條路上 _approval_phase 真的會派工給它——每一個排了核准的座位被畫成「不會被執行」，而它會跑）",
+    "file": "app/core/orchestrator.py",
+    "replace": "                DUTY_APPROVE: \"job.approve\",\n            },\n        },\n        # 計畫序列裡**沒有**擬做法那一種",
+    "with": "            },\n        },\n        # 計畫序列裡**沒有**擬做法那一種",
+    "test": "tests/test_the_plan_sequence_only_promises_seats_it_really_dispatches.py::test_the_seat_he_put_on_approve_is_drawn_as_not_running"
+  },
+  {
+    "label": "P6 亮起來的那一格與真的跑的那一格漂開（陣容上亮的是複查那一格，紀錄上跑的是別人——一個亮著的座位是很有說服力的宣稱，亮錯比不亮貴）",
+    "file": "app/core/orchestrator.py",
+    "replace": "            self.on_role_start(role)",
+    "with": "            self.on_role_start(next(iter(self.lineup)).role)",
+    "test": "tests/test_the_plan_sequence_only_promises_seats_it_really_dispatches.py::test_the_two_seats_that_do_run_are_the_ones_on_the_table"
+  }
+]

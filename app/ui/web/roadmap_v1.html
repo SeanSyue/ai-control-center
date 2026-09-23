@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-mode="night">
+<head>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' qrc:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AICC — Roadmap</title>
+<link rel="stylesheet" href="aicc.css">
+<style>
+.trail{margin:16px 30px 0;border-radius:20px;overflow:hidden;border:1px solid var(--line-soft);
+  box-shadow:var(--shadow);flex:none;background:var(--sky);position:relative}
+.trail .hd{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  padding:13px 20px;background:var(--surface);border-bottom:1px solid var(--line-soft)}
+.trail .hd b{font-size:.88rem}
+.trail .hd .how{display:flex;gap:16px;flex-wrap:wrap;font-size:.72rem;color:var(--text-3);font-weight:600}
+.trail .hd .how i{font-style:normal;color:var(--text-2)}
+.trail .canvas{position:relative;height:132px}
+.trail .rail{position:absolute;left:3.5%;right:3.5%;top:52px;height:2px;background:var(--line);border-radius:2px}
+/* 逐段上色：階段不是線性推進的，所以不能用一根長度表達進度。
+   一段只有兩端都完成才亮，中間有沒做完的就留暗——缺口要看得見。 */
+.trail .rail .seg{position:absolute;top:0;bottom:0;border-radius:2px}
+.trail .rail .seg.on{background:linear-gradient(90deg,var(--aqua),var(--violet));box-shadow:0 0 12px var(--aqua)}
+.trail .hd .tally{font-size:.72rem;color:var(--text-3);font-weight:700}
+.trail .hd .tally b{color:var(--aqua)}
+.pt{position:absolute;top:53px;transform:translate(-50%,-50%);cursor:pointer;z-index:3}
+.pt .core{width:12px;height:12px;color:var(--text-3);display:block}
+.pt.done .core{width:15px;height:15px;color:var(--aqua);filter:drop-shadow(0 0 7px var(--aqua))}
+.pt.now  .core{width:19px;height:19px;color:var(--gold);filter:drop-shadow(0 0 10px var(--gold));
+  animation:bt 2.1s ease-in-out infinite}
+@keyframes bt{0%,100%{transform:scale(.86) rotate(0)}50%{transform:scale(1.14) rotate(18deg)}}
+.pt .lb{position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap;text-align:center;
+  font-size:.7rem;font-weight:800;color:var(--text-2);top:20px}
+.pt .lb small{display:block;font-weight:600;font-size:.64rem;color:var(--text-3)}
+.pt.now .lb{color:var(--gold)}
+.pt.up .lb{top:auto;bottom:20px}
+.pt.sel .core{outline:none}
+.pt.sel .lb{color:var(--aqua)}
+
+.list{flex:1;min-height:0;overflow-y:auto;padding:22px 30px 40px;display:flex;flex-direction:column;gap:26px}
+.ph .head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.ph .head .k{width:9px;height:9px;border-radius:50%;flex:none;background:var(--text-3)}
+.ph.done .head .k{background:var(--aqua);box-shadow:0 0 10px var(--aqua)}
+.ph.now  .head .k{background:var(--gold);box-shadow:0 0 10px var(--gold)}
+.ph .head .id{font-size:.68rem;font-weight:800;letter-spacing:.16em;color:var(--text-3)}
+.ph .head h2{font-size:1.02rem}
+.ph .head .ver{margin-left:auto;font-size:.72rem;color:var(--text-3);font-weight:700}
+.items{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:11px}
+.it{position:relative;padding-bottom:7px}
+.it .hem{position:absolute;left:14px;right:14px;bottom:0;height:14px;border-radius:0 0 14px 14px;opacity:.55}
+.it .b{position:relative;z-index:2;background:var(--surface);border:1px solid var(--line-soft);
+  border-radius:14px;padding:12px 14px;transition:.18s;height:100%}
+.it:hover .b{transform:translateY(-2px);border-color:var(--line)}
+.it.done .b{opacity:.72}
+.it.now .b{border-color:var(--gold);box-shadow:var(--glow-gold)}
+.it h4{font-size:.86rem;font-weight:700;margin-bottom:5px;display:flex;gap:7px;align-items:center}
+.it p{margin:0;font-size:.75rem;color:var(--text-3);line-height:1.65}
+.tick{width:14px;height:14px;flex:none;color:var(--aqua)}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <div class="top">
+    <h1>Roadmap</h1>
+    <div class="lead">AICC 自己的開發階段。這一頁直接讀專案根目錄的 <span class="mono">ROADMAP.md</span>，不是另外維護的清單。</div>
+  </div>
+
+  <!-- 星軌式進度條 -->
+  <div class="trail">
+    <div class="hd"><b>階段星軌</b><span class="tally" id="tally"></span>
+      <div class="how"><span><i>亮</i>＝已完成</span><span><i>金色脈動</i>＝進行中</span><span><i>暗</i>＝尚未開始</span></div>
+    </div>
+    <div class="canvas"><div class="sparks" id="sparks"></div>
+      <div class="rail" id="rail"></div>
+      <div id="pts"></div>
+    </div>
+  </div>
+
+  <div class="list" id="list"></div>
+
+</div>
+
+<button class="modebtn" id="tg">☀ 切到白天</button>
+
+<!-- QWebChannel：嵌進 QWebEngineView 時由 Qt 從 qrc 供應。
+     用瀏覽器單獨開檔案時這行會 404，但無害——下面有 window.qt 守衛，
+     沒有 Qt 就直接走示範資料。不要改成 CDN，離線會壞。 -->
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script>
+/* ============================================================
+   render(data)
+   data = { mode, phases:[{ id:"P4", title, version, state:"done"|"now"|"todo",
+            items:[{ title, note, done:bool }] }] }
+   建議由 Python 解析 ROADMAP.md 產生，不要另外手維護一份。
+   ============================================================ */
+const STAR='M12 0C13.2 8.2 15.8 10.8 24 12 15.8 13.2 13.2 15.8 12 24 10.8 15.8 8.2 13.2 0 12 8.2 10.8 10.8 8.2 12 0Z';
+const TICK='<svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 10 18 20 6"/></svg>';
+
+function sparkle(id,n){const t=document.getElementById(id);if(!t)return;let h='';
+  for(let i=0;i<n;i++){const x=(i*39.7)%96,y=(i*23.1)%80,s=4+((i*9)%9),d=(i*.43)%3.4;
+    const c=i%5===0?'var(--gold)':(i%7===0?'var(--violet-hi)':'var(--star)');
+    h+=`<svg class="spark" style="left:${x}%;top:${y}%;animation-delay:${d}s" width="${s}" height="${s}"
+        viewBox="0 0 24 24"><path d="${STAR}" fill="${c}"/></svg>`;}
+  t.innerHTML=h;}
+
+let DATA=null, SEL=null;
+
+function render(state){
+  const d=typeof state==='string'?JSON.parse(state):state;
+  DATA=d; document.documentElement.dataset.mode=d.mode||'night';
+  const ps=d.phases, n=ps.length;
+  const pos=i=> n<2 ? 50 : 3.5+(93/(n-1))*i;
+
+  document.getElementById('pts').innerHTML=ps.map((p,i)=>
+    `<div class="pt ${p.state}${SEL===p.id?' sel':''}${i%2?' up':''}" style="left:${pos(i)}%" data-jump="${p.id}">
+      <span class="core"><svg viewBox="0 0 24 24"><path fill="currentColor" d="${STAR}"/></svg></span>
+      <span class="lb">${p.id}<small>${p.title}</small></span>
+    </div>`).join('');
+
+  /* 逐段上色，不做「進度到第幾格」的線性假設。
+     階段可以亂序完成（P0 還在跑、P1–P5 卻已完成），
+     一段只有兩端都 done 才亮，缺口就留暗——那才是真實狀況。 */
+  const segW = n<2 ? 100 : 100/(n-1);
+  document.getElementById('rail').innerHTML = n<2 ? '' :
+    ps.slice(0,-1).map((p,i)=>{
+      const on = p.state==='done' && ps[i+1].state==='done';
+      return `<div class="seg${on?' on':''}" style="left:${i*segW}%;width:${segW}%"></div>`;
+    }).join('');
+
+  /* 「幾個完成」用文字講，不要用長度講 —— 長度會被讀成位置 */
+  const nDone=ps.filter(p=>p.state==='done').length;
+  const nNow =ps.filter(p=>p.state==='now').length;
+  document.getElementById('tally').innerHTML=
+    `<b>${nDone}</b> / ${n} 階段完成` + (nNow?` · ${nNow} 個進行中`:'');
+
+  document.getElementById('list').innerHTML=ps.map(p=>`
+    <div class="ph ${p.state}" id="ph-${p.id}">
+      <div class="head"><span class="k"></span><span class="id">${p.id}</span><h2>${p.title}</h2>
+        <span class="ver">${p.version||''}</span></div>
+      <div class="items">${p.items.map(it=>`
+        <div class="it ${it.done?'done':(p.state==='now'?'now':'')}">
+          <div class="hem fabric ${it.done?'fabric-aqua':(p.state==='now'?'fabric-gold':'')}"></div>
+          <div class="b"><h4>${it.done?TICK:''}${it.title}</h4><p>${it.note}</p></div>
+        </div>`).join('')}</div>
+    </div>`).join('');
+}
+function jump(id){ SEL=id; render(DATA);
+  document.getElementById('ph-'+id)?.scrollIntoView({behavior:'smooth',block:'start'}); }
+
+/* 事件委派 —— 不用 inline onclick，理由同其他頁：
+   HTML 實體跳脫擋不住 inline handler 裡的 JS 字串。 */
+document.addEventListener('click',e=>{
+  const p=e.target.closest('.pt[data-jump]');
+  if(p) jump(p.dataset.jump);
+});
+
+let bridge=null;
+if(window.qt&&qt.webChannelTransport){
+  new QWebChannel(qt.webChannelTransport,ch=>{bridge=ch.objects.bridge;
+    bridge.stateChanged.connect(render);bridge.ready();});
+}
+document.getElementById('tg').onclick=()=>{const h=document.documentElement;
+  h.dataset.mode=h.dataset.mode==='night'?'day':'night';
+  document.getElementById('tg').textContent=h.dataset.mode==='night'?'☀ 切到白天':'☾ 切到夜空';
+  if(bridge)bridge.on_action('mode',h.dataset.mode);};
+
+/* ---- 示範資料（實際請由 ROADMAP.md 解析）---- */
+const DEMO={mode:'night',phases:[
+ {id:'P0',title:'基礎骨架',version:'v0.1',state:'done',items:[
+  {title:'PySide6 主視窗與面板骨架',note:'多專案綁定、本機路徑管理。',done:true},
+  {title:'Claude / Codex CLI 串接',note:'能實際發動一輪對話並收回輸出。',done:true}]},
+ {id:'P1',title:'文件管理',version:'v0.3',state:'done',items:[
+  {title:'文件匯入與 SQLite 索引',note:'變更偵測、相關內容預覽。',done:true},
+  {title:'相關片段挑選',note:'不整份塞進 context。',done:true}]},
+ {id:'P2',title:'共享記憶',version:'v0.4',state:'done',items:[
+  {title:'knowledge/*.md 自動更新',note:'任務結束後由 Claude/Codex 自行維護。',done:true}]},
+ {id:'P3',title:'Decision Gate',version:'v0.5',state:'done',items:[
+  {title:'需人工確認時暫停',note:'覆寫、刪除、推送、花費。',done:true},
+  {title:'單專案暫停不影響其他',note:'其餘專案照常執行。',done:true}]},
+ {id:'P4',title:'多專案儀表板',version:'v0.8',state:'done',items:[
+  {title:'狀態篩選與佇列控制',note:'重複執行保護、鎖過期偵測。',done:true},
+  {title:'Stage 1 真實併發',note:'單一視窗內多專案同時執行，焦點切換與背景執行解耦。',done:true},
+  {title:'Stage 2 併發鎖強化',note:'併發上限成為真正的多重啟動閘門。',done:false}]},
+ {id:'P5',title:'可攜工作區',version:'v0.8',state:'done',items:[
+  {title:'匯出／匯入與安全掃描',note:'打包前阻擋疑似金鑰。',done:true}]},
+ {id:'P6',title:'介面改版',version:'v0.9',state:'now',items:[
+  {title:'星屑視覺語言',note:'水藍星空、格紋布料、裙襬層次；日夜雙模式。',done:true},
+  {title:'儀表板 WebEngine 化',note:'dashboard_v5.html 嵌入 QWebEngineView，狀態透過 QWebChannel 推送。',done:false},
+  {title:'對話庫配對舞台',note:'來源／狀態 badge 化，配對成為主要動作。',done:false},
+  {title:'其餘面板改版',note:'共享記憶、文件、設定、Roadmap。',done:false}]},
+ /* 故意讓 P7 在 P6 還沒完成時就 done —— 真實資料就是會亂序，
+    示範資料要包含這種缺口，否則設計會在假的線性資料上看起來很正常 */
+ {id:'P7',title:'雲端對話匯入',version:'v1.0',state:'done',items:[
+  {title:'ChatGPT JSON 匯入',note:'作為唯讀上下文文件。',done:true},
+  {title:'匯入格式擴充',note:'更多來源、把舊對話摘要進共享記憶。',done:false}]},
+ {id:'P8',title:'安全掃描器',version:'v1.0',state:'todo',items:[
+  {title:'共用掃描器',note:'目前僅用於匯出，之後要接進 Decision Gate。',done:false},
+  {title:'sensitive_kyc 受控同步',note:'白名單目的地例外規則，尚未設計。',done:false}]},
+ {id:'P9',title:'Context 節省可視化',version:'v1.1',state:'todo',items:[
+  {title:'送出內容明細',note:'讓你看到送了什麼、略過什麼、為什麼。',done:false},
+  {title:'節省歷史',note:'有真實數據之後，儀表板才會出現這個指標。',done:false}]},
+]};
+sparkle('sparks',16);
+if(!(window.qt&&qt.webChannelTransport)) render(DEMO);
+</script>
+</body>
+</html>

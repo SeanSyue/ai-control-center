@@ -1,0 +1,30 @@
+[
+  {
+    "label": "D-A 那條 else 拿掉（認不得的收場沿用上面的「待命」——使用者親手按過「結束等待」的專案，首頁說它從來沒跑過）",
+    "file": "app/services/project_dashboard.py",
+    "replace": "            else:\n                # **這條 elif 鏈以前沒有 else。**",
+    "with": "            elif False:\n                # **這條 elif 鏈以前沒有 else。**",
+    "test": "tests/test_a_run_the_home_page_cannot_name_is_not_shown_as_never_run.py::test_a_run_the_user_ended_himself_is_not_shown_as_never_run"
+  },
+  {
+    "label": "D-B else 在，但把認不得的收場分到「待命」那一格（有 else 跟沒 else 在畫面上一模一樣——這是最像修好了的壞法）",
+    "file": "app/services/project_dashboard.py",
+    "replace": "                # 那半件事寫在 `docs/WHY.md` 同一則裡。\n                status = \"dash.needs_you\"",
+    "with": "                # 那半件事寫在 `docs/WHY.md` 同一則裡。\n                status = \"dash.state.idle\"",
+    "test": "tests/test_a_run_the_home_page_cannot_name_is_not_shown_as_never_run.py::test_no_ending_this_app_can_write_lands_on_never_run"
+  },
+  {
+    "label": "D-C 分到一個沒有泳道的 key（`lane_for` 查不到就丟例外，那張卡片畫不出來——分類到一個畫不出來的格子，跟沒有分類只差在噪音大小）",
+    "file": "app/services/project_dashboard.py",
+    "replace": "                # 那半件事寫在 `docs/WHY.md` 同一則裡。\n                status = \"dash.needs_you\"\n",
+    "with": "                # 那半件事寫在 `docs/WHY.md` 同一則裡。\n                status = \"dash.state.nobody_decided\"\n",
+    "test": "tests/test_a_run_the_home_page_cannot_name_is_not_shown_as_never_run.py::test_the_status_the_else_produces_can_actually_be_painted"
+  },
+  {
+    "label": "D-D 起手值改成「要你處理」（連從來沒跑過的專案都排進要他動手那條泳道——一條每次都出現的警告等於沒有警告，真正要他處理的那一個就藏在裡面）",
+    "file": "app/services/project_dashboard.py",
+    "replace": "        status = \"dash.state.idle\"\n        is_running = False",
+    "with": "        status = \"dash.needs_you\"\n        is_running = False",
+    "test": "tests/test_a_run_the_home_page_cannot_name_is_not_shown_as_never_run.py::test_a_project_that_really_never_ran_is_still_shown_as_never_run"
+  }
+]

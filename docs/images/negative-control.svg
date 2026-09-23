@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <title>Negative control: one recipe, start to finish</title>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+    <style>
+      .h{font-size:20px;font-weight:700;fill:#0f172a}
+      .sub{font-size:14px;fill:#475569}
+      .step{fill:#f8fafc;stroke:#94a3b8;stroke-width:1.5}
+      .keyst{fill:#ecfeff;stroke:#0e7490;stroke-width:1.5}
+      .red{fill:#fef2f2;stroke:#b91c1c;stroke-width:1.5}
+      .grn{fill:#f0fdf4;stroke:#15803d;stroke-width:1.5}
+      .brk{fill:#f8fafc;stroke:#64748b;stroke-width:1.5;stroke-dasharray:5 4}
+      .lock{fill:none;stroke:#cbd5e1;stroke-width:1.5;stroke-dasharray:3 4}
+      .t{font-size:15px;font-weight:700;fill:#0f172a}
+      .s{font-size:12.5px;fill:#334155}
+      .n{font-size:12px;fill:#64748b;font-style:italic}
+      .ln{stroke:#475569;stroke-width:1.6;fill:none}
+    </style>
+  </defs>
+  <rect width="1200" height="560" fill="#ffffff"/>
+
+  <text x="30" y="40" class="h">A green test is not evidence until you have seen it turn red.</text>
+  <text x="30" y="64" class="sub">One recipe: in this file, change this text to that text, then run this test.</text>
+
+  <!-- lock boundary -->
+  <rect x="20" y="88" width="1160" height="400" rx="14" class="lock"/>
+  <text x="36" y="108" class="n">one run at a time — a lock file; a second run is refused (exit 3)</text>
+
+  <!-- steps -->
+  <rect x="40" y="130" width="170" height="86" rx="10" class="step"/>
+  <text x="56" y="158" class="t">1. Copy the file</text>
+  <text x="56" y="180" class="s">to a temporary folder —</text>
+  <text x="56" y="198" class="s">never restore from git</text>
+
+  <rect x="240" y="130" width="170" height="86" rx="10" class="step"/>
+  <text x="256" y="158" class="t">2. Apply the break</text>
+  <text x="256" y="180" class="s">replace the text once;</text>
+  <text x="256" y="198" class="s">not found = no result</text>
+
+  <rect x="440" y="130" width="170" height="86" rx="10" class="step"/>
+  <text x="456" y="158" class="t">3. Run the test</text>
+  <text x="456" y="180" class="s">with no cached bytecode,</text>
+  <text x="456" y="198" class="s">so the break really runs</text>
+
+  <rect x="640" y="130" width="170" height="86" rx="10" class="keyst"/>
+  <text x="656" y="158" class="t">4. Read exit code</text>
+  <text x="656" y="180" class="s">not the words in the</text>
+  <text x="656" y="198" class="s">output</text>
+
+  <path d="M210,173 L240,173" class="ln" marker-end="url(#a)"/>
+  <path d="M410,173 L440,173" class="ln" marker-end="url(#a)"/>
+  <path d="M610,173 L640,173" class="ln" marker-end="url(#a)"/>
+
+  <!-- verdicts -->
+  <rect x="860" y="118" width="300" height="56" rx="10" class="red"/>
+  <text x="876" y="142" class="t" fill="#b91c1c">exit 1 → red ✓</text>
+  <text x="876" y="162" class="s">a test caught it — the test is evidence</text>
+
+  <rect x="860" y="186" width="300" height="56" rx="10" class="grn"/>
+  <text x="876" y="210" class="t" fill="#15803d">exit 0 → green ✗ no teeth</text>
+  <text x="876" y="230" class="s">nothing caught it — fix the test</text>
+
+  <rect x="860" y="254" width="300" height="56" rx="10" class="brk"/>
+  <text x="876" y="278" class="t" fill="#475569">other / timeout → broken ?</text>
+  <text x="876" y="298" class="s">no result — never read it as green</text>
+
+  <path d="M810,160 L860,146" class="ln" marker-end="url(#a)"/>
+  <path d="M810,173 L860,214" class="ln" marker-end="url(#a)"/>
+  <path d="M810,190 L860,282" class="ln" marker-end="url(#a)"/>
+
+  <!-- restore -->
+  <rect x="440" y="360" width="370" height="86" rx="10" class="keyst"/>
+  <text x="456" y="388" class="t">5. Restore from the copy — always</text>
+  <text x="456" y="410" class="s">in a finally block, whatever the verdict,</text>
+  <text x="456" y="428" class="s">then check the file matches the original</text>
+  <path d="M1160,146 L1176,146 M1160,214 L1176,214 M1160,282 L1176,282 M1176,146 L1176,403 L810,403" class="ln" marker-end="url(#a)"/>
+  <text x="1168" y="336" class="n" text-anchor="end">every verdict</text>
+
+  <rect x="40" y="360" width="370" height="86" rx="10" class="step"/>
+  <text x="56" y="388" class="t">Before any run: --check</text>
+  <text x="56" y="410" class="s">every recipe must still find its text exactly</text>
+  <text x="56" y="428" class="s">once, and its test must still exist</text>
+
+  <text x="30" y="520" class="n">Each rule in steps 1–5 exists because an earlier version got it wrong. The tool checks itself: seven recipes break it, and each turns its own tests red.</text>
+</svg>

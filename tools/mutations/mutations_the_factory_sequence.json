@@ -1,0 +1,79 @@
+[
+  {
+    "label": "F1 出廠序列退回計畫序列（2026-08-26 他實機撞到的那一版：兩個設定檔都不存在，按下開始一次派工都沒有發生）",
+    "file": "app/services/ai_settings.py",
+    "replace": "    workflow_mode: str = \"development\"",
+    "with": "    workflow_mode: str = \"planning\"",
+    "test": "tests/test_a_brand_new_machine_runs_the_sequence_that_dispatches_his_five.py::test_the_seat_he_set_to_execute_really_gets_dispatched"
+  },
+  {
+    "label": "F2 省額度那張出廠表格自己再寫一份 planning（**這一張就是全新機器實際拿到的那一份**——`load_global` 找不到檔案時回的就是它。只改 dataclass 的那一版，紅的正是這一條）",
+    "file": "app/services/ai_settings.py",
+    "replace": "        return AIExecutionSettings(\n            planning_rounds=0,",
+    "with": "        return AIExecutionSettings(\n            workflow_mode=\"planning\",\n            planning_rounds=0,",
+    "test": "tests/test_a_brand_new_machine_runs_the_sequence_that_dispatches_his_five.py::test_the_seat_he_set_to_execute_really_gets_dispatched"
+  },
+  {
+    "label": "F3 深入那張表格自己寫一份 planning（使用者挑一次深淺就把序列換掉了，而畫面上完全正常——這一輪的病根）",
+    "file": "app/services/ai_settings.py",
+    "replace": "            return AIExecutionSettings(\n                planning_rounds=2,",
+    "with": "            return AIExecutionSettings(\n                workflow_mode=\"planning\",\n                planning_rounds=2,",
+    "test": "tests/test_a_brand_new_machine_runs_the_sequence_that_dispatches_his_five.py::test_the_three_factory_tables_do_not_drift_from_the_dataclass"
+  },
+  {
+    "label": "F4 標準那張表格自己寫一份 planning（第三張。三張各補一條：修好其中一張的人不會自動想到另外兩張，而那正是它們漂開的方式）",
+    "file": "app/services/ai_settings.py",
+    "replace": "            return AIExecutionSettings(\n                planning_rounds=1,",
+    "with": "            return AIExecutionSettings(\n                workflow_mode=\"planning\",\n                planning_rounds=1,",
+    "test": "tests/test_a_brand_new_machine_runs_the_sequence_that_dispatches_his_five.py::test_the_three_factory_tables_do_not_drift_from_the_dataclass"
+  },
+  {
+    "label": "F5 挑了深入之後他的五格有幾格不會被派工（同一個破壞的另一半：這一條量的是他在陣容頁上看到的東西，不是字串相不相等）",
+    "file": "app/services/ai_settings.py",
+    "replace": "            return AIExecutionSettings(\n                planning_rounds=2,",
+    "with": "            return AIExecutionSettings(\n                workflow_mode=\"planning\",\n                planning_rounds=2,",
+    "test": "tests/test_a_brand_new_machine_runs_the_sequence_that_dispatches_his_five.py::test_picking_a_depth_table_does_not_change_which_seats_run"
+  },
+  {
+    "label": "F6 認得的值也被正規化掉（值是對的、表格也是對的，最後一關把它換成 planning——「出廠值改了卻沒有生效」的第三個入口）",
+    "file": "app/services/ai_settings.py",
+    "replace": "            if self.workflow_mode in self.VALID_WORKFLOW_MODES\n            else \"planning\"",
+    "with": "            if self.workflow_mode == \"planning\"\n            else \"planning\"",
+    "test": "tests/test_a_brand_new_machine_runs_the_sequence_that_dispatches_his_five.py::test_the_seat_he_set_to_execute_really_gets_dispatched"
+  },
+  {
+    "label": "F7 讀檔那條路不再蓋過出廠值（**這一次改動最貴的失敗**：既有專案存在硬碟上的選擇被安靜換成新的出廠序列，而畫面上什麼都看不出來）",
+    "file": "app/services/ai_settings.py",
+    "replace": "        payload = {\n            key: value\n            for key, value in raw.items()\n            if key in allowed\n        }",
+    "with": "        payload = {\n            key: value\n            for key, value in raw.items()\n            if key in allowed and key != \"workflow_mode\"\n        }",
+    "test": "tests/test_a_brand_new_machine_runs_the_sequence_that_dispatches_his_five.py::test_a_project_that_already_chose_the_planning_sequence_keeps_it"
+  },
+  {
+    "label": "F8 討論回合變成開發序列也讀的東西（出廠是 0，於是「什麼都不改」又走回計畫序列那條路——而設定頁上的序列還寫著開發序列）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "                self.settings.workflow_mode == \"planning\"\n                and not self.user_answer",
+    "with": "                self.settings.planning_rounds == 0\n                and not self.user_answer",
+    "test": "tests/test_a_brand_new_machine_runs_the_sequence_that_dispatches_his_five.py::test_the_development_sequence_never_reads_the_planning_rounds"
+  },
+  {
+    "label": "F9 對照組被弄鈍：計畫序列那條路也開始派工（少了它，出廠值改回去只有一條會紅，而「差別是從哪裡來的」沒有人講得出來）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        seat = self.required_seat_with_duty(DUTY_REVIEW)\n        knowledge_context = self._knowledge_context_for_round(",
+    "with": "        seat = self.seat_with_duty(DUTY_REVIEW) or next(iter(self.lineup)).role\n        knowledge_context = self._knowledge_context_for_round(",
+    "test": "tests/test_a_brand_new_machine_runs_the_sequence_that_dispatches_his_five.py::test_nothing_is_left_undispatched_the_way_the_planning_sequence_leaves_it"
+  },
+  {
+    "label": "F11 出廠序列退回計畫序列，這一次量的是複查那一格（他把其中一格改成「複查」之後，那一格拿到的是「寫計畫」——駁回、退回指名、複查章那一整條都不在那條路上）",
+    "file": "app/services/ai_settings.py",
+    "replace": "    workflow_mode: str = \"development\"",
+    "with": "    workflow_mode: str = \"planning\"",
+    "test": "tests/test_a_brand_new_machine_runs_the_sequence_that_dispatches_his_five.py::test_a_seat_he_sets_to_review_is_dispatched_too"
+  },
+  {
+    "label": "F10 出廠設定又被當成低用量（門檻悄悄跟著出廠值一起動＝手動按開始不再確認、佇列自己開始跑一份 6 次呼叫的執行。要動它可以，但要有人明著動這一條）",
+    "file": "app/services/queue_scheduler.py",
+    "replace": "        settings.expected_model_calls >= 5",
+    "with": "        settings.expected_model_calls >= 50",
+    "test": "tests/test_queue_scheduler.py::test_the_factory_settings_now_count_as_high_usage"
+  }
+]

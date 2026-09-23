@@ -1,0 +1,37 @@
+[
+  {
+    "label": "R1 那一段整段不印（2026-08-27 之前的樣子：事件寫進了 timeline.jsonl，而這支工具只讀 StepLog，從頭到尾沒有呼叫過 load_events——他跑出一份每一格都 ✓ 的報告，讀成「跑過了而且通過」）",
+    "file": "tools/inspect_run.py",
+    "replace": "    skipped = [event for event in events if event.event_type in SKIPPED_STEPS]\n    if not skipped:\n        return",
+    "with": "    skipped = [event for event in events if event.event_type in SKIPPED_STEPS]\n    if True:\n        return",
+    "test": "tests/test_a_step_that_never_ran_still_shows_up_in_the_report.py::test_the_skipped_decision_gate_is_in_the_report"
+  },
+  {
+    "label": "R2 印得出來，但沒有人叫它（逐格紀錄那條路——最常走的那一條——照舊完全不提那一步）",
+    "file": "tools/inspect_run.py",
+    "replace": "    show_skipped_steps(project, run_id)\n    show_context(project, run_id)",
+    "with": "    show_context(project, run_id)",
+    "test": "tests/test_a_step_that_never_ran_still_shows_up_in_the_report.py::test_the_skipped_decision_gate_is_in_the_report"
+  },
+  {
+    "label": "R3 早退那條路不叫它（一輪只跳過、一次工都沒派出去的執行——最需要講話的那一種——這支工具對它永遠不出聲，只回一句「可能是 run_id 打錯了」）",
+    "file": "tools/inspect_run.py",
+    "replace": "        show_skipped_steps(project, run_id)\n        return 1",
+    "with": "        return 1",
+    "test": "tests/test_a_step_that_never_ran_still_shows_up_in_the_report.py::test_a_run_that_only_skipped_is_not_silent"
+  },
+  {
+    "label": "R4 只收決策關卡那一種，維護共同記憶那一半漏掉（這個專案反覆「修好了一個，另外三個還在」：他的定案沒有寫進那八份，而報告裡沒有一行講這件事）",
+    "file": "tools/inspect_run.py",
+    "replace": "    \"memory_update_no_seat\": (\n        \"維護共同記憶——這一輪的定案沒有寫進那八份\",\n        \"陣容裡缺了「複查」或「執行」其中一種職責\",\n    ),\n",
+    "with": "",
+    "test": "tests/test_a_step_that_never_ran_still_shows_up_in_the_report.py::test_the_other_skipped_step_is_covered_too"
+  },
+  {
+    "label": "R5 只印英文代號，不講人話（他讀到的是 `decision_gate_no_seat` 一行字串——這個專案的使用者不是資訊背景，那一步跟「那一題沒有人先替你看過」之間要他自己跨過去）",
+    "file": "tools/inspect_run.py",
+    "replace": "        print(f\"  ⊘ {what}\")\n        print(f\"      為什麼：{why}\")",
+    "with": "        print(f\"  ⊘ {event.event_type}\")",
+    "test": "tests/test_a_step_that_never_ran_still_shows_up_in_the_report.py::test_it_says_why_instead_of_only_that_it_happened"
+  }
+]

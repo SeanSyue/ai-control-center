@@ -1,0 +1,44 @@
+[
+  {
+    "label": "C1 這一頁又開始算格數上限（引擎送的 0 是「沒有上限」，而上一次算它的時候加號永遠是關的、按鈕上寫著「最多 0 格」）",
+    "file": "app/ui/web/lineup_v1.html",
+    "replace": "  const executed = seq.executed_slots ?? slots.length;",
+    "with": "  const executed = seq.executed_slots ?? slots.length;\n  const seats = lu.max_slots ?? 3;",
+    "test": "tests/test_lineup_page_is_told_the_rules.py::test_the_page_does_not_work_out_a_seat_ceiling_at_all"
+  },
+  {
+    "label": "C2 「最多 N 格」那句假話回來了（2026-08-22 起它講的一直不是事實）",
+    "file": "app/ui/web/lineup_v1.html",
+    "replace": "<button class=\"btn q sm\" id=\"addLast\" data-add=\"\" title=\"在最後加一格\">＋ 加一格</button>",
+    "with": "<button class=\"btn q sm\" id=\"addLast\" data-add=\"\" title=\"最多 3 格\">＋ 加一格</button>",
+    "test": "tests/test_lineup_page_is_told_the_rules.py::test_the_page_does_not_work_out_a_seat_ceiling_at_all"
+  },
+  {
+    "label": "C3 「＋ 加一格」又被加上條件（老闆 2026-08-22 的原話是「不要顯示數字，加號永遠可按就好」）",
+    "file": "app/ui/web/lineup_v1.html",
+    "replace": "<button class=\"btn q sm\" id=\"addLast\" data-add=\"\" title=\"在最後加一格\">＋ 加一格</button>",
+    "with": "<button class=\"btn q sm\" id=\"addLast\" data-add=\"\" title=\"在最後加一格\">${full?'':'＋ 加一格'}</button>",
+    "test": "tests/test_lineup_page_is_told_the_rules.py::test_the_page_does_not_work_out_a_seat_ceiling_at_all"
+  },
+  {
+    "label": "C4 「＋ 加一格」整顆不見（只寫「不准算上限」的話，一張空白的頁面是綠的——這一條是那句的另一半）",
+    "file": "app/ui/web/lineup_v1.html",
+    "replace": "<button class=\"btn q sm\" id=\"addLast\" data-add=\"\" title=\"在最後加一格\">＋ 加一格</button>",
+    "with": "",
+    "test": "tests/test_lineup_page_is_told_the_rules.py::test_the_page_does_not_work_out_a_seat_ceiling_at_all"
+  },
+  {
+    "label": "C5 「移除」又改回用剩幾格自己推（後端說得動、畫面說不動，而使用者只看得到畫面那一句）",
+    "file": "app/ui/web/lineup_v1.html",
+    "replace": "  const canRemove='can_remove' in s ? !!s.can_remove : lu.slots.length>2;",
+    "with": "  const canRemove=lu.slots.length>2;",
+    "test": "tests/test_lineup_page_is_told_the_rules.py::test_the_page_reads_what_python_sends"
+  },
+  {
+    "label": "C6 「＋ 加一格」還在 HTML 裡，但 render 尾巴把它藏起來（上面那幾條全綠，而使用者看不到它——而「加在最後」從此只剩下可捲區域裡那一顆 ⊕）",
+    "file": "app/ui/web/lineup_v1.html",
+    "replace": "  if(addLast){ addLast.hidden = false; }",
+    "with": "  if(addLast){ addLast.hidden = canInsert; }",
+    "test": "tests/test_lineup_page_is_told_the_rules.py::test_the_page_does_not_work_out_a_seat_ceiling_at_all"
+  }
+]

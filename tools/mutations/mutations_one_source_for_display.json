@@ -1,0 +1,58 @@
+[
+  {
+    "label": "S1 讀不到的設定檔被說成「還沒選過」（使用者最合理的反應是把它改低，而那個專案的執行紀錄從那一刻起會被同步出去）",
+    "file": "app/services/project_registry.py",
+    "replace": "            return ProjectRegistry.SOURCE_UNREADABLE\n\n        if not isinstance(raw, dict):",
+    "with": "            return ProjectRegistry.SOURCE_DEFAULT\n\n        if not isinstance(raw, dict):",
+    "test": "tests/test_the_screen_knows_why_a_value_is_what_it_is.py::test_an_unreadable_file_is_not_dressed_up_as_a_default"
+  },
+  {
+    "label": "S2 不認得的敏感度值被當成「他選的」（畫面說是他選的，而那個值他從來沒看過）",
+    "file": "app/services/project_registry.py",
+    "replace": "        if value not in SENSITIVITY_LEVELS:\n            return ProjectRegistry.SOURCE_UNREADABLE",
+    "with": "        if value not in SENSITIVITY_LEVELS:\n            return ProjectRegistry.SOURCE_CHOSEN",
+    "test": "tests/test_the_screen_knows_why_a_value_is_what_it_is.py::test_an_unknown_level_is_also_unreadable"
+  },
+  {
+    "label": "S3 廠牌顯示名回空字串（畫面上出現一個沒有名字的下拉選項，比顯示小寫代號糟得多）",
+    "file": "app/services/providers.py",
+    "replace": "    return t(key) if key else provider",
+    "with": "    return t(key) if key else \"\"",
+    "test": "tests/test_the_screen_knows_why_a_value_is_what_it_is.py::test_an_unknown_provider_falls_back_to_its_code_not_to_nothing"
+  },
+  {
+    "label": "S4 又有人自己寫一份廠牌顯示名（SENSITIVITY_LABELS 已經因此漂開過一次，兩邊的字現在不一樣）",
+    "file": "app/services/startup_diagnostics.py",
+    "replace": "    return _cli_check(\"codex\", display_name(\"codex\"), \"codex\", \"codex\")",
+    "with": "    return _cli_check(\"codex\", \"Codex CLI\", \"codex\", \"codex\")",
+    "test": "tests/test_the_screen_knows_why_a_value_is_what_it_is.py::test_nobody_writes_their_own_copy_of_the_display_names"
+  },
+  {
+    "label": "S5 對話來源那份表又自己存一份廠牌名（同一個東西在同一個 app 裡兩個名字，而畫面上兩個都對）",
+    "file": "app/services/conversation_search.py",
+    "replace": "    if not long and source in _SAME_AS_PROVIDER:\n        return display_name(_SAME_AS_PROVIDER[source])",
+    "with": "    if not long and source in _SAME_AS_PROVIDER:\n        return \"Codex\"",
+    "test": "tests/test_the_screen_knows_why_a_value_is_what_it_is.py::test_the_conversation_source_labels_have_not_drifted"
+  },
+  {
+    "label": "S6 又有一張表拿中文當查詢的鍵（翻譯的那一刻那個查詢就斷，而斷掉的樣子不是報錯——儀表板那次是每個專案都掉進 idle 泳道）",
+    "file": "app/ui/dashboard_web_panel.py",
+    "replace": "    (\"outcome.group.ask\", (\"gate\", \"gate\")),",
+    "with": "    (\"等待決策\", (\"gate\", \"gate\")),",
+    "test": "tests/test_the_screen_knows_why_a_value_is_what_it_is.py::test_nothing_looks_things_up_by_a_translated_sentence"
+  },
+  {
+    "label": "S7 舊設定檔的中文值不再認得（他選過深入、付過那個代價，某次更新之後它變回省額度，而畫面上完全正常）",
+    "file": "app/services/ai_settings.py",
+    "replace": "_LEGACY_PROFILE_NAMES = {\n    \"省額度\": PROFILE_THRIFTY,",
+    "with": "_LEGACY_PROFILE_NAMES = {\n    \"省額度x\": PROFILE_THRIFTY,",
+    "test": "tests/test_the_screen_knows_why_a_value_is_what_it_is.py::test_an_old_settings_file_still_gets_the_profile_it_chose"
+  },
+  {
+    "label": "S8 存進檔案的值又變回一句中文（翻譯的那一刻既有使用者的設定就對不上了）",
+    "file": "app/services/ai_settings.py",
+    "replace": "PROFILE_DEEP = \"deep\"",
+    "with": "PROFILE_DEEP = \"深入\"",
+    "test": "tests/test_the_screen_knows_why_a_value_is_what_it_is.py::test_the_profile_ids_are_not_sentences"
+  }
+]

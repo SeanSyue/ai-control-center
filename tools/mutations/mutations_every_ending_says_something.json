@@ -1,0 +1,100 @@
+[
+  {
+    "label": "O1 章不齊又被畫成「完成」（2026-08-23 查到的那一顆綠燈）",
+    "file": "app/core/outcomes.py",
+    "replace": "    \"MISSING\": _Row(\n        \"undecidable.MISSING.label\",\n        \"partial\",\n        GROUP_RERUN,",
+    "with": "    \"MISSING\": _Row(\n        \"undecidable.MISSING.label\",\n        \"done\",\n        GROUP_DONE,",
+    "test": "tests/test_every_ending_knows_what_the_screen_should_say.py::test_not_decidable_is_never_painted_as_finished"
+  },
+  {
+    "label": "O2 把那條 else 加回來（不認識的收場回一個「其他」而不是炸開）",
+    "file": "app/core/outcomes.py",
+    "replace": "        row = _TABLE.get(status)\n        if row is None:\n            raise UnknownOutcome(",
+    "with": "        row = _TABLE.get(status)\n        if row is None:\n            return Outcome(status, status, \"error\", GROUP_RERUN, \"無法判定結果\")\n        if False:\n            raise UnknownOutcome(",
+    "test": "tests/test_every_ending_knows_what_the_screen_should_say.py::test_there_is_no_default_row"
+  },
+  {
+    "label": "O3 缺章跟「有檢查是紅的」併成同一組（叫人去按一顆一定失敗的按鈕）",
+    "file": "app/core/outcomes.py",
+    "replace": "    \"FAILED\": _Row(\n        \"undecidable.FAILED.label\",\n        \"partial\",\n        GROUP_FIX,",
+    "with": "    \"FAILED\": _Row(\n        \"undecidable.FAILED.label\",\n        \"partial\",\n        GROUP_RERUN,",
+    "test": "tests/test_every_ending_knows_what_the_screen_should_say.py::test_missing_stamps_and_a_red_check_do_not_land_in_the_same_group"
+  },
+  {
+    "label": "O4 表裡漏掉一種引擎真的會產出的收場（拍板被退回）",
+    "file": "app/core/outcomes.py",
+    "replace": "    \"APPROVAL_REJECTED\": _Row(",
+    "with": "    \"APPROVAL_REJECTED_TYPO\": _Row(",
+    "test": "tests/test_every_ending_knows_what_the_screen_should_say.py::test_every_ending_the_engine_can_produce_has_a_row"
+  },
+  {
+    "label": "O5 畫面又自己維護一張收場表（第二份互相漂開的答案）",
+    "file": "app/ui/main_window.py",
+    "replace": "        try:\n            outcome = describe_outcome(result)",
+    "with": "        if workflow_status == \"COMPLETED\":\n            pass\n        try:\n            outcome = describe_outcome(result)",
+    "test": "tests/test_every_ending_knows_what_the_screen_should_say.py::test_the_screen_does_not_keep_its_own_copy_of_the_table"
+  },
+  {
+    "label": "O6 首頁又把「在等使用者」寫死成 ASK_USER（正在等你回答，首頁說閒置）",
+    "file": "app/services/project_dashboard.py",
+    "replace": "    WAITING_STATUSES = _statuses_in(outcomes.GROUP_ASK)",
+    "with": "    WAITING_STATUSES = frozenset({\"ASK_USER\"})",
+    "test": "tests/test_the_home_page_does_not_call_a_waiting_project_idle.py::test_a_project_whose_ai_is_asking_is_not_idle"
+  },
+  {
+    "label": "O7 首頁把「有事等你動手」畫回閒置（看不到的停下來）",
+    "file": "app/services/project_dashboard.py",
+    "replace": "            elif latest.status in self.NEEDS_YOU_STATUSES:\n                status = \"dash.needs_you\"",
+    "with": "            elif False:\n                status = \"dash.needs_you\"",
+    "test": "tests/test_the_home_page_does_not_call_a_waiting_project_idle.py::test_a_run_that_needs_a_person_is_not_filed_as_idle"
+  },
+  {
+    "label": "O8 章不齊的時候把供參考意見掉光（最需要看到的組合，掉的是唯一能處理的那件）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "                    undecided[\"advisory_notes\"] = notes",
+    "with": "                    undecided[\"advisory_notes\"] = []",
+    "test": "tests/test_an_objection_says_how_much_it_matters.py::test_the_notes_survive_a_run_that_cannot_be_decided"
+  },
+  {
+    "label": "O9 意見不再署名（畫面只寫得出「有人說了一句話」）",
+    "file": "app/core/steps/reviewing.py",
+    "replace": "        {\"role\": shown, \"text\": str(issue)}",
+    "with": "        {\"role\": \"\", \"text\": str(issue)}",
+    "test": "tests/test_an_objection_says_how_much_it_matters.py::test_the_notes_are_kept_where_somebody_can_read_them"
+  },
+  {
+    "label": "O10 NOT_DECIDABLE 不帶判定名稱出去（六種判定被畫成同一種）",
+    "file": "app/core/steps/approval.py",
+    "replace": "        verdict=verdict.verdict.name,",
+    "with": "        verdict=\"MISSING\",",
+    "test": "tests/test_an_objection_says_how_much_it_matters.py::test_a_run_that_cannot_be_decided_says_which_verdict"
+  },
+  {
+    "label": "O11 供參考意見進去兩次（畫面照印，看起來像兩個人講了一樣的話）",
+    "file": "app/core/steps/reviewing.py",
+    "replace": "            # 這裡**不收意見**：改成 PASS 之後底下那一行會收一次。",
+    "with": "            notes.extend(_notes_from(shown_name(seat), data))\n            # 這裡**不收意見**：改成 PASS 之後底下那一行會收一次。",
+    "test": "tests/test_an_objection_says_how_much_it_matters.py::test_the_notes_are_kept_where_somebody_can_read_them"
+  },
+  {
+    "label": "O12 分組沒有推到畫面上（算出來了，但沒有人讀得到）",
+    "file": "app/ui/main_window.py",
+    "replace": "                    \"group\": session.last_group,\n                    # Which line-up seat is running",
+    "with": "                    \"group\": \"\",\n                    # Which line-up seat is running",
+    "test": "tests/test_main_window_runtime.py::test_the_bar_says_which_thing_the_user_has_to_touch"
+  },
+  {
+    "label": "O13 分組蓋在 finalize_run 之後（落地的紀錄裡沒有它，回溯的人看到的正是那份）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "        try:\n            result[\"outcome_group\"] = outcomes.describe(result).group\n        except outcomes.UnknownOutcome:\n            result[\"outcome_group\"] = \"\"\n\n        if self.orchestrator is not None:",
+    "with": "        if self.orchestrator is not None:",
+    "test": "tests/test_every_ending_knows_what_the_screen_should_say.py::test_the_record_that_lands_on_disk_carries_the_group"
+  },
+  {
+    "label": "O14 表裡漏掉一種只有門後才吐得出來的收場（掃描只看主程式，門後新增的一律漏掉）",
+    "file": "app/core/outcomes.py",
+    "replace": "    \"CONSULT_STUCK\": _Row(",
+    "with": "    \"CONSULT_STUCK_TYPO\": _Row(",
+    "test": "tests/test_every_ending_knows_what_the_screen_should_say.py::test_every_ending_the_engine_can_produce_has_a_row"
+  }
+]

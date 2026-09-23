@@ -1,0 +1,107 @@
+[
+  {
+    "label": "S1 沒有一格複查也照樣往下走（2026-08-26 之前的樣子：AttributeError: 'NoneType' object has no attribute 'stdout'——紅燈加一坨 traceback，而他七次派工的額度已經花完，而且他是照著上一句話換到這條路上的）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        if missing:\n            self.timeline.append(",
+    "with": "        if False:\n            self.timeline.append(",
+    "test": "tests/test_the_way_out_it_offers_does_not_end_in_the_same_traceback.py::test_the_second_way_out_does_not_end_in_a_traceback"
+  },
+  {
+    "label": "S2 先派一次工再說（挑一格代打：沒有人擬草稿就改請「執行」那一格自己擬——他把那一格排成執行，不是複查，而那一格會替他改八份共同記憶）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        missing = next(",
+    "with": "        codex_review = codex_review or self.run_claude_memory_review(\"\")\n        missing = next(",
+    "test": "tests/test_the_way_out_it_offers_does_not_end_in_the_same_traceback.py::test_it_does_not_pick_one_to_stand_in"
+  },
+  {
+    "label": "S3 擋過頭：連排了複查的陣容也被判成沒有人維護記憶（一條什麼都拒絕的門，跟一個永遠說可以的門一樣沒用）",
+    "file": "app/core/orchestrator.py",
+    "replace": "                if not self.seat_with_duty(duty)",
+    "with": "                if True",
+    "test": "tests/test_the_way_out_it_offers_does_not_end_in_the_same_traceback.py::test_a_line_with_a_reviewing_seat_still_maintains_memory"
+  },
+  {
+    "label": "S4 收成「工作流程已完成」（薄荷色、算進「今日完成 N 件」，而共同記憶一個字都沒有維護——這個專案最在意的那一種假訊號）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "                    ending = (\"MEMORY_NO_SEAT_FOR_DUTY\", \"PASS\")",
+    "with": "                    ending = (\"COMPLETED\", \"PASS\")",
+    "test": "tests/test_the_way_out_it_offers_does_not_end_in_the_same_traceback.py::test_the_ending_says_the_work_survived"
+  },
+  {
+    "label": "S5 收成「再跑一次就好」（他照做，再花一整輪七次派工的額度，停在同一個地方看到同一句話）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "                    ending = (\"MEMORY_NO_SEAT_FOR_DUTY\", \"PASS\")",
+    "with": "                    ending = (\"MEMORY_ERROR\", \"PASS\")",
+    "test": "tests/test_the_way_out_it_offers_does_not_end_in_the_same_traceback.py::test_it_does_not_tell_him_to_just_run_it_again"
+  },
+  {
+    "label": "S6 收場表那一列歸到「再跑一次就好」（同一句錯誤建議的第二個入口：這一次錯的不是呼叫端，是那張表）",
+    "file": "app/core/outcomes.py",
+    "replace": "        \"outcome.MEMORY_NO_SEAT_FOR_DUTY.label\",\n        \"partial\",\n        GROUP_SETTING,",
+    "with": "        \"outcome.MEMORY_NO_SEAT_FOR_DUTY.label\",\n        \"partial\",\n        GROUP_RERUN,",
+    "test": "tests/test_the_way_out_it_offers_does_not_end_in_the_same_traceback.py::test_it_does_not_tell_him_to_just_run_it_again"
+  },
+  {
+    "label": "S7 引擎講的那一句被畫面的罐頭句子蓋掉（`detail_key` 拆掉：他看到的永遠是「維護共同記憶那一步要派的職責，陣容裡一格都沒有」，而引擎其實已經寫好了缺哪一種、他的五格叫什麼、產出還在不在）",
+    "file": "app/core/outcomes.py",
+    "replace": "        \"outcome.MEMORY_NO_SEAT_FOR_DUTY.stage\",\n        detail_key=\"memory_problem\",",
+    "with": "        \"outcome.MEMORY_NO_SEAT_FOR_DUTY.stage\",",
+    "test": "tests/test_the_way_out_it_offers_does_not_end_in_the_same_traceback.py::test_it_says_which_duty_is_missing_and_names_his_seats"
+  },
+  {
+    "label": "S8 挑錯那一句（缺執行的人拿到缺複查那一句：叫他去排一格複查，而草稿本來就擬得出來，缺的是審它的人。兩句話都還是好好的，錯的是選擇那一行）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "    DUTY_WORK: \"memory.no_seat_with_duty.work\",",
+    "with": "    DUTY_WORK: \"memory.no_seat_with_duty.review\",",
+    "test": "tests/test_the_way_out_it_offers_does_not_end_in_the_same_traceback.py::test_it_picks_the_sentence_for_the_duty_that_is_missing"
+  },
+  {
+    "label": "S9 那句話不再先講產出還在（他讀到「共同記憶沒有人維護」的第一個念頭是整輪重跑，而程式已經寫好、測試已經過了）",
+    "file": "app/i18n.py",
+    "replace": "    \"memory.no_seat_with_duty.review\": (\n        \"程式做完了、驗證過了，產出都在。\"",
+    "with": "    \"memory.no_seat_with_duty.review\": (\n        \"共同記憶沒有維護到。\"",
+    "test": "tests/test_the_way_out_it_offers_does_not_end_in_the_same_traceback.py::test_it_says_which_duty_is_missing_and_names_his_seats"
+  },
+  {
+    "label": "S10 那句話不再念出他排的那幾格（講不出名字的說明等於沒有說明——他要對照的正是「我排的這五格裡哪一格該改」）",
+    "file": "app/i18n.py",
+    "replace": "        \"只有最後一步沒做：維護共同記憶要先請職責是「複查」的那一格擬草稿，\"\n        \"而這份陣容的 {count} 格（{seats}）裡一格都不是\"",
+    "with": "        \"只有最後一步沒做：維護共同記憶要先請職責是「複查」的那一格擬草稿，\"\n        \"而這份陣容裡一格都不是\"",
+    "test": "tests/test_the_way_out_it_offers_does_not_end_in_the_same_traceback.py::test_it_says_which_duty_is_missing_and_names_his_seats"
+  },
+  {
+    "label": "G1 決策關卡照樣派給一個不存在的名字（同一條路上更早的那個坑：做事那一格中途問了一題，第五次派工之後 NotImplementedError: 這個專案的陣容裡沒有「reviewer」這一格——他問的那一題連看都沒看到）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        if not self.seat_with_duty(DUTY_REVIEW):\n            # **跳過的那一步要在時間軸上留一筆。**",
+    "with": "        if False:\n            # **跳過的那一步要在時間軸上留一筆。**",
+    "test": "tests/test_the_way_out_it_offers_does_not_end_in_the_same_traceback.py::test_a_question_with_nobody_to_judge_asks_him_instead"
+  },
+  {
+    "label": "G2 問錯職責（問的是「有沒有人做事」，而那一格他排了——於是門形同不存在，一樣走回 traceback）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        if not self.seat_with_duty(DUTY_REVIEW):\n            # **跳過的那一步要在時間軸上留一筆。**",
+    "with": "        if not self.seat_with_duty(DUTY_WORK):\n            # **跳過的那一步要在時間軸上留一筆。**",
+    "test": "tests/test_the_way_out_it_offers_does_not_end_in_the_same_traceback.py::test_a_question_with_nobody_to_judge_asks_him_instead"
+  },
+  {
+    "label": "G3 擋過頭：排了複查的陣容也不再送決策關卡（每一題都跳出來問他，而他買 AICC 就是為了不要每一題都被問）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        if not self.seat_with_duty(DUTY_REVIEW):\n            # **跳過的那一步要在時間軸上留一筆。**",
+    "with": "        if True:\n            # **跳過的那一步要在時間軸上留一筆。**",
+    "test": "tests/test_the_way_out_it_offers_does_not_end_in_the_same_traceback.py::test_a_line_with_a_reviewing_seat_still_asks_the_gate"
+  },
+  {
+    "label": "G4 那句話不再講為什麼直接問他（畫面上只有一題突然跳出來，他會以為 AICC 壞了——實際上是這份陣容裡沒有一格能先替他判斷）",
+    "file": "app/i18n.py",
+    "replace": "        \"這一題直接問你：決策關卡要請職責是「複查」的那一格先判斷要不要打擾你，\"\n        \"而這份陣容的 {count} 格（{seats}）裡一格都不是\"",
+    "with": "        \"這一題直接問你。\"\n        \"\"",
+    "test": "tests/test_the_way_out_it_offers_does_not_end_in_the_same_traceback.py::test_it_says_why_it_is_asking_him_directly"
+  },
+  {
+    "label": "S11 那句話不再講回哪一頁改什麼（「請重新編組」——他不知道要編什麼，那正是 2026-08-26 那一次他看到的句子）",
+    "file": "app/i18n.py",
+    "replace": "        \"到陣容頁把其中一格的職責改成「複查」，或到「AI 執行設定」\"\n        \"把「自動維護共同記憶」關掉。\"",
+    "with": "        \"請重新編組。\"",
+    "test": "tests/test_the_way_out_it_offers_does_not_end_in_the_same_traceback.py::test_it_says_which_duty_is_missing_and_names_his_seats"
+  }
+]

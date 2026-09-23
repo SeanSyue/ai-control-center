@@ -1,0 +1,79 @@
+[
+  {
+    "label": "M1 新建的檔案又不算數了（回到「一輪只開新檔案＝什麼都沒做」的那一天）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        paths = self._untracked_files()",
+    "with": "        paths = []",
+    "test": "tests/test_a_round_that_only_creates_files_still_produced_something.py"
+  },
+  {
+    "label": "M2 新檔案那一段算出來了、但沒有接進 deliverable（拍板那一格照樣讀到空的）",
+    "file": "app/core/orchestrator.py",
+    "replace": "            new_files = self._new_files_report()\n            if new_files:",
+    "with": "            new_files = self._new_files_report()\n            if False:",
+    "test": "tests/test_a_round_that_only_creates_files_still_produced_something.py"
+  },
+  {
+    "label": "M3 共同記憶又混進「這一輪做出來的東西」（排除清單少了 .aicc/knowledge/）",
+    "file": "app/core/orchestrator.py",
+    "replace": "    \".aicc/knowledge/\",\n)",
+    "with": ")",
+    "test": "tests/test_a_round_that_only_creates_files_still_produced_something.py"
+  },
+  {
+    "label": "M4 引擎自己寫的計畫書又算成這一輪的產出（少了 .aicc/project-brief.md）",
+    "file": "app/core/orchestrator.py",
+    "replace": "    \".aicc/project-brief.md\",\n)",
+    "with": ")",
+    "test": "tests/test_a_round_that_only_creates_files_still_produced_something.py"
+  },
+  {
+    "label": "M5 .aicc/conflicts/ 從共用清單掉出去（兩邊漂開的那一天就是這樣開始的）",
+    "file": "app/core/orchestrator.py",
+    "replace": "    \".aicc/conflicts/\",\n",
+    "with": "",
+    "test": "tests/test_a_round_that_only_creates_files_still_produced_something.py"
+  },
+  {
+    "label": "M6 截斷不再講截了多少（「只放了前 400 行」跟「這個檔案就這麼短」長得一樣）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        if len(lines) > NEW_FILE_MAX_LINES:",
+    "with": "        if False:",
+    "test": "tests/test_a_round_that_only_creates_files_still_produced_something.py"
+  },
+  {
+    "label": "M7 說截了、其實整份都放進去（宣告與內容漂開，而下游只讀得到宣告）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        body = \"\\n\".join(lines[:NEW_FILE_MAX_LINES])",
+    "with": "        body = \"\\n\".join(lines)",
+    "test": "tests/test_a_round_that_only_creates_files_still_produced_something.py"
+  },
+  {
+    "label": "M8 字數用完之後的新檔案靜靜消失（連檔名都沒有）",
+    "file": "app/core/orchestrator.py",
+    "replace": "            return (\n                t(\"git.new_file.no_room\", path=path, chars=len(text)),\n                0,\n            )",
+    "with": "            return (\"\", 0)",
+    "test": "tests/test_a_round_that_only_creates_files_still_produced_something.py"
+  },
+  {
+    "label": "M9 檔名不再用 -z 拿（中文檔名變成跳脫字串，真的寫出來的文件變成一行「讀不到」）",
+    "file": "app/core/orchestrator.py",
+    "replace": "                \"-z\",\n",
+    "with": "",
+    "test": "tests/test_a_round_that_only_creates_files_still_produced_something.py"
+  },
+  {
+    "label": "M10 get_changed_files 不再共用同一份排除清單（兩張單子講兩件事）",
+    "file": "app/core/orchestrator.py",
+    "replace": "            if is_generated_path(file_path):",
+    "with": "            if False:",
+    "test": "tests/test_a_round_that_only_creates_files_still_produced_something.py"
+  },
+  {
+    "label": "M11 排除清單翻不出 git 的排除語法（清單還在，但沒有人在用）",
+    "file": "app/core/orchestrator.py",
+    "replace": "    return [\n        f\":(exclude){prefix}**\" for prefix in GENERATED_PATH_PREFIXES\n    ] + [f\":(exclude){path}\" for path in GENERATED_PATH_EXACT]",
+    "with": "    return []",
+    "test": "tests/test_a_round_that_only_creates_files_still_produced_something.py"
+  }
+]

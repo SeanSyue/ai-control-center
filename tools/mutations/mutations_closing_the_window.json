@@ -1,0 +1,107 @@
+[
+  {
+    "label": "S1 收尾整段拿掉（app.exec() 回來就直接 return，就是修之前的樣子）",
+    "file": "app/ui/shutdown.py",
+    "replace": "    code = app.exec()\n    tear_down(app)\n    return code",
+    "with": "    code = app.exec()\n    return code",
+    "test": "tests/test_closing_the_window_does_not_kill_the_process.py::test_a_background_thread_still_running_does_not_take_the_process_down"
+  },
+  {
+    "label": "S2 只叫 quit() 不等它真的離開（『我要走了』跟『我走了』差的就是這一行）",
+    "file": "app/ui/shutdown.py",
+    "replace": "            thread.quit()\n            stopped = thread.wait(timeout_ms)",
+    "with": "            thread.quit()\n            stopped = True",
+    "test": "tests/test_closing_the_window_does_not_kill_the_process.py::test_a_background_thread_still_running_does_not_take_the_process_down"
+  },
+  {
+    "label": "S3 等完之後沒有從集合裡放掉（那幾條會活到直譯器收尾，那時候 QApplication 已經走了）",
+    "file": "app/ui/shutdown.py",
+    "replace": "        _LIVE.discard(thread)\n        waited += 1\n    return waited",
+    "with": "        waited += 1\n    return waited",
+    "test": "tests/test_closing_the_window_does_not_kill_the_process.py::test_a_background_thread_still_running_does_not_take_the_process_down"
+  },
+  {
+    "label": "S4 對話掃描不登記（下一個面板忘記登記，長得就是這樣）",
+    "file": "app/ui/conversation_web_panel.py",
+    "replace": "        shutdown.adopt(thread)\n        thread.finished.connect(_retire)",
+    "with": "        thread.finished.connect(_retire)",
+    "test": "tests/test_closing_the_window_does_not_kill_the_process.py::test_a_parentless_qthread_is_registered_where_the_teardown_can_find_it"
+  },
+  {
+    "label": "S5 憑證頁的背景工作不登記",
+    "file": "app/ui/credentials_web_panel.py",
+    "replace": "        shutdown.adopt(thread)      # 先登記再啟動\n",
+    "with": "",
+    "test": "tests/test_closing_the_window_does_not_kill_the_process.py::test_a_parentless_qthread_is_registered_where_the_teardown_can_find_it"
+  },
+  {
+    "label": "S6 main() 改回自己 show() + exec()（收尾還在，但沒有人走那條路）",
+    "file": "app/main.py",
+    "replace": "    return run_until_closed(app, MainWindow(project_path))",
+    "with": "    window = MainWindow(project_path)\n    window.show()\n    return app.exec()",
+    "test": "tests/test_closing_the_window_does_not_kill_the_process.py::test_main_hands_the_window_to_the_shared_shutdown_path"
+  },
+  {
+    "label": "S7 整套測試跑完之後不收 Qt（『全過』跟『全過然後當機』分不出來）",
+    "file": "tests/conftest.py",
+    "replace": "    _tear_down_qt()\n\n    after = _config_fingerprint()",
+    "with": "    after = _config_fingerprint()",
+    "test": "tests/test_closing_the_window_does_not_kill_the_process.py::test_the_suite_itself_ends_by_calling_the_shared_teardown"
+  },
+  {
+    "label": "S8 自我檢查自己壞掉（探針不起執行緒＝主檢查變成恆真，而它看起來一直是綠的）",
+    "file": "tests/test_closing_the_window_does_not_kill_the_process.py",
+    "replace": "    shutdown.adopt(thread)\n    thread.start()\n    window._keep = (thread, worker)",
+    "with": "    shutdown.adopt(thread)\n    window._keep = (thread, worker)",
+    "test": "tests/test_closing_the_window_does_not_kill_the_process.py::test_a_background_thread_still_running_does_not_take_the_process_down"
+  },
+  {
+    "label": "S9 排了隊的刪除從來沒被送出去（deleteLater() 只是排隊，而 processEvents() 刻意不處理它）",
+    "file": "app/ui/shutdown.py",
+    "replace": "            QCoreApplication.sendPostedEvents(\n                None, QEvent.Type.DeferredDelete\n            )\n            app.processEvents()",
+    "with": "            app.processEvents()",
+    "test": "tests/test_closing_the_window_does_not_kill_the_process.py::test_a_widget_told_to_delete_itself_is_really_gone_after_the_teardown"
+  },
+  {
+    "label": "S10 收尾只送刪除、不等執行緒（兩件事只做一件，看起來一樣乾淨）",
+    "file": "app/ui/shutdown.py",
+    "replace": "    waited = stop_background_threads(timeout_ms)\n    if app is not None:",
+    "with": "    waited = 0\n    if app is not None:",
+    "test": "tests/test_closing_the_window_does_not_kill_the_process.py::test_the_suite_itself_ends_by_calling_the_shared_teardown"
+  },
+  {
+    "label": "S11 同 S1 的破壞，但這次量的是真的 MainWindow（product 那一條沒有斷言『關的那一刻有東西在跑』，這裡替它證明它不是恆真）。註：它會不會紅，要看這台機器上有沒有本機對話可掃——綠的話代表那條測試在這台機器上什麼都沒量到，不是代表產品好了",
+    "file": "app/ui/shutdown.py",
+    "replace": "    code = app.exec()\n    tear_down(app)\n    return code",
+    "with": "    code = app.exec()\n    return code",
+    "test": "tests/test_closing_the_window_does_not_kill_the_process.py::test_closing_the_real_window_leaves_a_clean_exit_code"
+  },
+  {
+    "label": "S12 收尾不先 requestInterruption()（quit() 叫不動一條卡在長 slot 裡的執行緒，wait() 必然逾時）",
+    "file": "app/ui/shutdown.py",
+    "replace": "            thread.requestInterruption()\n            thread.quit()",
+    "with": "            thread.quit()",
+    "test": "tests/test_closing_the_window_does_not_kill_the_process.py::test_closing_the_real_window_leaves_a_clean_exit_code"
+  },
+  {
+    "label": "S13 wait() 逾時照樣把它從集合裡丟掉（『收乾淨了』與『放棄了』的差別只在離開碼——這就是 2026-08-26 那個 0xC0000409）",
+    "file": "app/ui/shutdown.py",
+    "replace": "        if not stopped:\n            # **這裡不准 `discard()`。**",
+    "with": "        if not stopped:\n            _LIVE.discard(thread)\n            # **這裡不准 `discard()`。**",
+    "test": "tests/test_closing_the_window_does_not_kill_the_process.py::test_a_thread_that_refuses_to_stop_is_not_reported_as_stopped"
+  },
+  {
+    "label": "S14 掃描收到中斷旗子卻不理它（should_stop 傳成恆假＝那一趟固定跑滿約 10 秒，收尾等不到）",
+    "file": "app/ui/conversation_web_panel.py",
+    "replace": "            return thread is not None and thread.isInterruptionRequested()",
+    "with": "            return False",
+    "test": "tests/test_closing_the_window_does_not_kill_the_process.py::test_closing_the_real_window_leaves_a_clean_exit_code"
+  },
+  {
+    "label": "S15 search() 在每個 session 之前不看中斷旗子（只在換 provider 時看一次＝最壞情況還是要等完整整一邊）",
+    "file": "app/services/conversation_search.py",
+    "replace": "                if should_stop is not None and should_stop():\n                    break\n                messages = self.load_messages(session, project_path)",
+    "with": "                messages = self.load_messages(session, project_path)",
+    "test": "tests/test_closing_the_window_does_not_kill_the_process.py::test_closing_the_real_window_leaves_a_clean_exit_code"
+  }
+]

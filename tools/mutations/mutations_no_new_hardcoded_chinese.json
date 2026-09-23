@@ -1,0 +1,58 @@
+[
+  {
+    "label": "I1 有人在既有檔案裡多寫一段中文介面文字（1,558 段會慢慢變回 2,000，而每一段單看都很合理）",
+    "file": "app/services/settings_homes.py",
+    "replace": "SCOPE_LABELS = {",
+    "with": "A_NEW_HARDCODED_STRING = \"這是一段新的中文介面文字\"\n\nSCOPE_LABELS = {",
+    "test": "tests/test_no_new_hardcoded_chinese.py::test_no_file_gains_new_hardcoded_interface_text"
+  },
+  {
+    "label": "I2 新檔案一出生就欠債（新檔案不會自動繼承既有政策，而「基準裡沒有它」最省事的讀法是「隨便它」）",
+    "file": "app/services/credential_entry.py",
+    "replace": "SUPPORTED = (\"claude\", \"codex\")",
+    "with": "SUPPORTED = (\"claude\", \"codex\")\nBRAND_NEW_DEBT = \"一個新檔案帶進來的中文\"",
+    "test": "tests/test_no_new_hardcoded_chinese.py::test_a_brand_new_file_starts_at_zero"
+  },
+  {
+    "label": "I3 目錄裡同一句話有兩個 key，而且沒有人說得出差別（翻譯會翻出兩種說法，使用者在兩個地方看到同一件事的兩種講法）",
+    "file": "app/i18n.py",
+    "replace": "    \"detect.value.not_used_before\": \"沒有\",",
+    "with": "    \"detect.value.not_used_before\": \"沒有\",\n    \"detect.value.none_at_all\": \"沒有\",",
+    "test": "tests/test_no_new_hardcoded_chinese.py::test_the_catalogue_has_no_accidental_duplicates"
+  },
+  {
+    "label": "I4 有人用了一個目錄裡沒有的 key（使用者按到那顆按鈕的當下才炸，而那是最不該炸的時刻）",
+    "file": "app/services/credential_entry.py",
+    "replace": "return t(self.label_key)",
+    "with": "return t(\"credential.label.typo\")",
+    "test": "tests/test_no_new_hardcoded_chinese.py::test_every_key_used_anywhere_exists"
+  },
+  {
+    "label": "I5 介面文字又在 import 的當下凍住（換語言換設定都不會再變，而畫面上看不出差別——同一個形狀一天之內犯了兩次）",
+    "file": "app/services/project_detection.py",
+    "replace": "CONFIDENCE_KEYS = {\n    SURE: \"detect.confidence.sure\",",
+    "with": "FROZEN = t(\"detect.confidence.sure\")\n\nCONFIDENCE_KEYS = {\n    SURE: \"detect.confidence.sure\",",
+    "test": "tests/test_no_new_hardcoded_chinese.py::test_nobody_resolves_text_at_import_time"
+  },
+  {
+    "label": "I6 放行清單留著一個不存在的檔案（過期的放行等於替下一個人先開好一扇門）",
+    "file": "tools/i18n_scan.py",
+    "replace": "    \"app/core/prompt_builder.py\":",
+    "with": "    \"app/core/prompt_builder_old.py\":",
+    "test": "tests/test_no_new_hardcoded_chinese.py::test_the_excused_files_say_why"
+  },
+  {
+    "label": "I7 t() 的第一個參數不再是位置專用（模板裡不能有叫 key 的變數，而那是一句非常自然的錯誤訊息——2026-08-24 真的炸過一次）",
+    "file": "app/i18n.py",
+    "replace": "def t(key: str, /, **values: object) -> str:",
+    "with": "def t(key: str, **values: object) -> str:",
+    "test": "tests/test_no_new_hardcoded_chinese.py::test_a_template_can_have_a_variable_called_key"
+  },
+  {
+    "label": "I8 放行清單腐爛（那兩個 key 已經不再撞字，而放行還留著——過期的放行等於替下一個人先開好一扇門）",
+    "file": "app/i18n.py",
+    "replace": "    \"title_source.session_name\": \"對話名稱\",",
+    "with": "    \"title_source.session_name\": \"對話自己的名稱\",",
+    "test": "tests/test_no_new_hardcoded_chinese.py::test_the_excused_pairs_still_exist_and_still_clash"
+  }
+]

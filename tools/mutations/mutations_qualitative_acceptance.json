@@ -1,0 +1,100 @@
+[
+  {
+    "label": "Y1 一個維度只給一個案例也放行（產出會全部長成那一個樣子——手冊寫死的那句話）",
+    "file": "app/services/qualitative_acceptance.py",
+    "replace": "MINIMUM_EXAMPLES = 2",
+    "with": "MINIMUM_EXAMPLES = 1",
+    "test": "tests/test_work_without_unit_tests_still_has_a_standard.py::test_a_dimension_with_one_example_is_rejected"
+  },
+  {
+    "label": "Y2 沒有反例也放行（「避免 AI 味」那種抽象描述通過，而它比不寫還沒用）",
+    "file": "app/services/qualitative_acceptance.py",
+    "replace": "MINIMUM_COUNTER_EXAMPLES = 1",
+    "with": "MINIMUM_COUNTER_EXAMPLES = 0",
+    "test": "tests/test_work_without_unit_tests_still_has_a_standard.py::test_a_dimension_with_no_counter_example_is_rejected"
+  },
+  {
+    "label": "Y3 「不好」也算一個案例（一句話講不完的東西被寫成一句話，而審查那一格只能自己編）",
+    "file": "app/services/qualitative_acceptance.py",
+    "replace": "MINIMUM_EXAMPLE_LENGTH = 8",
+    "with": "MINIMUM_EXAMPLE_LENGTH = 0",
+    "test": "tests/test_work_without_unit_tests_still_has_a_standard.py::test_an_abstract_example_is_rejected"
+  },
+  {
+    "label": "Y4 沒寫 good 的案例被當成正例（一份漏寫的標準變成「沒有任何反例」——正是它沒有用的那個形狀）",
+    "file": "app/services/qualitative_acceptance.py",
+    "replace": "Example(good=bool(entry.get(\"good\", False)), text=str(entry.get(\"text\", \"\")))",
+    "with": "Example(good=bool(entry.get(\"good\", True)), text=str(entry.get(\"text\", \"\")))",
+    "test": "tests/test_work_without_unit_tests_still_has_a_standard.py::test_a_missing_good_flag_means_counter_example"
+  },
+  {
+    "label": "Y5 前幾輪不提醒人核對（一份沒有被人核對過的標準，跟一個永遠回綠燈的測試是同一種東西）",
+    "file": "app/services/qualitative_acceptance.py",
+    "replace": "STILL_LEARNING_RUNS = 3",
+    "with": "STILL_LEARNING_RUNS = 0",
+    "test": "tests/test_work_without_unit_tests_still_has_a_standard.py::test_the_first_few_runs_ask_the_user_to_check_it"
+  },
+  {
+    "label": "Y6 案例被摘要而不是逐字送過去（摘要做的正好是把具體案例壓回抽象描述）",
+    "file": "app/core/prompt_builder.py",
+    "replace": "            lines.append(f\"- {mark}：{example.text}\")",
+    "with": "            lines.append(f\"- {mark}：（{len(example.text)} 字的案例）\")",
+    "test": "tests/test_work_without_unit_tests_still_has_a_standard.py::test_the_examples_reach_the_prompt_verbatim"
+  },
+  {
+    "label": "Y7 正例反例畫成一樣（反例會被當成範本照抄——你叫它不要做的事變成它的目標）",
+    "file": "app/core/prompt_builder.py",
+    "replace": "mark = \"✔ 這樣是對的\" if example.good else \"✘ 不准這樣\"",
+    "with": "mark = \"案例\"",
+    "test": "tests/test_work_without_unit_tests_still_has_a_standard.py::test_the_prompt_says_which_ones_are_forbidden"
+  },
+  {
+    "label": "Y8 壞掉的標準也放行（一份壞掉的標準比沒有更糟：它看起來像已經設定好了）",
+    "file": "app/services/qualitative_acceptance.py",
+    "replace": "    problems: list[str] = []\n    for dimension in rubric.dimensions:\n        problems.extend(_problems_with(dimension))\n    return problems",
+    "with": "    return []",
+    "test": "tests/test_work_without_unit_tests_still_has_a_standard.py::test_a_broken_rubric_is_worse_than_none_so_it_also_stops"
+  },
+  {
+    "label": "Y9 讀不到標準時回一份空的而不是 None（打錯字的設定檔變成「這個專案沒有驗收標準」，跟「還沒設定」長得一樣）",
+    "file": "app/services/qualitative_acceptance.py",
+    "replace": "    if not isinstance(raw, dict) or ACCEPTANCE_KEY not in raw:\n        return None",
+    "with": "    if not isinstance(raw, dict) or ACCEPTANCE_KEY not in raw:\n        return Rubric(dimensions=())",
+    "test": "tests/test_work_without_unit_tests_still_has_a_standard.py::test_a_project_with_neither_still_stops"
+  },
+  {
+    "label": "Y10 沒有標準的時候塞一句場面話進提示詞（它會以為自己有標準可以依，而那句話什麼都沒說）",
+    "file": "app/core/prompt_builder.py",
+    "replace": "        f\"{acceptance_rubric}{chr(10)}{chr(10)}\" if acceptance_rubric else \"\"",
+    "with": "        f\"{acceptance_rubric}{chr(10)}{chr(10)}\" if acceptance_rubric else \"請依一般標準判斷。\" + chr(10)",
+    "test": "tests/test_prompt_golden.py::test_every_prompt_matches_the_golden_snapshot"
+  },
+  {
+    "label": "Y11 存標準的時候不驗（一份寫壞的標準進了檔案，而它看起來像已經設定好了）",
+    "file": "app/services/qualitative_acceptance.py",
+    "replace": "    problems = problems_with(rubric)\n    if problems:\n        raise RubricProblem(\"；\".join(problems))",
+    "with": "    problems = []",
+    "test": "tests/test_work_without_unit_tests_still_has_a_standard.py::test_a_broken_rubric_is_refused_at_the_door"
+  },
+  {
+    "label": "Y12 存標準的時候把整個 project.json 蓋掉（敏感度、驗證指令憑空消失，而且不會報錯）",
+    "file": "app/services/qualitative_acceptance.py",
+    "replace": "        data = ProjectRegistry._read_project_metadata(target)\n        existing = data.get(ACCEPTANCE_KEY)",
+    "with": "        data = {}\n        existing = data.get(ACCEPTANCE_KEY)",
+    "test": "tests/test_work_without_unit_tests_still_has_a_standard.py::test_saving_does_not_wipe_the_other_settings"
+  },
+  {
+    "label": "Y13 用過的次數不再累加（「請你自己核對」永遠不會消失，而使用者第三次看到就開始跳過它）",
+    "file": "app/services/qualitative_acceptance.py",
+    "replace": "        acceptance[\"runs_so_far\"] = int(acceptance.get(\"runs_so_far\", 0) or 0) + 1",
+    "with": "        acceptance[\"runs_so_far\"] = 0",
+    "test": "tests/test_work_without_unit_tests_still_has_a_standard.py::test_the_reminder_stops_after_a_few_runs"
+  },
+  {
+    "label": "Y14 起點變回佔位符（「維度一／案例一」會被原封不動留著，那時候標準看起來設定好了、實際什麼都沒說）",
+    "file": "app/services/qualitative_acceptance.py",
+    "replace": "name=t(\"rubric.starter.hook.name\"),",
+    "with": "name=\"維度一\",",
+    "test": "tests/test_work_without_unit_tests_still_has_a_standard.py::test_the_starter_is_something_you_can_actually_edit"
+  }
+]

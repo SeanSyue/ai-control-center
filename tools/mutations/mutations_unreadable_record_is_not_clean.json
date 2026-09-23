@@ -1,0 +1,65 @@
+[
+  {
+    "label": "R1 讀不到的紀錄退回「空清單」（四筆真紀錄在畫面上跟一個沒跑過的新專案完全一樣，燈是綠的）",
+    "file": "app/services/long_task.py",
+    "replace": "        except OSError as exc:\n            raise DecisionLogUnreadable(f\"{self.path}：{exc}\") from exc",
+    "with": "        except OSError:\n            return []",
+    "test": "tests/test_a_record_you_cannot_read_is_not_a_clean_record.py"
+  },
+  {
+    "label": "R2 `ok` 又只問 broken_at（「掃過了每一筆都對」與「一筆都沒掃到」共用一個綠燈）",
+    "file": "app/services/long_task.py",
+    "replace": "        return self.broken_at is None and not self.unreadable",
+    "with": "        return self.broken_at is None",
+    "test": "tests/test_a_record_you_cannot_read_is_not_a_clean_record.py::test_a_decision_log_that_cannot_be_read_is_not_reported_as_verified"
+  },
+  {
+    "label": "R3 verify() 讀不到時不留原因（畫面說不出是哪一個檔、為什麼讀不到）",
+    "file": "app/services/long_task.py",
+    "replace": "                reason=t(\"file.unreadable\"),\n                unreadable=str(exc),",
+    "with": "                reason=t(\"file.unreadable\"),",
+    "test": "tests/test_a_record_you_cannot_read_is_not_a_clean_record.py::test_a_decision_log_that_cannot_be_read_is_not_reported_as_verified"
+  },
+  {
+    "label": "R4 零筆／讀不到又去畫那一格（薄荷綠「全部通過驗證 · 0 / 0 筆已驗證」回來了）",
+    "file": "app/ui/audit_web_panel.py",
+    "replace": "        if status.unreadable or status.nothing_to_verify:\n            return None",
+    "with": "        if False:\n            return None",
+    "test": "tests/test_a_record_you_cannot_read_is_not_a_clean_record.py"
+  },
+  {
+    "label": "R5 零筆不再算「沒有東西可以驗」（`nothing_to_verify` 恆假，空專案照樣拿到綠燈）",
+    "file": "app/services/long_task.py",
+    "replace": "        return self.total == 0 and not self.unreadable",
+    "with": "        return False",
+    "test": "tests/test_a_record_you_cannot_read_is_not_a_clean_record.py::test_a_project_with_no_decisions_makes_no_verification_claim"
+  },
+  {
+    "label": "R6a 預覽讀不到的時候安靜地放棄（「匯出這份紀錄」那顆按鈕先走預覽，所以這是讀不到時實際會走到的第一條路——按下去像沒按到）",
+    "file": "app/ui/audit_web_panel.py",
+    "replace": "            self._refuse(unreadable)\n            return\n        markdown = service._render(",
+    "with": "            return\n        markdown = service._render(",
+    "test": "tests/test_a_record_you_cannot_read_is_not_a_clean_record.py::test_the_export_button_says_something_when_the_log_cannot_be_read"
+  },
+  {
+    "label": "R6 讀不到的時候安靜地放棄（按下匯出之後畫面上一個字都沒有變，而他以為那份檔案已經交出去了）",
+    "file": "app/ui/audit_web_panel.py",
+    "replace": "            self._refuse(unreadable)\n            return\n\n        self._preview = None",
+    "with": "            return\n\n        self._preview = None",
+    "test": "tests/test_a_record_you_cannot_read_is_not_a_clean_record.py::test_exporting_a_record_you_cannot_read_refuses_instead_of_writing_one"
+  },
+  {
+    "label": "R7 匯出完成的對話框對零筆說「通過完整性驗證」（他剛交出一份空檔案，視窗跟他說驗過了）",
+    "file": "app/ui/audit_web_panel.py",
+    "replace": "        if not result.entries:\n            # 措辭沿用匯出的 markdown 自己那一句",
+    "with": "        if False:\n            # 措辭沿用匯出的 markdown 自己那一句",
+    "test": "tests/test_a_record_you_cannot_read_is_not_a_clean_record.py::test_the_export_dialog_does_not_tell_an_empty_log_it_passed"
+  },
+  {
+    "label": "R8 決策摘要又把讀不到的專案當成 0 筆併進總數（那份摘要回答的是「這個月有幾個判斷是人做的」）",
+    "file": "app/services/long_task.py",
+    "replace": "        except FileNotFoundError:\n            return []",
+    "with": "        except OSError:\n            return []",
+    "test": "tests/test_a_record_you_cannot_read_is_not_a_clean_record.py::test_a_locked_log_makes_the_project_summary_say_it_could_not_be_read"
+  }
+]

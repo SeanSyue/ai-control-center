@@ -1,0 +1,65 @@
+[
+  {
+    "label": "S1 設定檔壞掉的專案不告訴畫面（它看起來跟他親手設成 KYC 的一模一樣，而他最合理的反應是改低——改下去逐字紀錄就往外同步）",
+    "file": "app/ui/main_window.py",
+    "replace": "                    \"sensitivity_source\": ProjectRegistry.sensitivity_source(",
+    "with": "                    \"sensitivity_source_disabled\": ProjectRegistry.sensitivity_source(",
+    "test": "tests/test_a_broken_settings_file_is_not_dressed_up_as_a_choice.py::test_a_broken_settings_file_reaches_the_screen_as_unreadable"
+  },
+  {
+    "label": "S2 標籤又讓畫面自己維護一份（引擎寫「高敏感度／KYC」而 shell.js 寫「KYC／高敏感」——這件事已經發生過）",
+    "file": "app/ui/main_window.py",
+    "replace": "                    \"sensitivity_label\": sensitivity_label(",
+    "with": "                    \"sensitivity_label_disabled\": sensitivity_label(",
+    "test": "tests/test_a_broken_settings_file_is_not_dressed_up_as_a_choice.py::test_the_label_comes_from_the_engine_not_a_second_copy"
+  },
+  {
+    "label": "S3 畫面又不讀那個來源（引擎算對了、推出去了，而畫面一個字都沒讀——這個專案反覆出現的那一類）",
+    "file": "app/ui/web/shell.js",
+    "replace": "const why = SENS_WHY[p.sensitivity_source] || SENS_WHY.chosen;",
+    "with": "const why = SENS_WHY.chosen;",
+    "test": "tests/test_a_broken_settings_file_is_not_dressed_up_as_a_choice.py::test_the_page_actually_reads_the_source"
+  },
+  {
+    "label": "S4 「他還沒選過」用了跟「設定檔讀不到」同一個警告記號（一個要他停下來、一個不用，長得一樣就分不出來）",
+    "file": "app/ui/web/shell.js",
+    "replace": "      default:    { mark: '·', cls: ' sens-default',",
+    "with": "      default:    { mark: '⚠', cls: ' sens-unreadable',",
+    "test": "tests/test_a_broken_settings_file_is_not_dressed_up_as_a_choice.py::test_the_two_visible_ones_do_not_look_the_same"
+  },
+  {
+    "label": "S4b 「他還沒選過」的記號整個被拿掉（拿掉是一個合法的決定，但要連同那段立論一起撤——不要只改一行）",
+    "file": "app/ui/web/shell.js",
+    "replace": "      default:    { mark: '·', cls: ' sens-default',",
+    "with": "      default:    { mark: '',  cls: ' sens-default',",
+    "test": "tests/test_a_broken_settings_file_is_not_dressed_up_as_a_choice.py::test_the_two_visible_ones_do_not_look_the_same"
+  },
+  {
+    "label": "S4c 「他自己選的」也掛了記號（那個記號會出現在每一個設好的專案上，而一個永遠都在的記號等於沒有記號）",
+    "file": "app/ui/web/shell.js",
+    "replace": "      chosen:     { mark: '',  cls: '',",
+    "with": "      chosen:     { mark: '·',  cls: ' sens-default',",
+    "test": "tests/test_a_broken_settings_file_is_not_dressed_up_as_a_choice.py::test_the_one_he_chose_himself_never_gets_a_mark"
+  },
+  {
+    "label": "S4d 記號的樣式不見了（它變成一個沒有顏色的字元——這一條掃的是 SENS_WHY 裡實際出現的每一個 class，不是寫死那一個）",
+    "file": "app/ui/web/aicc.css",
+    "replace": ".sens-why.sens-default{",
+    "with": ".sens-why.sens-defaultx{",
+    "test": "tests/test_a_broken_settings_file_is_not_dressed_up_as_a_choice.py::test_every_mark_has_somewhere_to_get_its_colour_from"
+  },
+  {
+    "label": "S5 記號沒有顏色（它變成一個灰色的 ⚠，而它要擋的是一個他隨手就會做的動作）",
+    "file": "app/ui/web/aicc.css",
+    "replace": ".sens-why.sens-unreadable{",
+    "with": ".sens-why-disabled.sens-unreadable-disabled{",
+    "test": "tests/test_a_broken_settings_file_is_not_dressed_up_as_a_choice.py::test_every_mark_has_somewhere_to_get_its_colour_from"
+  },
+  {
+    "label": "S6 新專案被說成「他選過了」（精靈跳過那一題就變成他選了個人專案）",
+    "file": "app/services/project_registry.py",
+    "replace": "        if not value:\n            return ProjectRegistry.SOURCE_DEFAULT",
+    "with": "        if not value:\n            return ProjectRegistry.SOURCE_CHOSEN",
+    "test": "tests/test_a_broken_settings_file_is_not_dressed_up_as_a_choice.py::test_a_new_project_says_default_not_chosen"
+  }
+]

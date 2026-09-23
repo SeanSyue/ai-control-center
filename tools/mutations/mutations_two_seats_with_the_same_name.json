@@ -1,0 +1,51 @@
+[
+  {
+    "label": "N1 加位子時只比畫得出來的那幾格（新的一格取到一個檔案裡已經有的名字，寫回去之後兩格同名，而「退給它」從此有兩個答案）",
+    "file": "app/core/lineup.py",
+    "replace": "        if target in self.taken_names:\n            raise name_already_taken(target)",
+    "with": "        if target in self.roles:\n            raise name_already_taken(target)",
+    "test": "tests/test_two_seats_never_end_up_with_the_same_name.py::test_the_line_up_counts_a_seat_it_cannot_draw_as_a_name_already_taken"
+  },
+  {
+    "label": "N2 改名時只比畫得出來的那幾格（他把第一格改名叫「複查」，畫面說改好了，而檔案裡本來就有一格叫複查——他看不到的那一格）",
+    "file": "app/core/lineup.py",
+    "replace": "        if fresh in self.taken_names:\n            raise name_already_taken(fresh)",
+    "with": "        if fresh in self.roles:\n            raise name_already_taken(fresh)",
+    "test": "tests/test_two_seats_never_end_up_with_the_same_name.py::test_renaming_a_seat_onto_the_name_of_a_seat_the_page_cannot_draw_is_refused"
+  },
+  {
+    "label": "N3 「已經有人叫的名字」不算讀不出來的那幾格（同一個病的源頭：被砍過的那份陣容又一次被當成檔案裡的真相）",
+    "file": "app/core/lineup.py",
+    "replace": "        return tuple(slot.role for slot in self.slots) + self.unreadable_names",
+    "with": "        return tuple(slot.role for slot in self.slots)",
+    "test": "tests/test_two_seats_never_end_up_with_the_same_name.py"
+  },
+  {
+    "label": "N4 「＋ 加一格」的自動編號只數畫得出來的那幾格（他按下去，收到一句「已經有一個位子叫 node2 了」，而畫面上一格 node2 都沒有）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "        used = set(lineup.taken_names)",
+    "with": "        used = {slot.role for slot in lineup}",
+    "test": "tests/test_two_seats_never_end_up_with_the_same_name.py::test_the_add_seat_button_does_not_reuse_a_number_the_file_already_uses"
+  },
+  {
+    "label": "N5 少畫一格的陣容照樣被說成一個現成的模式（模式選單停在「兩人：執行 → 複查」，而他排的是三格）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "        if self._lineup.has_unreadable:\n            return \"\"\n        for preset in self._presets.all():",
+    "with": "        for preset in self._presets.all():",
+    "test": "tests/test_two_seats_never_end_up_with_the_same_name.py::test_the_mode_box_names_no_mode_while_a_seat_is_missing_from_the_page"
+  },
+  {
+    "label": "N6 套用模式撞名時擋下來卻沒有接住（例外從頁面橋直接掉出去，使用者按了「套用」什麼都沒發生也沒有訊息）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "        except (PresetError, LineupError) as exc:",
+    "with": "        except PresetError as exc:",
+    "test": "tests/test_two_seats_never_end_up_with_the_same_name.py::test_applying_a_mode_does_not_put_a_second_seat_with_the_same_name_in_the_file"
+  },
+  {
+    "label": "N7 套用模式時不問「這個名字檔案裡有沒有人用」（回報套用成功，而 sessions.json 裡多出第二格複查——畫面上看起來乾乾淨淨兩格）",
+    "file": "app/services/lineup_presets.py",
+    "replace": "    invisible = set(current.unreadable_names)\n    clash = next((s.role for s in preset.lineup if s.role in invisible), \"\")\n    if clash:",
+    "with": "    clash = \"\"\n    if clash:",
+    "test": "tests/test_two_seats_never_end_up_with_the_same_name.py::test_applying_a_mode_does_not_put_a_second_seat_with_the_same_name_in_the_file"
+  }
+]

@@ -1,0 +1,65 @@
+[
+  {
+    "label": "N1 把「停下來問」畫回 gated（終局用 gated＝會被 on_thread_finished 抹成「尚未執行」）",
+    "file": "app/core/outcomes.py",
+    "replace": "        \"outcome.VERIFY_NOT_CONFIGURED.label\",\n        \"partial\",",
+    "with": "        \"outcome.VERIFY_NOT_CONFIGURED.label\",\n        \"gated\",",
+    "test": "tests/test_main_window_runtime.py::test_the_stop_and_ask_survives_the_refresh_that_follows_it"
+  },
+  {
+    "label": "N2 partial 從「什麼算結局」的白名單拿掉（抹除機制本體，兩個寫入點共用這一份）",
+    "file": "app/ui/main_window.py",
+    "replace": "OUTCOME_KINDS = (\"done\", \"error\", \"partial\")",
+    "with": "OUTCOME_KINDS = (\"done\", \"error\")",
+    "test": "tests/test_main_window_runtime.py::test_the_stop_and_ask_survives_the_refresh_that_follows_it"
+  },
+  {
+    "label": "N3 逾時的結局也畫回 gated（同一個抹除，第二個入口）",
+    "file": "app/core/outcomes.py",
+    "replace": "        \"outcome.VERIFY_TIMED_OUT.label\",\n        \"partial\",",
+    "with": "        \"outcome.VERIFY_TIMED_OUT.label\",\n        \"gated\",",
+    "test": "tests/test_main_window_runtime.py::test_a_timed_out_verification_also_survives_the_refresh"
+  },
+  {
+    "label": "N4 注意力條不再收 partial（背景專案的這個結局又消失）",
+    "file": "app/ui/main_window.py",
+    "replace": "            elif session.last_outcome is not None and session.last_outcome[1] in (\n                \"error\",\n                \"partial\",\n            ):\n                state = session.last_outcome[1]",
+    "with": "            elif (\n                session.last_outcome is not None\n                and session.last_outcome[1] == \"error\"\n            ):\n                state = \"error\"",
+    "test": "tests/test_activity_strip.py::test_a_run_that_stopped_to_ask_for_settings_is_in_the_strip"
+  },
+  {
+    "label": "N5 on_completed 不再把結局寫回「真的跑的那個 session」（背景專案的 last_outcome 永遠是 None）",
+    "file": "app/ui/main_window.py",
+    "replace": "        if status_style in OUTCOME_KINDS:\n            session.last_outcome = (status_text, status_style)",
+    "with": "        if False:\n            session.last_outcome = (status_text, status_style)",
+    "test": "tests/test_activity_strip.py::test_a_run_that_stopped_to_ask_for_settings_is_in_the_strip"
+  },
+  {
+    "label": "N6 背景專案的當掉不再留下結局（注意力條的 error 對背景專案失效）",
+    "file": "app/ui/main_window.py",
+    "replace": "session.last_outcome = (t(\"run.failed\"), \"error\")",
+    "with": "pass",
+    "test": "tests/test_activity_strip.py::test_a_background_run_remembers_how_it_ended"
+  },
+  {
+    "label": "N7 背景專案跑完不重畫外框（狀態有了，但要等使用者點一下才看得到）",
+    "file": "app/ui/main_window.py",
+    "replace": "            # on the user clicking something first.\n            self._push_shell()\n            return",
+    "with": "            # on the user clicking something first.\n            return",
+    "test": "tests/test_activity_strip.py::test_a_background_ending_repaints_the_strip_without_waiting_for_a_click"
+  },
+  {
+    "label": "N8 注意力條那一行改成只給標籤，不給「該去哪裡設定」",
+    "file": "app/ui/main_window.py",
+    "replace": "                        if state == \"error\" and session.last_outcome",
+    "with": "                        if session.last_outcome",
+    "test": "tests/test_activity_strip.py::test_a_run_that_stopped_to_ask_for_settings_is_in_the_strip"
+  },
+  {
+    "label": "N9 排序漏掉 partial（新狀態進了條子卻沒進順序表）",
+    "file": "app/ui/main_window.py",
+    "replace": "        order = {\"waiting\": 0, \"error\": 1, \"partial\": 2, \"running\": 3}",
+    "with": "        order = {\"waiting\": 0, \"error\": 1, \"running\": 2}",
+    "test": "tests/test_activity_strip.py::test_the_ones_that_need_a_person_come_first"
+  }
+]

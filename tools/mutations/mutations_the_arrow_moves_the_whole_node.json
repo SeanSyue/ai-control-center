@@ -1,0 +1,149 @@
+[
+  {
+    "label": "A1 名字又被留在位置上（2026-08-27 之前就是這樣：他按下〔後移 ▶〕，node1 還是排在第一格，卡片看起來完全沒有動，只有底下用哪個 AI 換過去了）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            self._lineup = self._lineup.moved(slots[index].role, target)",
+    "with": "            self._lineup = Lineup.of([\n                replace(new, role=old.role)\n                for new, old in zip(self._lineup.moved(slots[index].role, target), slots)\n            ])",
+    "test": "tests/test_the_arrow_moves_the_whole_node.py::test_one_press_carries_the_name"
+  },
+  {
+    "label": "A2 廠牌又被留在位置上（名字搬過去了、AI 沒有——他排的順序對，跑起來每一格用的還是原來那一家）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            self._lineup = self._lineup.moved(slots[index].role, target)",
+    "with": "            self._lineup = Lineup.of([\n                replace(new, provider=old.provider)\n                for new, old in zip(self._lineup.moved(slots[index].role, target), slots)\n            ])",
+    "test": "tests/test_the_arrow_moves_the_whole_node.py::test_one_press_carries_the_vendor"
+  },
+  {
+    "label": "A3 對話 id 又被留在位置上（那一格搬過去了，接的還是原本那一格的對話——它會帶著別人的上下文開口）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            self._lineup = self._lineup.moved(slots[index].role, target)",
+    "with": "            self._lineup = Lineup.of([\n                replace(new, session_id=old.session_id)\n                for new, old in zip(self._lineup.moved(slots[index].role, target), slots)\n            ])",
+    "test": "tests/test_the_arrow_moves_the_whole_node.py::test_one_press_carries_the_conversation"
+  },
+  {
+    "label": "A4 憑證又被留在位置上（帳單事後唯一解釋得了「這一次算在誰頭上」的那一欄，跟它的廠牌分家了）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            self._lineup = self._lineup.moved(slots[index].role, target)",
+    "with": "            self._lineup = Lineup.of([\n                replace(new, credential=old.credential)\n                for new, old in zip(self._lineup.moved(slots[index].role, target), slots)\n            ])",
+    "test": "tests/test_the_arrow_moves_the_whole_node.py::test_one_press_carries_the_credential"
+  },
+  {
+    "label": "A5 身分又被留在位置上（他打的那句「你是⋯」＝老闆說的 prompt。留在原位的話，搬過去的那一格會被告訴它自己是另一個人）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            self._lineup = self._lineup.moved(slots[index].role, target)",
+    "with": "            self._lineup = Lineup.of([\n                replace(new, identity=old.identity)\n                for new, old in zip(self._lineup.moved(slots[index].role, target), slots)\n            ])",
+    "test": "tests/test_the_arrow_moves_the_whole_node.py::test_one_press_carries_the_identity"
+  },
+  {
+    "label": "A6 職責又被留在位置上（引擎唯一看得懂的那一欄。他排一次順序，做事的變成另一格，而卡片上的名字沒有動）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            self._lineup = self._lineup.moved(slots[index].role, target)",
+    "with": "            self._lineup = Lineup.of([\n                replace(new, duty=old.duty)\n                for new, old in zip(self._lineup.moved(slots[index].role, target), slots)\n            ])",
+    "test": "tests/test_the_arrow_moves_the_whole_node.py::test_one_press_carries_the_duty"
+  },
+  {
+    "label": "A7 寫檔開關又被留在位置上（「不編輯專案檔案」那顆框跟它的職責分家了）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            self._lineup = self._lineup.moved(slots[index].role, target)",
+    "with": "            self._lineup = Lineup.of([\n                replace(new, writes_files=old.writes_files)\n                for new, old in zip(self._lineup.moved(slots[index].role, target), slots)\n            ])",
+    "test": "tests/test_the_arrow_moves_the_whole_node.py::test_one_press_carries_the_write_switch"
+  },
+  {
+    "label": "A7b 同一個破壞，問的是**權限**不是欄位（⚠️ 跟 A7 破壞同一行，刻意的：A7 證明那一欄跟著走了，這一條證明他親手關掉的寫入權沒有因為排順序自己彈回來——`may_write_files` 從 False 變成 True，而畫面上沒有一個字）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            self._lineup = self._lineup.moved(slots[index].role, target)",
+    "with": "            self._lineup = Lineup.of([\n                replace(new, writes_files=old.writes_files)\n                for new, old in zip(self._lineup.moved(slots[index].role, target), slots)\n            ])",
+    "test": "tests/test_the_arrow_moves_the_whole_node.py::test_moving_does_not_flip_the_write_switch_back_on"
+  },
+  {
+    "label": "A7c 移動順手把寫檔權收走（只守「不要多」的話這個實作是綠的——而它的症狀是他排一次順序，那一輪跑完一個檔案都沒變）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            self._lineup = self._lineup.moved(slots[index].role, target)",
+    "with": "            self._lineup = Lineup.of([\n                replace(new, writes_files=\"off\")\n                for new in self._lineup.moved(slots[index].role, target)\n            ])",
+    "test": "tests/test_the_arrow_moves_the_whole_node.py::test_the_arrow_cannot_hand_a_seat_a_permission_it_did_not_have"
+  },
+  {
+    "label": "A8 線又被留在位置上（線是用名字拉的，而名字現在跟著走——留在原位的話，「上字幕接在發想後面」按一次箭頭就變成別格接在發想後面）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            self._lineup = self._lineup.moved(slots[index].role, target)",
+    "with": "            self._lineup = Lineup.of([\n                replace(new, parent=old.parent)\n                for new, old in zip(self._lineup.moved(slots[index].role, target), slots)\n            ])",
+    "test": "tests/test_the_arrow_moves_the_whole_node.py::test_one_press_carries_the_line"
+  },
+  {
+    "label": "A8b 同一個破壞，問的是**那條線指向誰**（⚠️ 跟 A8 破壞同一行，刻意的：A8 比的是欄位，這一條比的是他畫的那條線移完還接不接得到同一格，連 `shape` 算出來的形狀一起問）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            self._lineup = self._lineup.moved(slots[index].role, target)",
+    "with": "            self._lineup = Lineup.of([\n                replace(new, parent=old.parent)\n                for new, old in zip(self._lineup.moved(slots[index].role, target), slots)\n            ])",
+    "test": "tests/test_the_arrow_moves_the_whole_node.py::test_the_line_he_drew_still_points_at_the_same_seat"
+  },
+  {
+    "label": "A9 「這樣移完線會反過來」那條規則被架空（他排一次順序，那條線變成指向一個還沒跑的格子，而畫面上一個字都不說）",
+    "file": "app/core/lineup.py",
+    "replace": "            if s.parent and order.get(s.parent, index) >= index:",
+    "with": "            if s.parent and order.get(s.parent, index) >= len(slots):",
+    "test": "tests/test_the_arrow_moves_the_whole_node.py::test_a_move_that_would_break_a_line_is_refused_by_name"
+  },
+  {
+    "label": "A10 擋下來了，但一個字都沒說（網頁那一側是樂觀更新的：卡片當場就換過去了然後停在那裡，而引擎裡沒有動——按了沒反應跟移好了長得一模一樣）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            self._lineup = self._lineup.moved(slots[index].role, target)\n        except LineupError as exc:\n            self.reject(str(exc))\n            return",
+    "with": "            self._lineup = self._lineup.moved(slots[index].role, target)\n        except LineupError:\n            return",
+    "test": "tests/test_the_arrow_moves_the_whole_node.py::test_a_move_that_would_break_a_line_is_refused_by_name"
+  },
+  {
+    "label": "A11 這一支根本沒有接例外（`_move_slot` 2026-08-27 之前沒有 try/except，因為它以前不呼叫任何會丟例外的東西——接上 `moved()` 而忘了補的話，老闆按一下拿到的是一坨從頁面橋掉出去的 traceback）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "        try:\n            self._lineup = self._lineup.moved(slots[index].role, target)\n        except LineupError as exc:\n            self.reject(str(exc))\n            return",
+    "with": "        self._lineup = self._lineup.moved(slots[index].role, target)",
+    "test": "tests/test_the_arrow_moves_the_whole_node.py::test_a_move_that_would_break_a_line_is_refused_by_name"
+  },
+  {
+    "label": "A12 擋下來的那句話不指名是哪兩格（他有九格可以猜——一句「這樣移完線會反過來」等於沒講）",
+    "file": "app/i18n.py",
+    "replace": "        \"沒有移動：這樣移完之後「{role}」會排到「{parent}」前面，\"\n        \"而它是接在「{parent}」後面的——一格收不到還沒跑的那一格產出的東西。\"\n        \"先把「{role}」那條線改接到別格，再移一次。\"",
+    "with": "        \"沒有移動：這樣移完之後有一格會排到它接的那一格前面，\"\n        \"而一格收不到還沒跑的那一格產出的東西。\"\n        \"先把那條線改接到別格，再移一次。\"",
+    "test": "tests/test_the_arrow_moves_the_whole_node.py::test_a_move_that_would_break_a_line_is_refused_by_name"
+  },
+  {
+    "label": "A13 先寫回硬碟，再問線斷了沒有（他收到一句「沒有移動」，而硬碟上已經是移過的那一份——關掉再打開，那個被拒絕過的順序就是他的陣容）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "        try:\n            self._lineup = self._lineup.moved(slots[index].role, target)\n        except LineupError as exc:\n            self.reject(str(exc))\n            return\n        self._persist()",
+    "with": "        eager = list(slots)\n        eager.insert(target, eager.pop(index))\n        self._lineup = Lineup.of(eager)\n        self._persist()\n        try:\n            self._lineup = self._lineup.moved(slots[index].role, target)\n        except LineupError as exc:\n            self.reject(str(exc))\n            return\n        self._persist()",
+    "test": "tests/test_the_arrow_moves_the_whole_node.py::test_a_refused_move_does_not_reach_the_disk"
+  },
+  {
+    "label": "A14 移完只推畫面、不寫檔（畫面上是新順序，`.aicc/sessions.json` 還是舊的——下一次打開這個專案就是舊的那一份，而他不會再按一次那顆箭頭）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            self.reject(str(exc))\n            return\n        self._persist()\n\n    # ---- for the execution bar",
+    "with": "            self.reject(str(exc))\n            return\n        self.push_state()\n\n    # ---- for the execution bar",
+    "test": "tests/test_the_arrow_moves_the_whole_node.py::test_the_new_order_reaches_the_disk"
+  },
+  {
+    "label": "A15 箭頭的方向被忽略（`moved()` 收到的是它自己現在的位置，所以什麼都不會發生——而「按了沒反應」跟「移好了」在畫面上長得一模一樣。這一條同時證明那條枚舉不變量的測試不是恆綠的）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            self._lineup = self._lineup.moved(slots[index].role, target)",
+    "with": "            self._lineup = self._lineup.moved(slots[index].role, index)",
+    "test": "tests/test_the_arrow_moves_the_whole_node.py::test_an_arrow_cannot_invent_a_pairing_that_was_not_there"
+  },
+  {
+    "label": "A16 職責又被留在位置上，走**枚舉不變量**那一條（這就是 2026-08-26 那道閘門在擋的東西：職責留位置＋廠牌跟人＝「Codex ＋ 執行」湊得出來。閘門拿掉之後，接手守它的是這一條——它問的不是「有沒有擋」，是「造不造得出來」）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            self._lineup = self._lineup.moved(slots[index].role, target)",
+    "with": "            self._lineup = Lineup.of([\n                replace(new, duty=old.duty)\n                for new, old in zip(self._lineup.moved(slots[index].role, target), slots)\n            ])",
+    "test": "tests/test_the_arrow_moves_the_whole_node.py::test_an_arrow_cannot_invent_a_pairing_that_was_not_there"
+  },
+  {
+    "label": "A17 廠牌又被留在位置上，三格版（兩格的話「前移」與「後移」是同一次對調，測不到中間那一格移動會不會動到旁邊沒被碰到的那一格）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            self._lineup = self._lineup.moved(slots[index].role, target)",
+    "with": "            self._lineup = Lineup.of([\n                replace(new, provider=old.provider)\n                for new, old in zip(self._lineup.moved(slots[index].role, target), slots)\n            ])",
+    "test": "tests/test_the_arrow_moves_the_whole_node.py::test_the_pairing_stays_put_on_a_three_seat_line_up"
+  },
+  {
+    "label": "A18 擋成「一律不准」：空的線也當成斷掉的線（出廠陣容一格都移不動，而使用者只會覺得這顆按鈕壞了——這一條守的是修法的另一邊）",
+    "file": "app/core/lineup.py",
+    "replace": "            if s.parent and order.get(s.parent, index) >= index:",
+    "with": "            if order.get(s.parent, index) >= index:",
+    "test": "tests/test_the_arrow_moves_the_whole_node.py::test_his_two_shipped_seats_can_finally_move"
+  }
+]

@@ -1,0 +1,44 @@
+[
+  {
+    "label": "Q1 對照表指到不存在的行（程式搬家之後那個行號指到別的地方，而一份指錯地方的對照表讀起來跟一份對的一模一樣）",
+    "file": "docs/Graph-Engineering-對照AICC-2026-08-25.md",
+    "replace": "（`app/core/lineup.py:347`）",
+    "with": "（`app/core/lineup.py:99285`）",
+    "test": "tests/test_the_graph_notes_still_point_at_real_code.py::test_every_cited_line_exists"
+  },
+  {
+    "label": "Q2 對照表指到一個不存在的檔案（重構把檔案改名，而文件還指著舊名字）",
+    "file": "docs/Graph-Engineering-對照AICC-2026-08-25.md",
+    "replace": "`lineup.py:230 chain_checker()`",
+    "with": "`lineup_old.py:181 chain_checker()`",
+    "test": "tests/test_the_graph_notes_still_point_at_real_code.py::test_every_cited_line_exists"
+  },
+  {
+    "label": "Q3 對照表指到一行非空但不是定義的（往下搬一行就落在 docstring 上——檢查只看「不是空的」的話它照樣綠）",
+    "file": "docs/Graph-Engineering-對照AICC-2026-08-25.md",
+    "replace": "（`app/core/lineup.py:347`）",
+    "with": "（`app/core/lineup.py:348`）",
+    "test": "tests/test_the_graph_notes_still_point_at_real_code.py::test_every_cited_line_still_looks_like_what_it_claims"
+  },
+  {
+    "label": "Q4 抓行號的樣式壞掉（一個行號都抓不到，於是 parametrize 產生 SKIP——而這個專案的底線是零跳過）",
+    "file": "tests/test_the_graph_notes_still_point_at_real_code.py",
+    "replace": "CITATION = re.compile(r\"`([A-Za-z0-9_/]+\\.py):(\\d+)\")",
+    "with": "CITATION = re.compile(r\"`([A-Za-z0-9_/]+\\.zzz):(\\d+)\")",
+    "test": "tests/test_the_graph_notes_still_point_at_real_code.py::test_the_document_is_still_there"
+  },
+  {
+    "label": "Q5 文件引了一個不存在的路徑，而它沒有行號（2026-08-25 真的發生過：引了 `app/services/rule_layers.py` 兩次，而那個檔案在 `app/core/`——上面那條樣式只認帶行號的，所以它一次都沒看過那兩行）",
+    "file": "docs/Graph-Engineering-對照AICC-2026-08-25.md",
+    "replace": "AICC 的做法是 `app/core/rule_layers.py`：",
+    "with": "AICC 的做法是 `app/services/rule_layers.py`：",
+    "test": "tests/test_the_graph_notes_still_point_at_real_code.py::test_every_bare_path_exists"
+  },
+  {
+    "label": "Q6 抓不帶行號路徑的樣式壞掉（一個都抓不到，於是 parametrize 產生零個案例——那不是通過，是什麼都沒檢查）",
+    "file": "tests/test_the_graph_notes_still_point_at_real_code.py",
+    "replace": "BARE_PATH = re.compile(r\"`((?:app|tools|tests|docs)/[A-Za-z0-9_/]+\\.py)`\")",
+    "with": "BARE_PATH = re.compile(r\"`((?:zzz)/[A-Za-z0-9_/]+\\.py)`\")",
+    "test": "tests/test_the_graph_notes_still_point_at_real_code.py::test_the_scan_sees_the_paths_without_line_numbers"
+  }
+]

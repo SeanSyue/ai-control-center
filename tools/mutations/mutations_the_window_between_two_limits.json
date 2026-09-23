@@ -1,0 +1,23 @@
+[
+  {
+    "label": "W-A 掃描上限縮回 512 KB（同步准 5 MB，中間 4.5 MB 是「會傳、但永遠不會被讀」的窗口——840 KB 的逐字紀錄帶著 API key 顯示「已上傳」）",
+    "file": "app/services/security_scan.py",
+    "replace": "MAX_SCAN_BYTES = 5 * 1024 * 1024",
+    "with": "MAX_SCAN_BYTES = 512 * 1024",
+    "test": "tests/test_a_file_too_big_to_scan_is_not_uploaded_unscanned.py"
+  },
+  {
+    "label": "W-B 略過清單改回比對整條絕對路徑（專案放在任何一層叫 node_modules／.git 的資料夾底下，整個專案一個檔案都不掃，然後全部傳上去）",
+    "file": "app/services/security_scan.py",
+    "replace": "            inside = path.relative_to(root)",
+    "with": "            inside = path",
+    "test": "tests/test_a_file_too_big_to_scan_is_not_uploaded_unscanned.py::test_a_project_living_under_a_folder_named_node_modules_is_still_scanned"
+  },
+  {
+    "label": "W-C 沒有專案界線時改成「一律略過」（cloud_sync 逐檔問的那條路上每一個檔案都不掃，報告照樣說沒有阻擋項目）",
+    "file": "app/services/security_scan.py",
+    "replace": "        if root is None:\n            return False\n        try:",
+    "with": "        if root is None:\n            return True\n        try:",
+    "test": "tests/test_a_file_too_big_to_scan_is_not_uploaded_unscanned.py::test_a_single_file_check_without_a_project_root_never_skips_by_folder_name"
+  }
+]

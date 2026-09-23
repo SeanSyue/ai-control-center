@@ -1,0 +1,58 @@
+[
+  {
+    "label": "A1 核准變成一張永久通行證（核准的時候兩個維度，半年後十個，畫面上照樣寫「已核准」）",
+    "file": "app/services/qualitative_acceptance.py",
+    "replace": "        return self.approval is not None and self.approval.digest == self.digest",
+    "with": "        return self.approval is not None",
+    "test": "tests/test_a_rubric_nobody_looked_at_is_not_a_ruler.py::test_editing_a_dimension_takes_the_approval_away"
+  },
+  {
+    "label": "A2 指紋含跑過幾次（跑一次核准就失效，而那一次沒有任何一條標準被動過）",
+    "file": "app/services/qualitative_acceptance.py",
+    "replace": "            ensure_ascii=False,\n            sort_keys=True,\n        )\n        return hashlib.sha256(payload.encode(\"utf-8\")).hexdigest()",
+    "with": "            ensure_ascii=False,\n            sort_keys=True,\n        )\n        return hashlib.sha256((payload + str(self.runs_so_far)).encode(\"utf-8\")).hexdigest()",
+    "test": "tests/test_a_rubric_nobody_looked_at_is_not_a_ruler.py::test_running_it_does_not_invalidate_the_approval"
+  },
+  {
+    "label": "A3 save() 變成第二個寫得出核准的入口（呼叫端自己組一個「已核准」送進來就生效，approve() 那道門被繞過去）",
+    "file": "app/services/qualitative_acceptance.py",
+    "replace": "        if isinstance(existing, dict) and isinstance(existing.get(APPROVAL_KEY), dict):\n            written[APPROVAL_KEY] = existing[APPROVAL_KEY]\n        else:\n            written.pop(APPROVAL_KEY, None)",
+    "with": "        if isinstance(existing, dict) and isinstance(existing.get(APPROVAL_KEY), dict):\n            written.setdefault(APPROVAL_KEY, existing[APPROVAL_KEY])",
+    "test": "tests/test_a_rubric_nobody_looked_at_is_not_a_ruler.py::test_save_cannot_smuggle_in_an_approval"
+  },
+  {
+    "label": "A4 存一份沒改過的回去核准就掉了（每次存檔都要重簽，他第三次就開始亂按）",
+    "file": "app/services/qualitative_acceptance.py",
+    "replace": "        if isinstance(existing, dict) and isinstance(existing.get(APPROVAL_KEY), dict):\n            written[APPROVAL_KEY] = existing[APPROVAL_KEY]",
+    "with": "        if False:\n            written[APPROVAL_KEY] = existing[APPROVAL_KEY]",
+    "test": "tests/test_a_rubric_nobody_looked_at_is_not_a_ruler.py::test_save_does_not_lose_a_real_approval_when_nothing_changed"
+  },
+  {
+    "label": "A5 壞掉的標準也核准得了（用他的名字替一個機器已經說不行的東西背書）",
+    "file": "app/services/qualitative_acceptance.py",
+    "replace": "        problems = problems_with(rubric)\n        if problems:\n            # **壞掉的標準不准被核准。**",
+    "with": "        problems = []\n        if problems:\n            # **壞掉的標準不准被核准。**",
+    "test": "tests/test_a_rubric_nobody_looked_at_is_not_a_ruler.py::test_a_broken_rubric_cannot_be_approved"
+  },
+  {
+    "label": "A6 核准那一格壞掉就當成有核准（退到比較鬆的那一邊，而這種欄位一壞就該退到比較嚴的那邊）",
+    "file": "app/services/qualitative_acceptance.py",
+    "replace": "        digest = str(raw_approval.get(\"digest\", \"\")).strip()\n        if digest:",
+    "with": "        digest = str(raw_approval.get(\"digest\", \"\")).strip()\n        if True:",
+    "test": "tests/test_a_rubric_nobody_looked_at_is_not_a_ruler.py::test_a_broken_approval_block_falls_back_to_never_looked_at"
+  },
+  {
+    "label": "A7 三種身分講同一句話（「我改了一個字」跟「我從來沒看過」要的下一步完全不同）",
+    "file": "app/services/qualitative_acceptance.py",
+    "replace": "    if state == CHANGED_SINCE:\n        return t(\"rubric.changed_since_approval\", at=rubric.approval.at)",
+    "with": "    if state == CHANGED_SINCE:\n        return t(\"rubric.never_looked_at\")",
+    "test": "tests/test_a_rubric_nobody_looked_at_is_not_a_ruler.py::test_the_three_states_never_read_the_same"
+  },
+  {
+    "label": "A8 核准那一格根本不是物件也照收（一個被手改壞的 project.json 會變成「已核准」）",
+    "file": "app/services/qualitative_acceptance.py",
+    "replace": "    if isinstance(raw_approval, dict):",
+    "with": "    if raw_approval is not None:",
+    "test": "tests/test_a_rubric_nobody_looked_at_is_not_a_ruler.py::test_a_broken_approval_block_falls_back_to_never_looked_at"
+  }
+]

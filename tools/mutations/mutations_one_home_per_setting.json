@@ -1,0 +1,65 @@
+[
+  {
+    "label": "Z1 又有一個地方自己開設定庫（回到「打錯一個空格就換一個登錄檔位置」有可能發生的世界）",
+    "file": "app/ui/dashboard_web_panel.py",
+    "replace": "self._settings = ui_preferences.store()",
+    "with": "self._settings = QSettings(\"Sean\", \"AI Control Center\")",
+    "test": "tests/test_every_setting_lives_in_one_home.py::test_only_one_place_opens_the_settings_store"
+  },
+  {
+    "label": "Z2 那條檢查改成用 grep（註解裡提到某個位置＝用了它，這個專案為此拿掉過三條檢查）",
+    "file": "tests/test_every_setting_lives_in_one_home.py",
+    "replace": "        if name != \"QSettings\":\n            continue",
+    "with": "        if name != \"QSettingsNeverMatches\":\n            continue",
+    "test": "tests/test_every_setting_lives_in_one_home.py::test_the_scan_finds_something"
+  },
+  {
+    "label": "H1 `.aicc/` 底下多一個誰都沒決定過的資料夾（亂跑亂發散亂存的第一天，畫面上完全正常）",
+    "file": "app/services/timeline_store.py",
+    "replace": "self.timeline_dir = self.aicc_path / \"timeline\"",
+    "with": "self.timeline_dir = self.aicc_path / \"timeline-v2\"",
+    "test": "tests/test_every_setting_lives_in_one_home.py::test_nothing_new_appears_under_aicc"
+  },
+  {
+    "label": "H2 `%APPDATA%` 底下多一個清單外的檔（機器層同一個病）",
+    "file": "app/services/project_registry.py",
+    "replace": "self.config_path = self.config_dir / \"projects.json\"",
+    "with": "self.config_path = self.config_dir / \"projects-v2.json\"",
+    "test": "tests/test_every_setting_lives_in_one_home.py::test_nothing_new_appears_beside_the_machine_settings"
+  },
+  {
+    "label": "H3 CLI 路徑被搬進專案資料夾（路徑本身會洩漏帳號名稱，而專案資料夾會被打包拷給別人）",
+    "file": "app/services/settings_homes.py",
+    "replace": "        \"cli-paths.json\",\n        SCOPE_MACHINE,",
+    "with": "        \".aicc/cli-paths.json\",\n        SCOPE_MACHINE,",
+    "test": "tests/test_every_setting_lives_in_one_home.py::test_the_machine_layer_never_lands_in_a_project_folder"
+  },
+  {
+    "label": "H4 兩個家宣稱自己是同一個功能（依功能分類的分類本身壞了，查「這是什麼」查到兩個位置）",
+    "file": "app/services/settings_homes.py",
+    "replace": "        \"home.project.people\",",
+    "with": "        \"home.project.what_and_how\",",
+    "test": "tests/test_every_setting_lives_in_one_home.py::test_every_home_says_what_it_is_for"
+  },
+  {
+    "label": "H5 那個唯一的主人自己被改名（每個既有使用者的設定在那一刻安靜消失——舊位置的東西還在，只是沒有人再去讀）",
+    "file": "app/services/ui_preferences.py",
+    "replace": "APPLICATION = \"AI Control Center\"",
+    "with": "APPLICATION = \"AIControlCenter\"",
+    "test": "tests/test_every_setting_lives_in_one_home.py::test_that_one_place_uses_the_right_name"
+  },
+  {
+    "label": "H6 家的名字變回一句中文（翻譯的那一刻精靈的查詢就斷了，而畫面看起來完全正常）",
+    "file": "app/services/settings_homes.py",
+    "replace": "        \"home.project.people\",",
+    "with": "        \"這個專案的人\",",
+    "test": "tests/test_every_setting_lives_in_one_home.py::test_the_home_names_are_keys_not_sentences"
+  },
+  {
+    "label": "H7 精靈指向一個不存在的家（那一題寫出去的東西落在沒有人宣告過的位置）",
+    "file": "app/services/project_wizard.py",
+    "replace": "    \"lineup\": \"home.project.people\",",
+    "with": "    \"lineup\": \"home.project.humans\",",
+    "test": "tests/test_every_setting_lives_in_one_home.py::test_both_wizards_point_at_real_homes"
+  }
+]

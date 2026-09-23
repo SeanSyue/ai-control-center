@@ -1,0 +1,44 @@
+[
+  {
+    "label": "S1 沙箱值又被寫死成 read-only（會寫檔的步驟安靜地跑成唯讀，而那一格看起來跑完了——這正是 2026-09-01 之前的那個 bug）",
+    "file": "app/core/orchestrator.py",
+    "replace": "                permission=\"read-only\" if read_only else \"workspace-write\",",
+    "with": "                permission=\"read-only\",",
+    "test": "tests/test_a_writing_codex_gets_a_writing_sandbox.py::test_a_writing_step_gets_workspace_write"
+  },
+  {
+    "label": "S2 沙箱值寫死成 workspace-write（一個只該審閱的位子拿到寫入權，而畫面上完全正常）",
+    "file": "app/core/orchestrator.py",
+    "replace": "                permission=\"read-only\" if read_only else \"workspace-write\",",
+    "with": "                permission=\"workspace-write\",",
+    "test": "tests/test_a_writing_codex_gets_a_writing_sandbox.py::test_a_read_only_step_still_gets_read_only"
+  },
+  {
+    "label": "S3 條件反過來（唯讀的拿到寫入權、要寫的拿到唯讀——兩邊同時錯，而兩邊都不會噴任何東西）",
+    "file": "app/core/orchestrator.py",
+    "replace": "                permission=\"read-only\" if read_only else \"workspace-write\",",
+    "with": "                permission=\"workspace-write\" if read_only else \"read-only\",",
+    "test": "tests/test_a_writing_codex_gets_a_writing_sandbox.py"
+  },
+  {
+    "label": "S4 改成 danger-full-access（老闆 2026-09-01 明確否決的那一個：整台機器，不是只有專案資料夾）",
+    "file": "app/core/orchestrator.py",
+    "replace": "                permission=\"read-only\" if read_only else \"workspace-write\",",
+    "with": "                permission=\"read-only\" if read_only else \"danger-full-access\",",
+    "test": "tests/test_a_writing_codex_gets_a_writing_sandbox.py::test_a_writing_step_gets_workspace_write"
+  },
+  {
+    "label": "S5 寫檔開關的降級被拿掉（他明著把那一格關掉了，而它照樣拿到寫入權）",
+    "file": "app/core/orchestrator.py",
+    "replace": "            read_only = True\n        # ⛔ 這裡 2026-09-01 之前有一條「Codex 不准寫檔」的拒絕。",
+    "with": "            pass\n        # ⛔ 這裡 2026-09-01 之前有一條「Codex 不准寫檔」的拒絕。",
+    "test": "tests/test_a_writing_codex_gets_a_writing_sandbox.py::test_the_write_switch_still_downgrades_a_codex_seat"
+  },
+  {
+    "label": "S6 前提檢查本身失效：兩種步驟拿到同一個值（上面每一條都會變成恆真的）",
+    "file": "app/core/orchestrator.py",
+    "replace": "                permission=\"read-only\" if read_only else \"workspace-write\",",
+    "with": "                permission=\"read-only\" if True else \"workspace-write\",",
+    "test": "tests/test_a_writing_codex_gets_a_writing_sandbox.py::test_nobody_hard_codes_the_sandbox_any_more"
+  }
+]

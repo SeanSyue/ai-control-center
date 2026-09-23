@@ -1,0 +1,37 @@
+[
+  {
+    "label": "U1 session_start.py 掉了那三行（它印的 `⋯` cp950 編不出來——hook 直接 traceback，而 hook 失敗不會擋住對話，只會安靜地什麼都不做）",
+    "file": "tools/claude-hooks/session_start.py",
+    "replace": "for _stream in (sys.stdout, sys.stderr):\n    try:\n        _stream.reconfigure(encoding=\"utf-8\", errors=\"replace\")\n    except Exception:\n        pass",
+    "with": "pass  # 那三行被拿掉了",
+    "test": "tests/test_tools_can_print_what_they_say.py::test_the_dangerous_ones_are_the_ones_that_would_crash"
+  },
+  {
+    "label": "U2 pre_compact.py 掉了那三行（同一個子資料夾的第二支——一支過了不代表資料夾進得來）",
+    "file": "tools/claude-hooks/pre_compact.py",
+    "replace": "for _stream in (sys.stdout, sys.stderr):\n    try:\n        _stream.reconfigure(encoding=\"utf-8\", errors=\"replace\")\n    except Exception:\n        pass",
+    "with": "pass  # 那三行被拿掉了",
+    "test": "tests/test_tools_can_print_what_they_say.py::test_a_tool_that_prints_non_ascii_fixes_its_own_encoding"
+  },
+  {
+    "label": "U3 掃描縮回第一層（報告不會少一行，只會少兩列——這就是 FG18 本身）",
+    "file": "tests/test_tools_can_print_what_they_say.py",
+    "replace": "    for path in sorted(TOOLS.rglob(\"*.py\")):",
+    "with": "    for path in sorted(TOOLS.glob(\"*.py\")):",
+    "test": "tests/test_tools_can_print_what_they_say.py::test_the_scan_goes_into_the_subfolders_too"
+  },
+  {
+    "label": "U4 「會印非 ASCII」那張篩子空掉（參數化名單收集到零個案例——不是失敗也不是跳過，報告上只是少一段。2026-08-25 覆核實測：補這條之前這一刀是綠的）",
+    "file": "tests/test_tools_can_print_what_they_say.py",
+    "replace": "            if any(ord(char) > 127 for char in node.value):\n                return True",
+    "with": "            if False:\n                return True",
+    "test": "tests/test_tools_can_print_what_they_say.py::test_both_filters_still_select_something"
+  },
+  {
+    "label": "U5 「cp950 真的編不出來」那張篩子空掉（同一種失效的第二張名單——`_unencodable()` 回空集合，指名哪幾支會 traceback 的那一條就一個案例都不剩）",
+    "file": "tests/test_tools_can_print_what_they_say.py",
+    "replace": "                except UnicodeEncodeError:\n                    bad.add(char)",
+    "with": "                except UnicodeEncodeError:\n                    pass",
+    "test": "tests/test_tools_can_print_what_they_say.py::test_both_filters_still_select_something"
+  }
+]

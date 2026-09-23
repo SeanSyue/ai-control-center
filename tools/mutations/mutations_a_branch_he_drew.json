@@ -1,0 +1,163 @@
+[
+  {
+    "label": "B1 空的 parent 讀成「我是第一層」（每一個舊專案打開之後變成 N 條各自為政的支線，而每一格的名字職責對話都還在，看起來完全正常）",
+    "file": "app/core/lineup.py",
+    "replace": "                upstream.append(flat[index])",
+    "with": "                upstream.append(\"\")",
+    "test": "tests/test_a_branch_he_drew_is_still_there_tomorrow.py::test_a_project_saved_before_branches_opens_as_the_same_row"
+  },
+  {
+    "label": "B2 存檔的時候不寫這一欄（他畫的分支在眼前是對的，關掉再打開就攤成一排——而那一排看起來完全正常）",
+    "file": "app/core/lineup.py",
+    "replace": "            \"parent\": self.parent,\n",
+    "with": "",
+    "test": "tests/test_a_branch_he_drew_is_still_there_tomorrow.py::test_a_branch_survives_being_written_to_disk_and_read_back"
+  },
+  {
+    "label": "B3 讀檔的時候不讀這一欄（同上，而且是無聲的：檔案裡有，讀進來沒有）",
+    "file": "app/core/lineup.py",
+    "replace": "                parent=str(data.get(\"parent\", PARENT_PREVIOUS)),\n",
+    "with": "",
+    "test": "tests/test_a_branch_he_drew_is_still_there_tomorrow.py::test_a_branch_survives_being_written_to_disk_and_read_back"
+  },
+  {
+    "label": "B4 出廠陣容自己就替他寫死一條線（形狀看起來一模一樣，但他之後上下移動會被擋，而畫面上看不出為什麼）",
+    "file": "app/core/lineup.py",
+    "replace": "                AgentSlot(ROLE_REVIEWER, \"codex\", codex_session_id),",
+    "with": "                AgentSlot(ROLE_REVIEWER, \"codex\", codex_session_id, parent=ROLE_AUTHOR),",
+    "test": "tests/test_a_branch_he_drew_is_still_there_tomorrow.py::test_every_shipped_line_up_is_still_one_seat_per_layer"
+  },
+  {
+    "label": "B5 接到一個不存在的名字不擋，退回一個預設值（那條線指著一個沒有人的名字，而畫面上它看起來接好了）",
+    "file": "app/core/lineup.py",
+    "replace": "            if upstream is None:\n                raise LineupError(\n                    t(\"lineup.parent_not_seated\", role=target, parent=wanted),\n                    field=FIELD_PARENT,\n                )",
+    "with": "            if upstream is None:\n                upstream = -1",
+    "test": "tests/test_a_branch_he_drew_is_still_there_tomorrow.py::test_pointing_at_a_slot_that_is_not_there_is_refused_by_name"
+  },
+  {
+    "label": "B6 「上一格必須排在自己前面」那條規則被架空（環從此存得下來，而這個檔案刻意沒有環偵測，因為它靠的就是這一條）",
+    "file": "app/core/lineup.py",
+    "replace": "            if upstream >= index:",
+    "with": "            if upstream >= len(self.slots):",
+    "test": "tests/test_a_branch_he_drew_is_still_there_tomorrow.py::test_a_cycle_cannot_be_built_one_step_at_a_time"
+  },
+  {
+    "label": "B7 擋下來了，但那句話不指名是哪一格（他有九格可以猜——「形狀不合法」等於沒講）",
+    "file": "app/i18n.py",
+    "replace": "        \"所以「{role}」接不到它。先確認那一格的名字（改過名字的話用新的），\"",
+    "with": "        \"先確認那一格的名字（改過名字的話用新的），\"",
+    "test": "tests/test_a_branch_he_drew_is_still_there_tomorrow.py::test_pointing_at_a_slot_that_is_not_there_is_refused_by_name"
+  },
+  {
+    "label": "B8 形狀解不開的時候拿接得上的那幾條拼一個半成品（那張圖看起來就是他排的，而其中有幾條線是程式自己補的）",
+    "file": "app/core/lineup.py",
+    "replace": "                flat, tuple(range(len(slots))), 1 if slots else 0, tuple(problems)",
+    "with": "                tuple(upstream), tuple(range(len(slots))), 1 if slots else 0, tuple(problems)",
+    "test": "tests/test_a_branch_he_drew_is_still_there_tomorrow.py::test_a_shape_that_cannot_be_resolved_is_not_half_guessed"
+  },
+  {
+    "label": "B9 拿掉中間一格不把線接起來（它下面那一格指著一個已經被刪掉的名字，整個框退回那一排）",
+    "file": "app/core/lineup.py",
+    "replace": "                replace(s, parent=inherits) if s.parent == target else s",
+    "with": "                s",
+    "test": "tests/test_a_branch_he_drew_is_still_there_tomorrow.py::test_removing_a_slot_in_the_middle_joins_the_line_back_up"
+  },
+  {
+    "label": "B10 拿掉第一層那一格、底下明著接了兩條支線也照刪（那兩條線接不到任何一格，而錯誤要等到他下次打開才看得到）",
+    "file": "app/core/lineup.py",
+    "replace": "        if orphans and not inherits:",
+    "with": "        if orphans and inherits:",
+    "test": "tests/test_a_branch_he_drew_is_still_there_tomorrow.py::test_removing_the_first_slot_under_a_branch_names_the_orphans"
+  },
+  {
+    "label": "B11 改名字不改接在它下面的那幾條線（他只是改了一個字，整個框退回那一排）",
+    "file": "app/core/lineup.py",
+    "replace": "                    parent=fresh if slot.parent == target else slot.parent,",
+    "with": "                    parent=slot.parent,",
+    "test": "tests/test_a_branch_he_drew_is_still_there_tomorrow.py::test_renaming_a_slot_carries_the_lines_hanging_off_it"
+  },
+  {
+    "label": "B12 搬動的時候不檢查線會不會斷（他排一次順序，那條線變成指向一個還沒跑的格子）",
+    "file": "app/core/lineup.py",
+    "replace": "            if s.parent and order.get(s.parent, index) >= index:",
+    "with": "            if s.parent and order.get(s.parent, index) >= len(slots):",
+    "test": "tests/test_a_branch_he_drew_is_still_there_tomorrow.py::test_moving_a_seat_that_would_break_a_line_is_refused"
+  },
+  {
+    "label": "B13 自己接自己不擋（一條畫不完的線，而那一格永遠等不到它自己的東西）",
+    "file": "app/core/lineup.py",
+    "replace": "        if parent and parent == role:",
+    "with": "        if parent and parent != role:",
+    "test": "tests/test_a_branch_he_drew_is_still_there_tomorrow.py::test_a_slot_cannot_be_wired_to_itself"
+  },
+  {
+    "label": "B14 存成模式的時候不存線（一張分支表格套用回去攤成一排，而表格的名字、格數、每一格的職責看起來一模一樣）",
+    "file": "app/services/lineup_presets.py",
+    "replace": "                    \"parent\": slot.parent,\n",
+    "with": "",
+    "test": "tests/test_a_branch_he_drew_is_still_there_tomorrow.py::test_a_saved_mode_remembers_how_the_seats_were_wired"
+  },
+  {
+    "label": "B15 層次算出來了但沒有推給畫面（這個專案找到的真 bug 超過一半是這個形狀：算出來、存下來、推出去，而沒有人讀）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            \"layer\": shape.layers[index],\n",
+    "with": "",
+    "test": "tests/test_a_branch_he_drew_is_still_there_tomorrow.py::test_the_page_is_told_which_layer_each_slot_is_on"
+  },
+  {
+    "label": "B16 推的是 `slot.parent` 那個字面值，不是解出來的答案（空字串到底是什麼意思變成頁面自己那一份推論，而這一頁已經為同一個形狀壞過兩次）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            \"upstream\": shape.upstream[index],",
+    "with": "            \"upstream\": slot.parent,",
+    "test": "tests/test_a_branch_he_drew_is_still_there_tomorrow.py::test_the_page_is_told_which_layer_each_slot_is_on"
+  },
+  {
+    "label": "B17 接不上的那幾格沒有推到畫面上（Python 知道，而使用者看到的是一個少了幾條線的框）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            \"shape_problems\": [\n                {\"role\": bad.role, \"parent\": bad.parent, \"reason\": bad.reason}\n                for bad in shape.problems\n            ],",
+    "with": "            \"shape_problems\": [],",
+    "test": "tests/test_a_branch_he_drew_is_still_there_tomorrow.py::test_the_page_is_told_which_slot_cannot_be_drawn"
+  },
+  {
+    "label": "B18 畫面送回來的那條線被丟掉（`layer` 與 `upstream` 從此是一組永遠等於「每一層一格」的常數——推出去很好看，而使用者一條分支都畫不出來）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "        if kind == \"set_slot_parent\":\n            index, value = self._split(arg)\n            self._set_slot_parent(index, value)\n            return\n",
+    "with": "",
+    "test": "tests/test_a_branch_he_drew_is_still_there_tomorrow.py::test_the_page_can_send_the_wiring_back"
+  },
+  {
+    "label": "B19 接不上的時候擋下來卻不講（網頁那一側是樂觀更新的：他按下去，那條線當場就畫上去了，然後停在那裡）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            self._lineup = self._lineup.with_parent(slots[index].role, parent)\n        except LineupError as exc:\n            self.reject(str(exc))\n            return",
+    "with": "            self._lineup = self._lineup.with_parent(slots[index].role, parent)\n        except LineupError:\n            return",
+    "test": "tests/test_a_branch_he_drew_is_still_there_tomorrow.py::test_a_refused_wiring_reaches_the_user_and_the_line_up_does_not_move"
+  },
+  {
+    "label": "B20 上下移動的時候線被留在位置上（2026-08-27 老闆拍板箭頭搬的是整個 node，名字跟著走了——線留在原位的話，「上字幕接在發想後面」按一次箭頭就變成「粗剪接在發想後面」，畫面上一個字都不說。破壞的方向跟這一行 2026-08-27 之前相反，症狀一模一樣）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            self._lineup = self._lineup.moved(slots[index].role, target)",
+    "with": "            self._lineup = Lineup.of([\n                replace(new, parent=old.parent)\n                for new, old in zip(self._lineup.moved(slots[index].role, target), slots)\n            ])",
+    "test": "tests/test_a_branch_he_drew_is_still_there_tomorrow.py::test_the_arrows_on_the_page_do_not_rewire_anything"
+  },
+  {
+    "label": "B21 接自己掉回「接一個排在自己後面的格子」那一句（擋下來了，而那句話叫他把發想移到發想前面——擋對了、下一步是錯的，而錯的那一句在紀錄上跟對的長得一模一樣）",
+    "file": "app/core/lineup.py",
+    "replace": "            if wanted == target:\n                raise LineupError(\n                    t(\"lineup.parent_is_itself\", role=target), field=FIELD_PARENT\n                )\n",
+    "with": "",
+    "test": "tests/test_a_branch_he_drew_is_still_there_tomorrow.py::test_wiring_a_seat_to_itself_is_refused_in_its_own_words"
+  },
+  {
+    "label": "B22 同一個破壞，走**畫面那條路**（`handle_action` → `_set_slot_parent` → `reject()`）也要紅／⚠️ 這條跟 B21 破壞的是同一行，刻意的：B21 證明引擎講對了，這一條證明那句話**真的送到使用者眼前**。少了它，「引擎裡對、畫面上收到別句」會是綠的",
+    "file": "app/core/lineup.py",
+    "replace": "            if wanted == target:\n                raise LineupError(\n                    t(\"lineup.parent_is_itself\", role=target), field=FIELD_PARENT\n                )\n",
+    "with": "",
+    "test": "tests/test_a_branch_he_drew_is_still_there_tomorrow.py::test_a_refused_wiring_reaches_the_user_and_the_line_up_does_not_move"
+  },
+  {
+    "label": "B23 存成模式的時候存了線，讀回來卻不讀（B14 只守了寫的那一半——寫進去了、讀不出來，而套用回去攤成一排跟沒存過長得一模一樣）",
+    "file": "app/services/lineup_presets.py",
+    "replace": "                    parent=str(item.get(\"parent\", \"\")),\n",
+    "with": "",
+    "test": "tests/test_a_branch_he_drew_is_still_there_tomorrow.py::test_a_saved_mode_remembers_how_the_seats_were_wired"
+  }
+]

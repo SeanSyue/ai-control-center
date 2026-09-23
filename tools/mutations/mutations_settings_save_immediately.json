@@ -1,0 +1,23 @@
+[
+  {
+    "label": "V1 設定改完不寫進檔案（回到「有未儲存的變更」那個世界，而畫面上那一格已經是新值）",
+    "file": "app/ui/settings_web_panel.py",
+    "replace": "        if changed and self.store is not None:\n            self.store.save_project(settings)",
+    "with": "        if False and self.store is not None:\n            self.store.save_project(settings)",
+    "test": "tests/test_gate_and_long_task_settings.py::test_turning_a_gate_category_off_stays_off_on_screen"
+  },
+  {
+    "label": "V2 「還原」真的去退掉已經存好的東西（他改完、畫面上是新值、按一下還原就沒了，而他以為剛才那一下沒生效）",
+    "file": "app/ui/settings_web_panel.py",
+    "replace": "        elif kind in (\"save\", \"revert\"):",
+    "with": "        elif kind == \"revert\" and self.store is not None:\n            self.store.save_project(self.store.load_global())\n            self.push_state()\n        elif kind == \"save\":",
+    "test": "tests/test_gate_and_long_task_settings.py::test_there_is_nothing_left_to_revert"
+  },
+  {
+    "label": "V3 切專案之後還是讀上一個專案的設定（他在 A 關掉一格，切到 B 看到也是關的，而 B 的檔案裡它是開的）",
+    "file": "app/ui/settings_web_panel.py",
+    "replace": "            self.store.set_project(self._project)",
+    "with": "            pass",
+    "test": "tests/test_gate_and_long_task_settings.py::test_switching_project_shows_that_project_own_settings"
+  }
+]

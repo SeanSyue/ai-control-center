@@ -1,0 +1,23 @@
+[
+  {
+    "label": "T-A 拿掉「講了完成又轉折回去就降級」那條（P12「方向待決定」與 P6「只剩線上檢查更新」重新被畫成完成色，標題那句多算兩個階段）",
+    "file": "app/ui/roadmap_web_panel.py",
+    "replace": "    if any(k in status_text for k in UNFINISHED_TURN):\n        # 這句話自己講了「可是」。\n        return \"now\"",
+    "with": "    if False:\n        return \"now\"",
+    "test": "tests/test_the_roadmap_does_not_tick_a_phase_that_takes_itself_back.py"
+  },
+  {
+    "label": "T-B 轉折詞清單裡的「待決定」被換掉（規則還在、其他五個字還在比，只有 P12 那句話重新被畫成完成色——清單少一個字跟少一整條規則，在畫面上一樣不會有人發現）",
+    "file": "app/core/prompt_markers.py",
+    "replace": "ROADMAP_UNFINISHED_TURN: tuple[str, ...] = (\n    \"待決定\",",
+    "with": "ROADMAP_UNFINISHED_TURN: tuple[str, ...] = (\n    \"這個字不會出現在任何一句話裡\",",
+    "test": "tests/test_the_roadmap_does_not_tick_a_phase_that_takes_itself_back.py"
+  },
+  {
+    "label": "T-C 降級改成升級（轉折句被判成完成，而不是降成進行中——判錯往說謊那一邊倒）",
+    "file": "app/ui/roadmap_web_panel.py",
+    "replace": "        # 這句話自己講了「可是」。\n        return \"now\"\n    return \"done\"",
+    "with": "        # 這句話自己講了「可是」。\n        return \"done\"\n    return \"done\"",
+    "test": "tests/test_the_roadmap_does_not_tick_a_phase_that_takes_itself_back.py::test_a_sentence_that_says_completed_and_then_takes_it_back_is_not_done"
+  }
+]

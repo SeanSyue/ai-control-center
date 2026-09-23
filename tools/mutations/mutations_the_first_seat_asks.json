@@ -1,0 +1,100 @@
+[
+  {
+    "label": "I1 需求確認整步不跑（引擎拿到任務稿就直接派人動手，而沒有任何一份文件說得出當初講好的是什麼）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "        criteria, intake_stop = self._intake_phase(orchestrator, stamper)",
+    "with": "        criteria, intake_stop = \"\", None",
+    "test": "tests/test_the_first_seat_asks_until_it_is_clear.py"
+  },
+  {
+    "label": "I2 使用者的答案吃掉之後沒清空（開發工程師會收到一句回答別人問題的話，然後照著它動手）",
+    "file": "app/core/steps/intake.py",
+    "replace": "        _question, text = site.answer.take()",
+    "with": "        _question, text = site.answer.question, site.answer.text",
+    "test": "tests/test_the_first_seat_asks_until_it_is_clear.py"
+  },
+  {
+    "label": "I3 格式看不懂的時候猜成「還要問」（一坨命令列輸出被丟到使用者臉上）",
+    "file": "app/core/orchestrator_parsing.py",
+    "replace": "    if bool(ask) == bool(settled):",
+    "with": "    if False:",
+    "test": "tests/test_the_first_seat_asks_until_it_is_clear.py"
+  },
+  {
+    "label": "I4 還掛著的問題又派一次工（舊的那題被沖掉，而且多付一次錢）",
+    "file": "app/core/steps/intake.py",
+    "replace": "    elif waiting:",
+    "with": "    elif False:",
+    "test": "tests/test_the_first_seat_asks_until_it_is_clear.py"
+  },
+  {
+    "label": "I5 問答歷史沒有帶回去（它每一輪都從頭問同樣的問題，而使用者以為自己講的話沒被聽見）",
+    "file": "app/core/orchestrator.py",
+    "replace": "            rounds=rounds,\n            objections=",
+    "with": "            rounds=(),\n            objections=",
+    "test": "tests/test_the_first_seat_asks_until_it_is_clear.py"
+  },
+  {
+    "label": "I6 訂好的標準沒有蓋章（流程跑完了，但事後沒有任何憑據說當初講好的是什麼）",
+    "file": "app/core/steps/intake.py",
+    "replace": "    site.stamper.acceptance_set(",
+    "with": "    (lambda **kw: None)(",
+    "test": "tests/test_the_first_seat_asks_until_it_is_clear.py"
+  },
+  {
+    "label": "I7 訂標準的那一格連做事的也算（自己出考卷自己考，而畫面上看起來就是兩個章）",
+    "file": "app/core/lineup.py",
+    "replace": "        if slot.duty != DUTY_WORK:\n            return slot.role\n    return \"\"",
+    "with": "        return slot.role\n    return \"\"",
+    "test": "tests/test_the_first_seat_asks_until_it_is_clear.py"
+  },
+  {
+    "label": "I8 續跑時重訂一次標準（再付一次錢，而且拿到的標準不一樣，蓋在舊標準上的章全部失效）",
+    "file": "app/core/steps/intake.py",
+    "replace": "    existing = orchestrator.stored_acceptance_criteria()\n    if existing.strip():",
+    "with": "    existing = orchestrator.stored_acceptance_criteria()\n    if False:",
+    "test": "tests/test_the_first_seat_asks_until_it_is_clear.py"
+  },
+  {
+    "label": "I9 驗收標準那一段沒有進到執行那一格的提示詞（問清楚了，然後沒有人照著做）",
+    "file": "app/core/prompt_builder.py",
+    "replace": "{task}\n{criteria_section}{own}{plan_section}{milestone_section}",
+    "with": "{task}\n{own}{plan_section}{milestone_section}",
+    "test": "tests/test_the_first_seat_asks_until_it_is_clear.py"
+  },
+  {
+    "label": "I10 驗收標準的章掛在別的章底下（駁回之後重訂的標準會掛在舊實作底下，顛倒的）",
+    "file": "app/core/run_stamps.py",
+    "replace": "        if subject == SUBJECT_ACCEPTANCE:\n            depends_on: tuple[str, ...] = ()",
+    "with": "        if False:\n            depends_on: tuple[str, ...] = ()",
+    "test": "tests/test_the_first_seat_asks_until_it_is_clear.py"
+  },
+  {
+    "label": "I11 確認完的計畫書沒有留在專案裡（下一次跑從零開始問，使用者要把同樣的背景再講一次）",
+    "file": "app/core/orchestrator.py",
+    "replace": "            self.save_project_brief(criteria)",
+    "with": "            pass",
+    "test": "tests/test_the_first_seat_asks_until_it_is_clear.py"
+  },
+  {
+    "label": "I12 上一次確認過的沒有帶進下一次（同上，而且畫面上看起來完全正常）",
+    "file": "app/core/orchestrator.py",
+    "replace": "            previous=self.project_brief(),",
+    "with": "            previous=\"\",",
+    "test": "tests/test_the_first_seat_asks_until_it_is_clear.py"
+  },
+  {
+    "label": "I13 帶進來了卻沒說要拿它做什麼（模型照樣從頭問一遍）",
+    "file": "app/core/prompt_builder.py",
+    "replace": "所以你這一次的工作**不是重新問一遍**，是問「這一次有什麼不一樣」。",
+    "with": "以上供參考。",
+    "test": "tests/test_the_first_seat_asks_until_it_is_clear.py"
+  },
+  {
+    "label": "I14 計畫書不是原子寫（寫到一半斷掉會留下半份，而半份讀起來跟完整的一模一樣）",
+    "file": "app/core/orchestrator.py",
+    "replace": "            temp = path.with_name(path.name + \".tmp\")\n            temp.write_text(brief, encoding=\"utf-8\")\n            temp.replace(path)",
+    "with": "            path.write_text(brief, encoding=\"utf-8\")",
+    "test": "tests/test_the_first_seat_asks_until_it_is_clear.py"
+  }
+]

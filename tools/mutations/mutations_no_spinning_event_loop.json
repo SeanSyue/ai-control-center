@@ -1,0 +1,23 @@
+[
+  {
+    "label": "X1 有人又寫了一個不放手的 processEvents 迴圈（整個 pytest 消失，報告上不會有任何一條測試被指名）",
+    "file": "tests/test_conversation_search_reaches_python.py",
+    "replace": "    wait_until(\n        lambda: not panel._scanning,\n        timeout_ms=timeout_ms,\n        what=\"背景掃描結束\",\n    )",
+    "with": "    app = QApplication.instance()\n    deadline = time.monotonic() + timeout_ms / 1000\n    while panel._scanning and time.monotonic() < deadline:\n        app.processEvents()",
+    "test": "tests/test_nobody_spins_the_event_loop.py::test_nobody_spins_the_event_loop_without_letting_go"
+  },
+  {
+    "label": "X2 共用的等待函式自己把 sleep 拿掉（上面那條就變成把問題搬進一個檔案）",
+    "file": "tests/qt_helpers.py",
+    "replace": "        # **這一行不是效能調整，是它不會當機的原因。**見上面那張表。\n        time.sleep(_POLL_INTERVAL_SECONDS)",
+    "with": "        pass",
+    "test": "tests/test_nobody_spins_the_event_loop.py::test_the_helper_itself_lets_go"
+  },
+  {
+    "label": "X3 掃描本身壞掉（撈不到任何迴圈＝這條檢查恆真，而它看起來一直是綠的）",
+    "file": "tests/test_nobody_spins_the_event_loop.py",
+    "replace": "        if called == name:\n            return True",
+    "with": "        if called == name and False:\n            return True",
+    "test": "tests/test_nobody_spins_the_event_loop.py::test_the_scan_can_see_a_loop"
+  }
+]

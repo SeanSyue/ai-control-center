@@ -1,0 +1,58 @@
+[
+  {
+    "label": "W1 使用者訂的規矩跑進 AICC 自己維護的那張表（AI 從此改得動它，而他不會收到一個字）",
+    "file": "app/services/project_knowledge.py",
+    "replace": "PROJECT_RULES_FILE = \"PROJECT_RULES.md\"\n\nMEMORY_FILES = {",
+    "with": "PROJECT_RULES_FILE = \"PROJECT_RULES.md\"\n\nMEMORY_FILES = {\n    PROJECT_RULES_FILE: \"這個專案的規矩\",",
+    "test": "tests/test_the_project_rules_are_the_users_file.py::test_it_is_not_one_of_the_files_aicc_maintains"
+  },
+  {
+    "label": "W2 兩個模組對同一份檔案各寫一個名字（他打的字進了一個沒有人讀的檔案）",
+    "file": "app/core/rule_layers.py",
+    "replace": "PROJECT_RULES_FILE = \"PROJECT_RULES.md\"",
+    "with": "PROJECT_RULES_FILE = \"project-rules.md\"",
+    "test": "tests/test_the_project_rules_are_the_users_file.py::test_the_two_modules_mean_the_same_file"
+  },
+  {
+    "label": "W3 使用者訂的規矩改成只點名不逐字送（AI 不會主動去讀一份限制它的檔案）",
+    "file": "app/core/rule_layers.py",
+    "replace": "    if has_project_rules:\n        files.append(PROJECT_RULES_FILE)",
+    "with": "    if False:\n        files.append(PROJECT_RULES_FILE)",
+    "test": "tests/test_the_project_rules_are_the_users_file.py::test_it_is_pushed_word_for_word_when_it_exists"
+  },
+  {
+    "label": "W4 底座偷偷長大（把 DECISIONS 塞進去，等於「不准全量下發」退回原點）",
+    "file": "app/core/rule_layers.py",
+    "replace": "PUSHED_VERBATIM = (\n    \"SECURITY_MODEL.md\",\n    \"OPEN_QUESTIONS.md\",\n)",
+    "with": "PUSHED_VERBATIM = (\n    \"SECURITY_MODEL.md\",\n    \"OPEN_QUESTIONS.md\",\n    \"DECISIONS.md\",\n)",
+    "test": "tests/test_the_project_rules_are_the_users_file.py::test_the_two_pushed_verbatim_are_the_two_that_cannot_be_cut"
+  },
+  {
+    "label": "W5 認不出職責就給空的（「不知道這一格在做什麼」跟「這一格不需要背景」長得一樣）",
+    "file": "app/core/rule_layers.py",
+    "replace": "_FALLBACK = (\"DECISIONS.md\",)",
+    "with": "_FALLBACK = ()",
+    "test": "tests/test_the_project_rules_are_the_users_file.py::test_a_seat_whose_duty_is_unknown_still_gets_told_to_read_something"
+  },
+  {
+    "label": "W6 有一種職責沒有人替它想過該讀什麼（掉進安全網，而安全網不是答案）",
+    "file": "app/core/rule_layers.py",
+    "replace": "    DUTY_APPROVE: (\"DECISIONS.md\", \"NEXT_STEPS.md\"),",
+    "with": "",
+    "test": "tests/test_the_project_rules_are_the_users_file.py::test_every_duty_the_lineup_can_hold_is_covered"
+  },
+  {
+    "label": "W7 這個專案的紀律跑進產品底座（別人的專案收到一句對他沒意義的規則，而他的 AI 會照著去找）",
+    "file": "app/core/prompt_builder.py",
+    "replace": "安全與決策規則：",
+    "with": "安全與決策規則：\n\n0. 每個改動要跑負向驗證。",
+    "test": "tests/test_the_base_only_protects_the_user.py::test_the_base_carries_none_of_this_projects_discipline"
+  },
+  {
+    "label": "W8 又把「逐字送」講成「產品底座」（層級跟送法混成同一件事）",
+    "file": "app/core/rule_layers.py",
+    "replace": "    return LAYER_PROJECT\n",
+    "with": "    return LAYER_BASE if file_name in PUSHED_VERBATIM else LAYER_PROJECT\n",
+    "test": "tests/test_the_base_only_protects_the_user.py::test_every_knowledge_file_is_the_project_layer"
+  }
+]

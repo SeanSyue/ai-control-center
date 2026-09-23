@@ -1,0 +1,30 @@
+[
+  {
+    "label": "L1 兩種情況又講同一句話（他排過的那一格被丟掉，而畫面說「你沒排複查」——他會以為是自己的陣容本來就沒有那一格）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "    lost = getattr(lineup, \"unreadable_names\", ())",
+    "with": "    lost = ()  # 破壞：假裝一格都沒被丟掉",
+    "test": "tests/test_a_seat_this_version_cannot_read_is_not_called_never_seated.py::test_it_does_not_say_he_never_seated_a_reviewer"
+  },
+  {
+    "label": "L2 講不出是哪幾格（「有幾格讀不出來」寫進紀錄等於沒寫——他要知道去陣容頁看哪一格）",
+    "file": "app/i18n.py",
+    "replace": "這份陣容裡有 {count} 格這一版讀不出來（{names}）",
+    "with": "這份陣容裡有一些格子這一版讀不出來",
+    "test": "tests/test_a_seat_this_version_cannot_read_is_not_called_never_seated.py::test_it_names_the_seats_that_went_missing"
+  },
+  {
+    "label": "L3 沒講設定還在（他會去陣容頁重排一格，而那會蓋掉原本那一格的設定）",
+    "file": "app/i18n.py",
+    "replace": "設定還在檔案裡，沒有被刪掉。",
+    "with": "",
+    "test": "tests/test_a_seat_this_version_cannot_read_is_not_called_never_seated.py::test_it_says_the_settings_are_still_there"
+  },
+  {
+    "label": "L4 擋過頭：真的沒排複查的時候也說有東西被丟掉（會讓他去找一格不存在的位子）",
+    "file": "app/i18n.py",
+    "replace": "    \"lineup.no_reviewer_note\": \"這條線上沒有任何一格的職責是「複查」，",
+    "with": "    \"lineup.no_reviewer_note\": \"有一格讀不出來，所以沒有人複查。這條線上沒有任何一格的職責是「複查」，",
+    "test": "tests/test_a_seat_this_version_cannot_read_is_not_called_never_seated.py::test_the_plain_sentence_is_still_there_for_when_he_really_did_not"
+  }
+]

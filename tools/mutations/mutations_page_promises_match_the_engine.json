@@ -1,0 +1,44 @@
+[
+  {
+    "label": "E1 那句「清空就回到出廠名字」又回來了（引擎對空字串是直接拒絕的，而使用者會照著那句話做事）",
+    "file": "app/ui/web/lineup_v1.html",
+    "replace": "title=\"離開輸入框就存。名字不能是空的，也不能跟別格同名——這兩件引擎會擋，理由會原樣顯示。英文會存成小寫。\"",
+    "with": "title=\"清空就回到出廠名字，沒有另外的還原按鈕。離開輸入框就存。\"",
+    "test": "tests/test_the_page_does_not_promise_what_the_engine_refuses.py::test_the_page_does_not_say_clearing_the_box_restores_anything"
+  },
+  {
+    "label": "E2 那句話被清空了事（一個空的 title 讓上一條變綠，而兩條真的規則也一起不見了——他要按下去被拒絕才知道）",
+    "file": "app/ui/web/lineup_v1.html",
+    "replace": "title=\"離開輸入框就存。名字不能是空的，也不能跟別格同名——這兩件引擎會擋，理由會原樣顯示。英文會存成小寫。\"",
+    "with": "title=\"這一格的名字。\"",
+    "test": "tests/test_the_page_does_not_promise_what_the_engine_refuses.py::test_the_page_says_the_two_rules_that_really_exist"
+  },
+  {
+    "label": "E3 沒有講英文會存成小寫（他打 NODE3、畫面顯示 node3，而他會以為自己打錯了）",
+    "file": "app/ui/web/lineup_v1.html",
+    "replace": "。英文會存成小寫。\"",
+    "with": "。\"",
+    "test": "tests/test_the_page_does_not_promise_what_the_engine_refuses.py::test_the_page_mentions_that_english_gets_lowercased"
+  },
+  {
+    "label": "E4a 引擎不再拒絕空名字（外層那道，話講得比較清楚的那一道）",
+    "file": "app/core/lineup.py",
+    "replace": "        if not fresh:\n            raise LineupError(t(\"lineup.slot_needs_name_why\"))",
+    "with": "        if not fresh:\n            fresh = \"x\"  # 破壞：安靜地補一個名字",
+    "test": "tests/test_the_page_does_not_promise_what_the_engine_refuses.py::test_the_engine_really_does_refuse_an_empty_name"
+  },
+  {
+    "label": "E4b 引擎不再拒絕空名字（內層那道，`AgentSlot` 自己那一道）——第一版指到外層那條測試，而外層先攔就永遠是綠的；**兩層防線只測外層等於只有一層**",
+    "file": "app/core/lineup.py",
+    "replace": "        if not role:\n            raise LineupError(t(\"lineup.role_required\"), field=FIELD_ROLE)",
+    "with": "        if False:\n            raise LineupError(t(\"lineup.role_required\"), field=FIELD_ROLE)",
+    "test": "tests/test_the_page_does_not_promise_what_the_engine_refuses.py::test_a_seat_cannot_be_built_without_a_name_either"
+  },
+  {
+    "label": "E5 引擎不再把名字轉小寫（畫面上那句「英文會存成小寫」就變成一句假話——而假話跟真話在畫面上長得一模一樣）",
+    "file": "app/core/lineup.py",
+    "replace": "        role = self.role.strip().lower()",
+    "with": "        role = self.role.strip()",
+    "test": "tests/test_the_page_does_not_promise_what_the_engine_refuses.py::test_a_seat_lowercases_its_own_name_too"
+  }
+]

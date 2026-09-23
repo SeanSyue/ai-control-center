@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-mode="night">
+<head>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' qrc:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AICC — 決策紀錄</title>
+<link rel="stylesheet" href="aicc.css">
+<style>
+/* ==========================================================================
+   決策紀錄（稽核）
+   這一頁不是給使用者用的，是給使用者拿去給別人看的。
+   所以它跟其他頁的差別：必須誠實講出自己的極限，而不是給一個綠勾勾。
+   ========================================================================== */
+.page{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+/* ---------- 完整性 ----------
+   永遠三段：驗了什麼、沒驗到什麼、結論。
+   即使全部通過也要講極限 —— 一個看起來很有信心的勾勾，
+   會讓人以為它證明的比實際多，而那正是這個功能當初被降級的原因。 */
+.integrity{margin:16px 30px 0;border-radius:20px;overflow:hidden;flex:none;
+  border:1px solid var(--line-soft);background:var(--surface)}
+.integrity .hd{display:flex;align-items:center;gap:11px;padding:14px 20px}
+.integrity .k{width:10px;height:10px;border-radius:50%;flex:none}
+.integrity.ok   .k{background:var(--mint);box-shadow:0 0 10px var(--mint)}
+.integrity.part .k{background:var(--gold);box-shadow:0 0 10px var(--gold)}
+.integrity.bad  .k{background:var(--rose);box-shadow:0 0 10px var(--rose)}
+.integrity .hd b{font-size:.92rem}
+.integrity.ok   .hd b{color:var(--mint)}
+.integrity.part .hd b{color:var(--gold)}
+.integrity.bad  .hd b{color:var(--rose)}
+.integrity .hd .n{margin-left:auto;font-size:.74rem;color:var(--text-3);font-weight:700}
+/* 極限那一段永遠在，不因為「全部通過」就消失 */
+.integrity .limits{padding:0 20px 14px;font-size:.76rem;color:var(--text-3);line-height:1.85}
+.integrity .limits b{color:var(--text-2)}
+.integrity.bad .limits{color:var(--text-2)}
+
+/* ---------- 摘要與篩選 ---------- */
+.sumbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:16px 30px 0;flex:none}
+.sumbar .big{font-size:.84rem;color:var(--text-2)}
+.sumbar .big b{color:var(--text);font-weight:800}
+.sumbar .big .by{color:var(--aqua)}
+.sumbar .big .ai{color:var(--text-3)}
+.sumbar .chips{margin-left:auto}
+
+/* ---------- 紀錄 ---------- */
+.list{flex:1;min-height:0;overflow-y:auto;padding:14px 30px 24px;
+  display:flex;flex-direction:column;gap:10px}
+
+/* 有人參與的：完整卡片，是這份紀錄存在的意義 */
+.ent{border-radius:16px;border:1px solid var(--line-soft);background:var(--surface);
+  padding:14px 18px;border-left:3px solid var(--line)}
+.ent.human{border-left-color:var(--aqua)}
+.ent.export{border-left-color:var(--gold)}
+.ent.pending{border-left-color:var(--gold);border-style:dashed}
+/* AI 自己決定的：壓低，它是背景不是證據 */
+.ent.ai{background:transparent;border-style:dashed;padding:9px 18px;opacity:.62}
+
+.ent .top{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.ent .who{font-size:.64rem;font-weight:800;letter-spacing:.1em;padding:3px 10px;border-radius:999px}
+.ent.human .who{background:var(--grad-btn);color:#fff}
+.ent.ai     .who{background:color-mix(in srgb,var(--text-3) 20%,transparent);color:var(--text-3)}
+.ent.export .who{background:color-mix(in srgb,var(--gold) 24%,transparent);color:var(--gold)}
+.ent.pending .who{background:transparent;border:1px solid var(--gold);color:var(--gold)}
+.ent .at{margin-left:auto;font-size:.68rem;color:var(--text-3);white-space:nowrap}
+.ent .q{font-size:.88rem;color:var(--text);font-weight:600;margin-bottom:6px}
+.ent.ai .q{font-size:.8rem;font-weight:500;color:var(--text-3);margin-bottom:0}
+/* 回答是證據本身，所以它比問題更顯眼，不是附註 */
+.ent .a{display:flex;gap:9px;align-items:flex-start;background:var(--surface2);
+  border-radius:12px;padding:10px 13px;font-size:.84rem;color:var(--text-2);margin-top:8px}
+.ent .a .mk{color:var(--aqua);font-weight:800;flex:none;font-size:.66rem;letter-spacing:.1em;margin-top:2px}
+.ent .why{font-size:.74rem;color:var(--text-3);margin-top:6px}
+
+.list .none{padding:34px;text-align:center;color:var(--text-3);font-size:.84rem}
+
+/* ---------- 匯出 ----------
+   高敏感度那條路：人在授權之前必須看得到自己授權的是什麼。
+   看不到內容的授權不是授權。 */
+.export{position:fixed;inset:0;z-index:80;display:none;background:rgba(4,7,28,.62);
+  backdrop-filter:blur(3px);place-items:center;padding:26px}
+.export.open{display:grid}
+.export .box{width:min(760px,100%);max-height:88vh;display:flex;flex-direction:column;
+  background:var(--panel);border:1px solid var(--line);border-radius:22px;
+  box-shadow:var(--shadow);overflow:hidden}
+.export .hd{display:flex;align-items:center;gap:11px;padding:16px 22px;
+  border-bottom:1px solid var(--line-soft)}
+.export .hd b{font-size:.98rem}
+.export .hd .x{margin-left:auto;border:0;background:transparent;color:var(--text-3);
+  font-size:1.1rem;cursor:pointer;padding:2px 8px;border-radius:8px}
+.export .hd .x:hover{background:var(--surface2);color:var(--text)}
+.export .body{overflow-y:auto;padding:18px 22px}
+/* 兩個檔案的角色不同，量的單位也不同 —— 不要硬塞進同一個「大小」欄位。
+   檔案還沒寫出來，給位元組數就是給一個沒有來源的精確數字。 */
+.export .files{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:14px}
+.export .files .bdg{display:flex;flex-direction:column;gap:2px;align-items:flex-start;
+  padding:7px 12px;border-radius:12px;max-width:100%}
+.export .files em{font-style:normal;font-weight:600;opacity:.7;font-size:.6rem;letter-spacing:.04em}
+.export pre{background:var(--surface2);border:1px solid var(--line-soft);border-radius:14px;
+  padding:14px 16px;overflow-x:auto;font-size:.76rem;line-height:1.8;color:var(--text-2);
+  font-family:"SF Mono",Consolas,monospace;margin:0;user-select:text;max-height:280px}
+.export .warn{display:flex;gap:11px;align-items:flex-start;margin-top:16px;padding:13px 16px;
+  border-radius:14px;background:color-mix(in srgb,var(--gold) 10%,transparent);
+  border:1px solid color-mix(in srgb,var(--gold) 40%,transparent);font-size:.8rem;color:var(--text-2)}
+.export .warn .k{width:7px;height:7px;border-radius:50%;background:var(--gold);
+  box-shadow:0 0 8px var(--gold);margin-top:7px;flex:none}
+.export .warn b{color:var(--text)}
+.export label{display:block;font-size:.78rem;color:var(--text-2);font-weight:700;margin:16px 0 7px}
+.export label small{display:block;font-weight:500;color:var(--text-3);margin-top:2px}
+.export textarea{width:100%;min-height:74px;resize:vertical;background:var(--surface);
+  border:1px solid var(--line);border-radius:14px;padding:11px 14px;color:var(--text);
+  font-family:inherit;font-size:.84rem;outline:none;user-select:text}
+.export textarea:focus{border-color:var(--aqua);box-shadow:var(--glow)}
+.export .foot{display:flex;gap:11px;align-items:center;flex-wrap:wrap;
+  padding:15px 22px;border-top:1px solid var(--line-soft);background:var(--surface)}
+.export .foot .note{font-size:.72rem;color:var(--text-3);margin-left:auto;text-align:right}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <div class="top">
+    <h1>決策紀錄</h1>
+    <div class="lead">這個案子裡，哪些節點停下來問過人、誰決定的。這一頁唯讀，沒有任何修改或刪除。</div>
+    <div class="bar">
+      <!-- 專案名稱是純文字，不是選擇器。
+           外框（shell.html?part=top）已經是唯一的專案來源，頁內再放一個會不同步；
+           而在這一頁上，抬頭掛錯客戶名字比少一個功能嚴重得多 —— 這份東西是要拿給別人看的。 -->
+      <b id="projName" style="font-size:.95rem">—</b>
+      <button class="btn" data-act="export_preview">匯出這份紀錄</button>
+      <span class="hintline" style="margin:0">會產生一份給人看的 <span class="mono">.md</span>
+        與一份給程式驗的 <span class="mono">.jsonl</span></span>
+    </div>
+  </div>
+
+  <div id="integrity"></div>
+
+  <div class="sumbar">
+    <div class="big" id="summary"></div>
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div class="list" id="list"></div>
+
+</div>
+
+<!-- 匯出：預覽在前、授權在後 -->
+<div class="export" id="exportModal">
+  <div class="box">
+    <div class="hd"><b id="exTitle">匯出決策紀錄</b>
+      <button class="x" data-act="export_close">✕</button></div>
+    <div class="body" id="exBody"></div>
+    <div class="foot" id="exFoot"></div>
+  </div>
+</div>
+
+<button class="modebtn" id="tg">☀ 切到白天</button>
+
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script>
+/* ============================================================
+   render(data)
+   d = {
+     mode, project_name,
+     sensitive: false,                    // sensitive_kyc → 匯出要逐次授權
+     entries: [{ action:"ASK_USER"|"ANSWERED"|"CONTINUE"|"EXPORT_AUTHORISED",
+                 question, reason, answer,
+                 answered_by:"user"|"codex"|"",
+                 created_at, run_id }],
+     integrity: { total, verified, unchained, broken_at: null|3 },
+     blocked: null | { reason },          // 假設它擋的是匯出、不是檢視（見回覆文件）
+     preview: { md, files:[{name,size}] } // 按下匯出才會有
+   }
+   動作：export_preview / export_confirm(理由) / export_close
+   （沒有 select_project：切換專案是外框的事，兩個地方都能切一定會不同步）
+   ============================================================ */
+
+let DATA=null, FILTER='all';
+
+/* ---------- 完整性 ----------
+   措辭是硬規定，照抄不改寫：
+     可以說「中間任何一筆被修改、刪除或插入，驗證就不會通過」
+     不可以說「無法竄改」—— 能編輯檔案的人也能把整條鏈重算一遍
+     不可以說「這是完整的全部」—— 從結尾整段砍掉不會留痕跡 */
+const LIMITS = `<b>這份驗證能證明的：</b>中間任何一筆被修改、刪除或插入，驗證就不會通過。<br>
+  <b>不能證明的：</b>這不是「無法竄改」——能編輯檔案的人也能把整條鏈重新算過一遍；
+  也不是「這是完整的全部」——從結尾整段砍掉不會留下痕跡，因為沒有任何地方記著應該有幾筆。`;
+
+function integrityHTML(ig){
+  if(!ig) return '';
+  const {total=0, verified=0, unchained=0, broken_at=null} = ig;
+  let cls, head;
+  if(broken_at !== null){
+    cls='bad';
+    head=`第 ${broken_at} 筆被改過或中間少了一筆，這份紀錄不應作為稽核依據`;
+  }else if(unchained > 0){
+    cls='part';
+    head=`通過驗證，但有 ${unchained} 筆是指紋機制上線前寫的，無法驗證`;
+  }else{
+    cls='ok';
+    head='全部通過驗證';
+  }
+  return `<div class="integrity ${cls}">
+    <div class="hd"><span class="k"></span><b>${head}</b>
+      <span class="n">${verified} / ${total} 筆已驗證</span></div>
+    <div class="limits">${LIMITS}</div>
+  </div>`;
+}
+
+/* ---------- 一筆紀錄 ----------
+   問與答是同一件事的兩半，合成一張卡 —— 稽核的單位是「一個被回答的問題」，
+   不是兩行日誌。AI 自行判斷的壓低，它是背景不是證據。 */
+const WHO={user:'你決定的', codex:'AI 自行判斷'};
+
+function entryHTML(e){
+  if(e.action==='EXPORT_AUTHORISED')
+    return `<div class="ent export">
+      <div class="top"><span class="who">匯出授權</span><span class="at">${e.created_at}</span></div>
+      <div class="q">這份紀錄曾經被匯出</div>
+      <div class="why">理由：${e.reason||'（未填）'}</div></div>`;
+
+  if(e.action==='CONTINUE')
+    return `<div class="ent ai">
+      <div class="top"><span class="who">AI 自行判斷</span><span class="at">${e.created_at}</span></div>
+      <div class="q">${e.question||e.reason||''}</div></div>`;
+
+  if(e.action==='ASK_USER' && !e.answer)
+    return `<div class="ent pending">
+      <div class="top"><span class="who">尚未回答</span><span class="at">${e.created_at}</span></div>
+      <div class="q">${e.question}</div>
+      ${e.reason?`<div class="why">停下來的原因：${e.reason}</div>`:''}</div>`;
+
+  /* 兩個時間戳的間隔是稽核關心的事（「這個決策讓流程等了多久」）。
+     由 Python 格式化成 waited 字串推過來，跟其他相對時間一致。 */
+  return `<div class="ent human">
+    <div class="top"><span class="who">你決定的</span>
+      <span class="at">${e.created_at}${e.waited?` · 等了 ${e.waited}`:''}</span></div>
+    <div class="q">${e.question}</div>
+    ${e.reason?`<div class="why">停下來的原因：${e.reason}</div>`:''}
+    <div class="a"><span class="mk">你的回答</span><span>${e.answer}</span></div></div>`;
+}
+
+/* 呈現層期待「一則決策一筆資料」：ASK_USER 沒答案＝尚未回答，有答案＝完整人審卡。
+   如果同一個 run_id ＋同一個問題同時來了未回答與已回答兩筆，畫面會把
+   已經做過的決策報告成待處理，而頂部的節點數會變兩倍。
+   在這一頁上那不是外觀問題，所以偵測到就出聲 —— 不要安靜地畫錯。 */
+function warnUnmerged(es){
+  const seen=new Set(), dup=[];
+  es.forEach(e=>{
+    if(e.action!=='ASK_USER' && e.action!=='ANSWERED') return;
+    const k=(e.run_id||'')+'||'+(e.question||'');
+    if(seen.has(k)) dup.push(e.question); else seen.add(k);
+  });
+  if(dup.length)
+    console.warn('[audit] 同一個問題有多筆未合併的紀錄，已回答的決策會被顯示成待處理：',
+                 dup.join(' / '));
+  return dup.length;
+}
+
+function passes(e){
+  if(FILTER==='all') return true;
+  if(FILTER==='human') return e.answered_by==='user' || e.action==='EXPORT_AUTHORISED';
+  if(FILTER==='ai') return e.answered_by==='codex' || e.action==='CONTINUE';
+  return true;
+}
+
+function render(state){
+  const d=typeof state==='string'?JSON.parse(state):state;
+  DATA=d;
+  document.documentElement.dataset.mode=d.mode||'night';
+  /* 抬頭一定要來自資料。這一頁的抬頭掛錯名字，整份紀錄就是廢的。 */
+  document.getElementById('projName').textContent=d.project_name||'—';
+  document.getElementById('integrity').innerHTML=integrityHTML(d.integrity);
+
+  const es=d.entries||[];
+  warnUnmerged(es);
+  const nHuman=es.filter(e=>e.answered_by==='user').length;
+  const nAi=es.filter(e=>e.answered_by==='codex'||e.action==='CONTINUE').length;
+  /* 這行數字就是別人開口會問的那個數字 */
+  document.getElementById('summary').innerHTML=
+    `<b>${es.length}</b> 個節點 · <span class="by"><b>${nHuman}</b> 個由你決定</span>
+     · <span class="ai"><b>${nAi}</b> 個 AI 自行判斷</span>`;
+
+  const chip=(v,l)=>`<span class="chip ${FILTER===v?'on':''}" data-filter="${v}">${l}</span>`;
+  document.getElementById('chips').innerHTML=
+    chip('all','全部')+chip('human','只看我決定的')+chip('ai','只看 AI 判斷的');
+
+  const shown=es.filter(passes);
+  document.getElementById('list').innerHTML= shown.length
+    ? shown.map(entryHTML).join('')
+    : `<div class="none">這個範圍內沒有紀錄。</div>`;
+
+  if(d.preview) openExport(d);
+}
+
+/* ---------- 匯出 ----------
+   先看內容、再授權。看不到內容的授權不是授權 ——
+   尤其高敏感度那條路，使用者要放行的是含客戶姓名的原始問答，而 AICC 不會遮蔽。 */
+function openExport(d){
+  const modal=document.getElementById('exportModal');
+  const p=d.preview||{};
+  const blocked=d.blocked;
+
+  document.getElementById('exTitle').textContent =
+    d.sensitive ? '匯出決策紀錄（高敏感度專案）' : '匯出決策紀錄';
+
+  document.getElementById('exBody').innerHTML=`
+    <div class="files">${(p.files||[]).map(f=>
+      `<span class="bdg grey" title="${f.name}">${f.name}
+        <em>${f.role||''}${f.amount?' · '+f.amount:''}</em></span>`).join('')}</div>
+    <pre>${p.md||''}</pre>
+    ${d.sensitive?`<div class="warn"><span class="k"></span>
+      <div><b>這份檔案含原始問答內容</b>，其中可能有客戶姓名或案件細節。
+      AICC 沒有遮蔽功能，匯出的就是你上面看到的全文。</div></div>
+      <label>匯出理由（必填，會寫進紀錄本身）
+        <small>這筆授權會成為紀錄裡的一筆，所以匯出的檔案會包含它自己被授權的理由。</small>
+      </label>
+      <textarea id="exReason" placeholder="例如：提供給主管機關查核 2026 年 8 月的委任案件"></textarea>`:''}
+    ${blocked?`<div class="warn"><span class="k"></span><div>${blocked.reason}</div></div>`:''}`;
+
+  document.getElementById('exFoot').innerHTML=
+    `<button class="btn" id="exGo" ${d.sensitive?'disabled':''}
+       data-act="export_confirm">${d.sensitive?'授權匯出（含原始問答內容）':'匯出'}</button>
+     <button class="btn q" data-act="export_close">取消</button>
+     ${d.sensitive?`<span class="note">這次授權不會被記住。<br>沒有「這個專案以後都可以」。</span>`:''}`;
+
+  if(d.sensitive){
+    const ta=document.getElementById('exReason'), go=document.getElementById('exGo');
+    ta.addEventListener('input',()=>{ go.disabled = ta.value.trim().length < 4; });
+    ta.focus();
+  }
+  modal.classList.add('open');
+}
+
+document.addEventListener('click',e=>{
+  const f=e.target.closest('[data-filter]');
+  if(f){ FILTER=f.dataset.filter; render(DATA); return; }
+  const b=e.target.closest('[data-act]');
+  if(!b || b.disabled) return;
+  const k=b.dataset.act;
+  if(k==='export_close'){ document.getElementById('exportModal').classList.remove('open'); return; }
+  if(k==='export_confirm'){
+    const ta=document.getElementById('exReason');
+    act('export_confirm', ta?ta.value.trim():'');
+    return;
+  }
+  act(k,'');
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape') document.getElementById('exportModal').classList.remove('open');
+});
+
+let bridge=null;
+function act(k,a){
+  if(bridge){ bridge.on_action(k,a); return; }
+  /* 沒有 bridge 時（單獨用瀏覽器檢視版面）自己生一份預覽，
+     否則匯出流程在設計檢視時完全看不到。上線後這一段用不到。 */
+  if(k==='export_preview'){ DEMO.preview=DEMO_PREVIEW; render(DEMO); return; }
+  console.log('demo',k,a);
+}
+if(window.qt&&qt.webChannelTransport){
+  new QWebChannel(qt.webChannelTransport,ch=>{bridge=ch.objects.bridge;
+    bridge.stateChanged.connect(render); bridge.ready();});
+}
+document.getElementById('tg').onclick=()=>{const h=document.documentElement;
+  h.dataset.mode=h.dataset.mode==='night'?'day':'night';
+  document.getElementById('tg').textContent=h.dataset.mode==='night'?'☀ 切到白天':'☾ 切到夜空';
+  if(bridge)bridge.on_action('mode',h.dataset.mode);};
+
+/* ---------- 示範資料 ----------
+   刻意用「有 N 筆無法驗證」而不是全綠：既有安裝一定會有指紋機制上線前的紀錄，
+   全綠的示範資料會讓人以為那是常態。 */
+const DEMO={mode:'night',project_name:'notes-app',sensitive:true,blocked:null,
+ integrity:{total:9, verified:6, unchained:3, broken_at:null},
+ entries:[
+  {action:'CONTINUE', answered_by:'codex', created_at:'08-07 14:02',
+   question:'新增測試檔案 test_import_flow.py', reason:'僅新增檔案，未動既有邏輯'},
+  {action:'ANSWERED', answered_by:'user', created_at:'08-07 14:19', waited:'12 分鐘',
+   question:'要覆寫 KYC_Case_MVP/app/services/importer.py 嗎？該檔案有你手寫的內容。',
+   reason:'覆寫既有檔案', answer:'可以，但保留 parse_bank_statement() 原本的實作'},
+  {action:'CONTINUE', answered_by:'codex', created_at:'08-07 14:41',
+   question:'更新 requirements.txt 加入 openpyxl', reason:'相依套件變更已在計畫中'},
+  {action:'ANSWERED', answered_by:'user', created_at:'08-07 15:03',
+   question:'客戶身分證影本要不要一起建索引？',
+   reason:'偵測到可能含個資的檔案', answer:'不要。那份不進索引，只留在原資料夾。'},
+  {action:'ANSWERED', answered_by:'user', created_at:'08-08 09:26', waited:'3 小時 41 分',
+   question:'要把 KYC 案件資料同步到 Google Drive 嗎？',
+   reason:'跨境資料傳輸', answer:'不要。這個專案維持本機。'},
+  {action:'ASK_USER', answered_by:'', created_at:'08-09 11:14',
+   question:'要不要把 2025 年的舊案件一併重新索引？（約 340 份文件）',
+   reason:'大量寫入，且會覆蓋既有索引'},
+  {action:'EXPORT_AUTHORISED', answered_by:'user', created_at:'08-09 15:40',
+   reason:'提供給主管機關查核 2026 年 8 月的委任案件'},
+ ],
+ preview:null};
+
+/* 兩個檔案的角色不同，可量的東西也不同 —— 各給各自領域的自然單位，
+   不硬湊成一個「大小」欄位，也不給還沒寫出來的位元組數。 */
+const DEMO_PREVIEW={
+  files:[
+    {name:'決策紀錄_notes-app_20260809.md',    role:'給人看的', amount:'1,240 字'},
+    {name:'決策紀錄_notes-app_20260809.jsonl', role:'給程式驗的', amount:'9 筆原始紀錄'},
+  ],
+  md:`# 決策紀錄 — notes-app
+匯出時間：2026-08-09 15:40
+完整性：9 筆中 6 筆已驗證，3 筆為指紋機制上線前寫入（無法驗證）
+
+## 08-07 14:19 · 你決定的（等了 12 分鐘）
+問題：要覆寫 KYC_Case_MVP/app/services/importer.py 嗎？該檔案有你手寫的內容。
+停下來的原因：覆寫既有檔案
+你的回答：可以，但保留 parse_bank_statement() 原本的實作
+
+## 08-07 15:03 · 你決定的
+問題：客戶身分證影本要不要一起建索引？
+停下來的原因：偵測到可能含個資的檔案
+你的回答：不要。那份不進索引，只留在原資料夾。
+
+## 08-08 09:26 · 你決定的（等了 3 小時 41 分）
+問題：要把 KYC 案件資料同步到 Google Drive 嗎？
+…（以下省略）`};
+
+if(!(window.qt&&qt.webChannelTransport)) render(DEMO);
+</script>
+</body>
+</html>

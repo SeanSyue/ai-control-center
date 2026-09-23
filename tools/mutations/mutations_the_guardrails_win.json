@@ -1,0 +1,93 @@
+[
+  {
+    "label": "G1 「護欄贏」那句話從派工提示詞裡消失（回到今天的樣子：任務在前、規則在後，而沒有任何一句話說過後面那幾條贏——它照不照做是運氣）",
+    "file": "app/core/prompt_builder.py",
+    "replace": "{criteria_section}{own}{plan_section}{milestone_section}",
+    "with": "{criteria_section}{own}{plan_section}{milestone_section}{RULES_WIN_OFF}",
+    "test": "tests/test_the_guardrails_win.py::test_every_prompt_says_out_loud_that_the_rules_win"
+  },
+  {
+    "label": "G2 「以上這幾條」被搬到那幾條**前面**（它指不到任何東西，而讀起來完全正常）",
+    "file": "app/core/prompt_builder.py",
+    "replace": "請完成以下任務：\n\n{task}\n",
+    "with": "{RULES_WIN}\n\n請完成以下任務：\n\n{task}\n",
+    "test": "tests/test_the_guardrails_win.py::test_the_rules_still_come_after_the_task"
+  },
+  {
+    "label": "G3 護欄清單少掉「不建立 Git commit。」（老闆那個情境的正主：AI 照格式報上來，引擎認不得，那一整組被丟掉，畫面上那一列直接不見）",
+    "file": "app/core/prompt_builder.py",
+    "replace": "    Guardrail(\"commit\", (\"不建立 Git commit。\",)),\n",
+    "with": "",
+    "test": "tests/test_the_guardrails_win.py::test_every_rule_line_is_either_a_guardrail_or_written_down_as_not_one"
+  },
+  {
+    "label": "G4 清單上那一句跟提示詞差一個字（AI 抄的是提示詞裡那一句，永遠對不上——這條護欄從此驗不出任何東西，而畫面上看起來只是「從來沒有被擋下來過」）",
+    "file": "app/core/prompt_builder.py",
+    "replace": "    Guardrail(\"install\", (\"不安裝套件。\",)),",
+    "with": "    Guardrail(\"install\", (\"不要安裝套件。\",)),",
+    "test": "tests/test_the_guardrails_win.py::test_every_guardrail_text_really_appears_in_a_prompt"
+  },
+  {
+    "label": "G5 「他寫的原話」那一關拿掉（AI 編一句話出來就會被印在卡片上——他會去改一個他根本沒寫錯的句子，然後從此不信這一列）",
+    "file": "app/core/orchestrator_parsing.py",
+    "replace": "        if quote not in folded_task:\n            continue",
+    "with": "        if False:\n            continue",
+    "test": "tests/test_the_guardrails_win.py::test_a_sentence_the_user_never_wrote_is_thrown_away"
+  },
+  {
+    "label": "G6 「真的是我們寫的護欄」那一關拿掉（AI 說是哪一條就是哪一條——卡片上會出現一條根本不存在的規則）",
+    "file": "app/core/orchestrator_parsing.py",
+    "replace": "        rule = guardrail_for(rule_match.group(\"rule\"))\n        if rule is None:\n            continue",
+    "with": "        rule = guardrail_for(rule_match.group(\"rule\"))\n        if rule is None:\n            rule = GUARDRAILS[0]",
+    "test": "tests/test_the_guardrails_win.py::test_a_rule_we_never_wrote_is_thrown_away"
+  },
+  {
+    "label": "G7 逐字比對放寬成「子字串就好」的退化版（照抄一個句號就能過關——「逐字比對」這件事等於沒有做）",
+    "file": "app/core/orchestrator_parsing.py",
+    "replace": "BLOCKED_QUOTE_MIN_CHARS = 4",
+    "with": "BLOCKED_QUOTE_MIN_CHARS = 0",
+    "test": "tests/test_the_guardrails_win.py::test_a_one_character_quote_does_not_pass_as_verbatim"
+  },
+  {
+    "label": "G8 改回去用關鍵字猜使用者的意圖（「不要 commit」跟「請先 commit」在關鍵字眼裡一模一樣——這是被否決過的那個形狀）",
+    "file": "app/core/orchestrator_parsing.py",
+    "replace": "    found: list[BlockedInstruction] = []\n    seen: set[tuple[str, str]] = set()",
+    "with": "    found: list[BlockedInstruction] = []\n    seen: set[tuple[str, str]] = set()\n    if \"commit\" in folded_task:\n        return (BlockedInstruction(quote=folded_task, rule_id=\"commit\", rule_text=\"不建立 Git commit。\"),)",
+    "test": "tests/test_the_guardrails_win.py::test_a_task_that_only_mentions_commit_reports_nothing"
+  },
+  {
+    "label": "G9 引擎算出來了，但沒推到畫面拿得到的地方（**這個專案昨天才踩過**：引擎做完了、規格沒送出去，畫面那邊還以為沒做）",
+    "file": "app/services/project_dashboard.py",
+    "replace": "        out: list[tuple[str, str]] = []\n        for row in rows:",
+    "with": "        out: list[tuple[str, str]] = []\n        for row in []:",
+    "test": "tests/test_the_guardrails_win.py::test_the_engine_writes_it_down_where_the_screen_looks"
+  },
+  {
+    "label": "G10 卡片只寫「有指示被忽略」，不寫他的原話（他要回頭自己猜是哪一句，而那一句機器手上就有）",
+    "file": "app/i18n.py",
+    "replace": "    \"dash.blocked_pair\": \"你寫的「{quote}」──被「{rule}」擋下\",",
+    "with": "    \"dash.blocked_pair\": \"有一句指示被護欄擋下了（{quote}{rule}）\".replace(\"{quote}\", \"\").replace(\"{rule}\", \"\"),",
+    "test": "tests/test_the_guardrails_win.py::test_the_card_prints_his_own_words"
+  },
+  {
+    "label": "G11 沒有被擋下來的時候也生一列（每一張卡上都有「被護欄擋下的指示：—」，然後真的有的那一次淹沒在裡面）",
+    "file": "app/services/project_dashboard.py",
+    "replace": "            if quote and rule:\n                out.append((quote, rule))",
+    "with": "            out.append((quote, rule))",
+    "test": "tests/test_the_guardrails_win.py::test_a_run_with_nothing_blocked_gets_no_row"
+  },
+  {
+    "label": "G12 引擎算完了但沒寫下來（第二輪的輸出蓋掉第一輪，而被擋下來的那一句就在第一輪——使用者永遠看不到它）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        self._record_blocked_instructions(result.stdout)",
+    "with": "        pass  # self._record_blocked_instructions(result.stdout)",
+    "test": "tests/test_the_guardrails_win.py::test_the_engine_records_it_at_the_time"
+  },
+  {
+    "label": "G13 記錄改成覆蓋不累積（第一輪擋下來的那一句被第二輪清掉，而卡片上什麼都沒有）",
+    "file": "app/core/orchestrator.py",
+    "replace": "            merged = list(stored)",
+    "with": "            merged = []",
+    "test": "tests/test_the_guardrails_win.py::test_the_engine_records_it_at_the_time"
+  }
+]

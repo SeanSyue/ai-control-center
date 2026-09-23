@@ -1,0 +1,44 @@
+[
+  {
+    "label": "F1 過期的索引不講（舊索引給的答案讀起來跟新鮮的一模一樣，使用者拿到三天前的專案而不知道）",
+    "file": "tools/find.py",
+    "replace": "    if stale:\n        print(f\"，**{len(stale)} 份已經被改過但索引還是舊的**\", end=\"\")",
+    "with": "    if False:\n        print(f\"，**{len(stale)} 份已經被改過但索引還是舊的**\", end=\"\")",
+    "test": "tests/test_finding_things_does_not_rely_on_guessing.py"
+  },
+  {
+    "label": "F2 原始檔不在了也不講（那一段照樣被撈出來，使用者照著路徑開檔案會以為自己記錯了）",
+    "file": "tools/find.py",
+    "replace": "    if dead:\n        print(f\"，{len(dead)} 份的原始檔已經不在了\", end=\"\")",
+    "with": "    if False:\n        print(f\"，{len(dead)} 份的原始檔已經不在了\", end=\"\")",
+    "test": "tests/test_finding_things_does_not_rely_on_guessing.py"
+  },
+  {
+    "label": "F3 整句比不到就直接放棄（「找不到」被讀成「這件事沒有寫下來」，然後有人去重寫一份已經存在的文件）",
+    "file": "tools/find.py",
+    "replace": "    if not hits and len(args.query) > 1:",
+    "with": "    if False:",
+    "test": "tests/test_finding_things_does_not_rely_on_guessing.py"
+  },
+  {
+    "label": "F4 收不進隔壁資料夾（設計原始檔那一半的往返文件永遠找不到）",
+    "file": "tools/find.py",
+    "replace": "        added = store.import_folder(Path(args.add))",
+    "with": "        added = store.import_files([])",
+    "test": "tests/test_finding_things_does_not_rely_on_guessing.py"
+  },
+  {
+    "label": "F5 「沒有為什麼」被寫成一句好聽的（recent 讀起來跟真的比中一模一樣）",
+    "file": "tools/find.py",
+    "replace": "    \"recent\": \"**沒有為什麼**",
+    "with": "    \"recent\": \"依相關性挑的**沒有為什麼**",
+    "test": "tests/test_finding_things_does_not_rely_on_guessing.py"
+  },
+  {
+    "label": "F6 stderr 沒有 reconfigure（traceback 本身會在印出來的路上再炸一次）",
+    "file": "tools/find.py",
+    "replace": "for _stream in (sys.stdout, sys.stderr):",
+    "with": "for _stream in (sys.stdout,):",
+    "test": "tests/test_finding_things_does_not_rely_on_guessing.py"
+  }
+]

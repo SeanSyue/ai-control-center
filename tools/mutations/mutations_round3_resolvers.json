@@ -1,0 +1,72 @@
+[
+  {
+    "label": "R1 路徑分支改回只看檔案存不存在（兩個解析器又分家）",
+    "file": "app/adapters/cli_runner.py",
+    "replace": "        return shutil.which(str(candidate))",
+    "with": "        return str(candidate) if candidate.is_file() else None",
+    "test": "tests/test_the_two_resolvers_agree.py"
+  },
+  {
+    "label": "R2 read_verify_command 不再把專案根目錄交給解析器",
+    "file": "app/services/project_verification.py",
+    "replace": "    return CliRunner.resolve_tool(raw, base_dir=project_root)",
+    "with": "    return CliRunner.resolve_tool(raw)",
+    "test": "tests/test_the_two_resolvers_agree.py"
+  },
+  {
+    "label": "R3 找不到工具時不標記「根本沒啟動」",
+    "file": "app/adapters/cli_runner.py",
+    "replace": "                never_started=True,\n                stdout=\"\",\n                stderr=f\"Command was not found in PATH: {arguments[0]}\",",
+    "with": "                stdout=\"\",\n                stderr=f\"Command was not found in PATH: {arguments[0]}\",",
+    "test": "tests/test_the_two_resolvers_agree.py::test_a_tool_that_cannot_be_found_says_it_never_started"
+  },
+  {
+    "label": "R4 argv 換行被擋下時不標記「根本沒啟動」",
+    "file": "app/adapters/cli_runner.py",
+    "replace": "                never_started=True,\n                stdout=\"\",\n                stderr=unsendable,",
+    "with": "                stdout=\"\",\n                stderr=unsendable,",
+    "test": "tests/test_the_two_resolvers_agree.py::test_an_argument_a_command_line_cannot_carry_never_started"
+  },
+  {
+    "label": "R5 Popen launch 失敗時不標記「根本沒啟動」",
+    "file": "app/adapters/cli_runner.py",
+    "replace": "                never_started=True,\n                stdout=\"\",\n                stderr=str(exc),",
+    "with": "                stdout=\"\",\n                stderr=str(exc),",
+    "test": "tests/test_the_two_resolvers_agree.py::test_a_popen_that_refuses_to_launch_never_started"
+  },
+  {
+    "label": "R6 run_tests 照樣把「沒啟動」的假離開碼拿去判定（審稿人量到的那個假紅燈）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        if result.never_started:",
+    "with": "        if False:",
+    "test": "tests/test_the_two_resolvers_agree.py::test_a_command_that_never_started_is_never_judged"
+  },
+  {
+    "label": "R6b run_tests 不擋「沒啟動」——整輪工作流那一面（會派人去修不存在的 bug）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        if result.never_started:",
+    "with": "        if False:",
+    "test": "tests/test_workflow_worker_runtime.py::test_a_verification_that_never_started_is_not_a_red_light"
+  },
+  {
+    "label": "R7 兩個輸出串流改成直接相接（拿掉中間那個換行）",
+    "file": "app/services/project_verification.py",
+    "replace": "    return \"\\n\".join(part for part in (result.stdout, result.stderr) if part)",
+    "with": "    return \"\".join(part for part in (result.stdout, result.stderr) if part)",
+    "test": "tests/test_project_verification.py::test_the_summary_line_survives_a_page_of_chromium_noise"
+  },
+  {
+    "label": "R8 分派判準壞掉：路徑形狀的 argv[0] 被當成裸名字丟給 PATH",
+    "file": "app/adapters/cli_runner.py",
+    "replace": "    return os.path.isabs(raw) or os.path.dirname(raw) != \"\"",
+    "with": "    return False",
+    "test": "tests/test_the_two_resolvers_agree.py"
+  },
+  {
+    "label": "R9 舊實作復活：reader 又自己用 is_file() 回答「找不找得到」",
+    "file": "app/services/project_verification.py",
+    "replace": "    return CliRunner.resolve_tool(raw, base_dir=project_root)",
+    "with": "    candidate = (project_root / raw).expanduser()\n    return str(candidate) if candidate.is_file() else None",
+    "test": "tests/test_the_two_resolvers_agree.py::test_the_two_resolvers_give_the_same_answer"
+  }
+]

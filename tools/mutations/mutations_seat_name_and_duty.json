@@ -1,0 +1,58 @@
+[
+  {
+    "label": "P1 改名字的動作不存在（引擎收得到自由命名，畫面按不到——能力做出來了卻按不到，跟沒做一樣）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "        if kind == \"set_slot_role\":",
+    "with": "        if False:",
+    "test": "tests/test_lineup_panel.py"
+  },
+  {
+    "label": "P2 選職責的動作不存在（引擎只看職責，而使用者設不了它）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "        if kind == \"set_slot_duty\":",
+    "with": "        if False:",
+    "test": "tests/test_lineup_panel.py"
+  },
+  {
+    "label": "P3 改名字沒有存進 sessions.json（下次切回專案就沒了，而使用者以為改好了）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            self._lineup = self._lineup.renamed(slots[index].role, name)\n        except LineupError as exc:\n            self.reject(str(exc))\n            return\n        self._persist()",
+    "with": "            self._lineup = self._lineup.renamed(slots[index].role, name)\n        except LineupError as exc:\n            self.reject(str(exc))\n            return",
+    "test": "tests/test_lineup_panel.py"
+  },
+  {
+    "label": "P4 撞名安靜地不改（按了沒反應跟改好了長得一模一樣，而「退給它」會有兩個答案）——比對的那份名單含這一版讀不出來的那幾格",
+    "file": "app/core/lineup.py",
+    "replace": "        if fresh in self.taken_names:",
+    "with": "        if False:",
+    "test": "tests/test_lineup_panel.py"
+  },
+  {
+    "label": "P5 不認得的職責退回預設值（使用者選了一個東西、沒有錯誤訊息、而那格變成別的職責）",
+    "file": "app/core/lineup.py",
+    "replace": "        if duty not in VALID_DUTIES:\n            raise LineupError(",
+    "with": "        if duty not in VALID_DUTIES:\n            duty = DUTY_REVIEW\n        if False:\n            raise LineupError(",
+    "test": "tests/test_lineup_panel.py"
+  },
+  {
+    "label": "P6 改名字順手弄丟別的欄位（執行照跑、不報錯，只是跑起來的是別人）",
+    "file": "app/core/lineup.py",
+    "replace": "                replace(\n                    slot,\n                    role=fresh if slot.role == target else slot.role,\n                    parent=fresh if slot.parent == target else slot.parent,\n                )",
+    "with": "                AgentSlot(\n                    fresh if slot.role == target else slot.role,\n                    slot.provider,\n                )",
+    "test": "tests/test_lineup_panel.py"
+  },
+  {
+    "label": "P7 職責沒有推給頁面（改得了但看不到現值，那個下拉不知道要顯示哪一個）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            \"duty\": slot.duty,",
+    "with": "",
+    "test": "tests/test_lineup_panel.py"
+  },
+  {
+    "label": "P8 身分沒有推給頁面（同上，那個「你是⋯」的輸入框不知道要顯示什麼）——2026-08-27 之前這一半跟 P7 綁在同一條破壞裡，而那份 dict 有**兩個**`identity` 鍵：砍掉前面那一份，後面那一份照樣把值送出去。紅的一直是 `duty`，身分這一半從來沒有被守到過（量過：24 passed，UI payload 指紋一個位元沒動）。重複鍵拿掉之後拆成兩條，一條守一欄。",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            \"identity\": slot.identity,",
+    "with": "",
+    "test": "tests/test_lineup_panel.py"
+  }
+]

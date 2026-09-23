@@ -1,0 +1,51 @@
+[
+  {
+    "label": "N1 索引讀不到時回一個跟乾淨空專案分不出來的 payload（FG14 本身：「這個專案還沒有文件」）",
+    "file": "app/ui/documents_web_panel.py",
+    "replace": "            self._index_error = _describe(error)\n            return {\n                \"mode\": self._mode,\n                \"selected\": None,\n                \"docs\": [],\n                # None，不是 0／{}／\"\"。讀不到就是讀不到，**不是「沒有東西\n                # 要處理」**——那是同一個謊的縮小版。\n                \"batch\": None,\n                \"note\": None,\n            }",
+    "with": "            return {\"mode\": self._mode, \"selected\": None, \"docs\": []}",
+    "test": "tests/test_a_document_index_that_cannot_be_read_is_not_an_empty_project.py"
+  },
+  {
+    "label": "N2 讀不到的批次數量寫成兩個 0（那兩顆按鈕會停用得跟「今天真的沒事要做」一樣）",
+    "file": "app/ui/documents_web_panel.py",
+    "replace": "            return {\n                \"stale\": len(self.store.stale_document_ids()),\n                \"dead\": len(self.store.dead_document_ids()),\n            }\n        except Exception as error:\n            return _Unreadable(_describe(error))",
+    "with": "            return {\n                \"stale\": len(self.store.stale_document_ids()),\n                \"dead\": len(self.store.dead_document_ids()),\n            }\n        except Exception:\n            return {\"stale\": 0, \"dead\": 0}",
+    "test": "tests/test_a_document_index_that_cannot_be_read_is_not_an_empty_project.py::test_batch_counts_that_cannot_be_read_are_not_reported_as_nothing_to_do"
+  },
+  {
+    "label": "N3 讀不到的片段寫成空的（畫面上＝「這份文件跟這次任務無關」）",
+    "file": "app/ui/documents_web_panel.py",
+    "replace": "            chunks = self.store.search(task, max_chunks=60)\n        except Exception as error:\n            return _Unreadable(_describe(error))",
+    "with": "            chunks = self.store.search(task, max_chunks=60)\n        except Exception:\n            return {}",
+    "test": "tests/test_a_document_index_that_cannot_be_read_is_not_an_empty_project.py::test_excerpts_that_cannot_be_read_are_not_reported_as_no_excerpts"
+  },
+  {
+    "label": "N4 讀不到「為什麼是這些片段」寫成空字串（那一行本來就常常不出現，最容易被吞掉的一個）",
+    "file": "app/ui/documents_web_panel.py",
+    "replace": "            # `note` 是這一頁**唯一一個現成拿來講實話的欄位**，而它本來跟著\n            # 一起被靜音成空字串。\n            return _Unreadable(_describe(error))",
+    "with": "            return \"\"",
+    "test": "tests/test_a_document_index_that_cannot_be_read_is_not_an_empty_project.py::test_a_selection_note_that_cannot_be_read_is_not_silence"
+  },
+  {
+    "label": "N5 讀不到的時候不講話（回到「一片空白、什麼都沒說」那個畫面）",
+    "file": "app/ui/documents_web_panel.py",
+    "replace": "        if self._index_error and self._index_error != before:\n            self._telling_about_index = True",
+    "with": "        if False and self._index_error != before:\n            self._telling_about_index = True",
+    "test": "tests/test_a_document_index_that_cannot_be_read_is_not_an_empty_project.py::test_the_user_is_told_when_the_index_cannot_be_read"
+  },
+  {
+    "label": "N6 同一個失敗每次重畫都再喊一次（使用者會學會直接關掉它，然後需要它講話的那一次也被關掉）",
+    "file": "app/ui/documents_web_panel.py",
+    "replace": "        if self._index_error and self._index_error != before:\n            self._telling_about_index = True",
+    "with": "        if self._index_error:\n            self._telling_about_index = True",
+    "test": "tests/test_a_document_index_that_cannot_be_read_is_not_an_empty_project.py::test_the_same_failure_is_not_shouted_on_every_repaint"
+  },
+  {
+    "label": "N7 修好之後還記著上一次的失敗（一個修好之後還在報錯的畫面，跟沒修好的一樣不能信）",
+    "file": "app/ui/documents_web_panel.py",
+    "replace": "        # 而**一個修好之後還在報錯的畫面，跟一個沒修好的畫面一樣不能信**。\n        self._index_error = None",
+    "with": "        # 而**一個修好之後還在報錯的畫面，跟一個沒修好的畫面一樣不能信**。\n        pass",
+    "test": "tests/test_a_document_index_that_cannot_be_read_is_not_an_empty_project.py::test_a_healthy_index_stays_quiet_after_it_recovers"
+  }
+]

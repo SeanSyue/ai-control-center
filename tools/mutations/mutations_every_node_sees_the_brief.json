@@ -1,0 +1,51 @@
+[
+  {
+    "label": "Y1 只有第一格看得到專案計畫書（後面每一格對著一份自己沒看過的計畫書做事）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        brief = self.project_brief().strip()\n        if not brief:",
+    "with": "        brief = \"\"\n        if not brief:",
+    "test": "tests/test_prompt_golden.py::test_every_prompt_matches_the_golden_snapshot"
+  },
+  {
+    "label": "Y2 NODE5 看不到專案計畫書（它做得到「章的總覽」，做不到「比較」）",
+    "file": "app/core/orchestrator.py",
+    "replace": "            project_brief=self.project_brief(),",
+    "with": "            project_brief=\"\",",
+    "test": "tests/test_prompt_golden.py::test_every_prompt_matches_the_golden_snapshot"
+  },
+  {
+    "label": "Y3 NODE5 看不到產出（要它比對，而被比對的那一樣沒給它）",
+    "file": "app/core/steps/approval.py",
+    "replace": "            # 沒有這一行，它要比對的兩樣東西只拿得到一樣。\n            deliverable=deliverable,",
+    "with": "            # 沒有這一行，它要比對的兩樣東西只拿得到一樣。\n            deliverable=\"\",",
+    "test": "tests/test_node5_can_compare_but_not_change.py::test_node5_is_given_the_thing_it_has_to_compare"
+  },
+  {
+    "label": "Y4 核准與討論又從快照裡消失（提示詞改了不會有任何東西叫）",
+    "file": "tests/test_prompt_golden.py",
+    "replace": "    orchestrator.run_approval(",
+    "with": "    _skipped = lambda **kw: None\n    _skipped(",
+    "test": "tests/test_prompt_golden.py::test_every_prompt_builder_has_a_snapshot"
+  },
+  {
+    "label": "Y5 提示詞不再叫 NODE5「不是給你改的」（它會順手改，而它改的東西上面沒有任何人的章）",
+    "file": "app/core/prompt_builder.py",
+    "replace": "   計畫書跟產出都給你了，**是給你比對的，不是給你改的**。對不上就退回去，",
+    "with": "   計畫書跟產出都給你了。對不上就退回去，",
+    "test": "tests/test_node5_can_compare_but_not_change.py::test_the_prompt_tells_it_not_to_change_anything"
+  },
+  {
+    "label": "Y6 沒有計畫書的時候留一段空白（NODE5 會以為這個專案就是沒有計畫書要比）",
+    "file": "app/core/prompt_builder.py",
+    "replace": "        else \"\\n（這個專案還沒有計畫書。那本身就是一件要說出來的事。）\\n\"",
+    "with": "        else \"\"",
+    "test": "tests/test_node5_can_compare_but_not_change.py::test_a_project_with_no_brief_says_so_instead_of_going_quiet"
+  },
+  {
+    "label": "Y7 核准那一格從人格表裡消失（使用者打了自訂身分，畫面不會告訴他拍板者也被換掉）",
+    "file": "app/core/prompt_builder.py",
+    "replace": "    \"approval\": \"finisher\",",
+    "with": "",
+    "test": "tests/test_step_persona.py::test_step_roles_matches_what_the_engine_actually_dispatches"
+  }
+]

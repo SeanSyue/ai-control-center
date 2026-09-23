@@ -1,0 +1,58 @@
+[
+  {
+    "label": "M1 共同記憶重新被切（每份只送前 750 字＝出廠預設當年的實際行為）",
+    "file": "app/services/project_knowledge.py",
+    "replace": "            sections.append(f\"### {titles[file_name]}\\n{content}\")",
+    "with": "            sections.append(f\"### {titles[file_name]}\\n{content[:750]}\")",
+    "test": "tests/test_the_safety_rules_arrive_whole.py"
+  },
+  {
+    "label": "M2 組裝端再切一刀（`build_context` 拿掉的那句 `[: profile.memory_chars]` 放回去）",
+    "file": "app/services/project_knowledge.py",
+    "replace": "            sections.append(\"## Shared Project Memory\\n\" + memory_context)",
+    "with": "            sections.append(\"## Shared Project Memory\\n\" + memory_context[:6000])",
+    "test": "tests/test_the_safety_rules_arrive_whole.py"
+  },
+  {
+    "label": "M3 完整性檢查變成沒有牙齒的叮嚀（比對還在跑，但永遠不丟例外）",
+    "file": "app/services/project_knowledge.py",
+    "replace": "            if content not in context:\n                raise MemoryTruncatedError(",
+    "with": "            if False:\n                raise MemoryTruncatedError(",
+    "test": "tests/test_the_safety_rules_arrive_whole.py"
+  },
+  {
+    "label": "M4 「不准截斷」的清單少一項（清單型硬界線少一項＝那一項失效）",
+    "file": "app/services/project_knowledge.py",
+    "replace": "MEMORY_MUST_ARRIVE_WHOLE = (\"SECURITY_MODEL.md\", \"OPEN_QUESTIONS.md\")",
+    "with": "MEMORY_MUST_ARRIVE_WHOLE = (\"SECURITY_MODEL.md\",)",
+    "test": "tests/test_the_safety_rules_arrive_whole.py"
+  },
+  {
+    "label": "M5 設定檔重新長出記憶字數上限（欄位回來，下一步就是被接回組裝路徑）",
+    "file": "app/services/project_knowledge.py",
+    "replace": "    name: str\n    label: str\n    max_chunks: int\n    document_chars: int",
+    "with": "    name: str\n    label: str\n    max_chunks: int\n    document_chars: int\n    memory_chars: int = 6000",
+    "test": "tests/test_every_memory_file_reaches_the_prompt.py"
+  },
+  {
+    "label": "M6 memory_budget 又變回「只要有一個模式做得到就算 OK」（那個量錯對象的綠燈）",
+    "file": "tools/memory_budget.py",
+    "replace": "    if not problems:",
+    "with": "    if True:",
+    "test": "tests/test_memory_budget_tool.py"
+  },
+  {
+    "label": "M7 共享記憶頁又對著一個不存在的上限畫量表",
+    "file": "app/ui/knowledge_web_panel.py",
+    "replace": "NO_MEMORY_LIMIT = 0",
+    "with": "NO_MEMORY_LIMIT = 12000",
+    "test": "tests/test_the_memory_panel_says_what_is_really_sent.py"
+  },
+  {
+    "label": "M8 共享記憶頁重新自己算一遍「填滿就停」（頁面與送出端再度漂開）",
+    "file": "app/ui/knowledge_web_panel.py",
+    "replace": "            size = len(f\"### {title}\\n{content}\")\n            plan.append(",
+    "with": "            size = len(f\"### {title}\\n{content}\") // 2\n            plan.append(",
+    "test": "tests/test_the_memory_panel_says_what_is_really_sent.py"
+  }
+]

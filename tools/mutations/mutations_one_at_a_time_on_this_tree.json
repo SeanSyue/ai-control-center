@@ -1,0 +1,37 @@
+[
+  {
+    "label": "N1 鎖沒有包在執行外面（函式還在檔案裡，但沒有人 with 它——兩支照樣一起跑，而它們會互相把對方的破壞寫進樹裡）",
+    "file": "tools/negative_control.py",
+    "replace": "        with _the_only_one_touching_the_tree():",
+    "with": "        if True:",
+    "test": "tests/test_two_negative_controls_do_not_wreck_the_tree.py"
+  },
+  {
+    "label": "N2 搶不到鎖照跑（撞到了、也知道，然後假裝沒事——這是最像「修好了」的壞法）",
+    "file": "tools/negative_control.py",
+    "replace": "        raise AnotherRunHasTheTree(",
+    "with": "        os.unlink(str(LOCK_PATH)); fd = os.open(str(LOCK_PATH), os.O_CREAT | os.O_WRONLY); _ = (",
+    "test": "tests/test_two_negative_controls_do_not_wreck_the_tree.py::test_a_second_run_is_turned_away_instead_of_racing"
+  },
+  {
+    "label": "N3 撞到鎖之後沒有人接住（使用者看到一坨 traceback，而 traceback 讀起來像「這支工具壞了」不是「等它跑完」）",
+    "file": "tools/negative_control.py",
+    "replace": "    except AnotherRunHasTheTree as clash:",
+    "with": "    except NotImplementedError as clash:",
+    "test": "tests/test_two_negative_controls_do_not_wreck_the_tree.py::test_the_lock_is_actually_wrapped_around_the_run"
+  },
+  {
+    "label": "N4 錯誤訊息不講鎖在哪（機器當掉之後那個檔案會留著，而看不到出路的人會直接把這道鎖拿掉）",
+    "file": "tools/negative_control.py",
+    "replace": "            + \"  \" + str(LOCK_PATH)",
+    "with": "            + \"  （自己找）\"",
+    "test": "tests/test_two_negative_controls_do_not_wreck_the_tree.py::test_a_second_run_is_turned_away_instead_of_racing"
+  },
+  {
+    "label": "N5 跑完不收鎖（第一次跑完之後這支工具就再也跑不動了，而它會用一句「已經有另一支在跑」把自己擋在門外）",
+    "file": "tools/negative_control.py",
+    "replace": "            LOCK_PATH.unlink()",
+    "with": "            pass",
+    "test": "tests/test_two_negative_controls_do_not_wreck_the_tree.py::test_a_normal_run_puts_the_lock_back"
+  }
+]

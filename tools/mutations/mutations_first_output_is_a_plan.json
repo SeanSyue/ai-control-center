@@ -1,0 +1,37 @@
+[
+  {
+    "label": "Q1 第一步的提示詞又長出「成品」那一格（叫它先別動手變成一句叮嚀，而叮嚀會漏）",
+    "file": "app/core/prompt_builder.py",
+    "replace": "下一格接下來要做這件事。**你的產出是一份做法，不是成品。**",
+    "with": "開發工程師接下來要實作以下任務，請先擬定做法給他。",
+    "test": "tests/test_the_first_output_has_no_slot_for_a_product.py"
+  },
+  {
+    "label": "Q2 「我不確定的地方」可以白白空著（空白被讀成都想清楚了，而通常是還沒想到那麼細）",
+    "file": "app/core/prompt_builder.py",
+    "replace": "**這一格空著要有理由**",
+    "with": "這一格可以留白",
+    "test": "tests/test_the_first_output_has_no_slot_for_a_product.py"
+  },
+  {
+    "label": "Q3 提示詞又假設產出是程式（剪片、寫文件、做圖的案子第一格就歪掉，而且它會照著一個不存在的前提認真回答）",
+    "file": "app/core/prompt_builder.py",
+    "replace": "預期會動到哪些東西（檔案、素材、章節、設定⋯⋯看這個案子是\n什麼就寫什麼）。",
+    "with": "預期會動到哪些檔案或區域。",
+    "test": "tests/test_the_first_output_has_no_slot_for_a_product.py"
+  },
+  {
+    "label": "Q4 開場白又掛回寫程式的職稱（那是整份提示詞裡最有份量的一句，模型會照著它扮演）",
+    "file": "app/core/prompt_builder.py",
+    "replace": "        \"你是這件事的規劃者。\",",
+    "with": "        \"你是此專案的施工規劃者。\",",
+    "test": "tests/test_the_first_output_has_no_slot_for_a_product.py"
+  },
+  {
+    "label": "Q5 去程式化順手把唯讀那半也拿掉（改「你是誰」改到了「你不准做什麼」）",
+    "file": "app/core/prompt_builder.py",
+    "replace": "        \"這是唯讀的規劃階段，不得修改任何檔案、不得安裝套件、\"\n        \"不得執行 Git 或建立 commit。\",",
+    "with": "        \"\",",
+    "test": "tests/test_the_first_output_has_no_slot_for_a_product.py"
+  }
+]

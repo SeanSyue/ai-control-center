@@ -1,0 +1,30 @@
+[
+  {
+    "label": "R1 說明文字的放行變成全部放行（一般字串裡的 `marker = \"winreg\"` 也被放掉，而那種寫法真的繞得過沙箱）",
+    "file": "tests/test_your_real_settings_stay_yours.py",
+    "replace": "        if line_number in prose:\n            continue",
+    "with": "        if True:\n            continue",
+    "test": "tests/test_your_real_settings_stay_yours.py::test_real_code_that_uses_a_marker_is_still_an_offence"
+  },
+  {
+    "label": "R2 註解裡提到那個名字又變成違規（一段在解釋「為什麼不要那樣寫」的話被判成違規——誤報會教下一個人把這條檢查當成狼來了）",
+    "file": "tests/test_your_real_settings_stay_yours.py",
+    "replace": "            if token.type == tokenize.COMMENT:\n                out.add(token.start[0])",
+    "with": "            if False:\n                out.add(token.start[0])",
+    "test": "tests/test_your_real_settings_stay_yours.py::test_prose_that_mentions_a_marker_is_not_an_offence"
+  },
+  {
+    "label": "R3 docstring 裡提到那個名字又變成違規（同上，另一半）",
+    "file": "tests/test_your_real_settings_stay_yours.py",
+    "replace": "        out.update(range(first.lineno, (first.end_lineno or first.lineno) + 1))",
+    "with": "        pass",
+    "test": "tests/test_your_real_settings_stay_yours.py::test_prose_that_mentions_a_marker_is_not_an_offence"
+  },
+  {
+    "label": "R4 測試自己去解析家目錄（保護清單變成兩份，而兩份會漂開——測試量的不再是那個模組說它保護什麼）",
+    "file": "tests/test_a_folder_that_is_not_ours_is_never_deleted.py",
+    "replace": "    return not_ours.protected_roots()[0]",
+    "with": "    return Path.home()",
+    "test": "tests/test_your_real_settings_stay_yours.py::test_no_test_reaches_around_the_sandbox_for_the_real_store"
+  }
+]

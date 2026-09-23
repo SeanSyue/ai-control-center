@@ -1,0 +1,2875 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-mode="night">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AICC — 陣容</title>
+<link rel="stylesheet" href="aicc.css">
+<style>
+/* ==========================================================================
+   陣容編組 —— 取代 conversation_library 的「配對舞台」
+   這不是配對，是排序：一條有順序的工作線，不是左右兩邊各挑一個。
+   ========================================================================== */
+/* ── 整頁可捲（老闆 2026-08-27 拍板）────────────────────────────
+   他的原話：
+
+   > 我還是覺得工作線的畫面太小太難操作太不方便觀看使用⋯⋯
+   > 把選 claude 和 codex 的地方和 AI 執行設定的地方，像是網站一樣和工作線
+   > 放在一個頁面，然後滾輪往下就可以往下看到其他設定之類的呢
+
+   **量出來他是對的**：`height:100vh; overflow:hidden` 之下，三塊東西在搶
+   同一個 900px——頁首 142（16%）、工作線框 533（**只有 59%**）、
+   對話清單 195（22%）。而工作線是這一頁的主角。
+
+   改成整頁可捲之後工作線吃得到約 85%，**而且它想多高就多高**
+   （分支堆五層也放得下，不用跟誰搶）。
+
+   ⚠️ 連帶：我 2026-08-27 稍早加的**自動夾高度（`capStage`）拿掉了**——
+   那是我自己為了「三塊搶一個視窗」寫的補丁，前提沒了它只會平白把框縮小。
+   **老闆 2026-08-22 拍板的框內捲動＋可拉分隔線我沒有動**（那是他的決定，
+   不是我的補丁），只是在整頁可捲之後它變成可選的。見交接文件。 */
+.page{display:flex;flex-direction:column;
+  /* ⚠️ 這三行要一起寫。**`.page` 這個選擇器同時住在 `aicc.css` 裡**
+     （那邊是 `height:100vh; overflow:hidden`），而我第一版只把這裡改成
+     `min-height` ——**`min-height` 不會取消 `height`，也不會取消 `overflow`**。
+     結果：整頁還是 900px、還是 hidden，框有 2186px 高被硬裁在 900，
+     而老闆看到的就是「不能整頁滾，下面的卡片被切掉」。
+
+     > **「我改了那一行」不等於「那一行是唯一在說話的」。**
+
+     所以明著把那兩個關掉，不要靠「我這條比較後面」。 */
+  height:auto; min-height:100vh; overflow:visible}
+
+/* ---------- 陣容 ---------- */
+/* 框。**兩個機制，老闆 2026-08-22 拍板「兩個都要」**：
+     ① 框自己上下捲（預設，不搶別人的空間）
+     ② 框與下方之間一條可拉的分隔線
+
+   為什麼兩個都要：只有捲動的話，分支多起來他永遠只看得到最上面那一層，
+   而他要的是**看整張圖**；只有可拉的話，拉大就把下面的對話清單擠掉，
+   而那是他指派對話的唯一入口。
+
+   `--stage-h` 沒有值的時候整段是空的——**今天的行為一個像素都不變**，
+   他拉過之後才有值。 */
+/* **滿版**（老闆 2026-09-01 在截圖上圈起來寫了「滿版」兩個字）。
+   在這之前左右各留 30px、上面留 16px，再上面還有一條 142px 的頁首——
+   而他 2026-08-27 就講過「工作線的畫面太小太難操作太不方便觀看使用」。
+   貼齊左右緣、頂到上面，圓角只留下緣（上緣沒有邊了）。 */
+/* 左右**貼齊**（老闆 2026-09-01 在截圖上寫的「滿版」），上面留給頁首。 */
+.stage{margin:0;border-radius:22px 22px 0 0;overflow:hidden;
+  border:1px solid var(--line-soft);border-bottom:0;
+  box-shadow:var(--shadow);flex:none;position:relative;background:var(--sky);
+  display:flex;flex-direction:column;max-height:var(--stage-h,none)}
+.stage .hd{flex:none}
+/* 捲的是 `.hd` 底下那一段——標題列要留在原地，它上面有模式選單，
+   還有「右邊還有 N 格」（那句話捲走了就等於沒說）。 */
+.stage .inner{min-height:0;overflow-y:auto}
+.stage .inner::-webkit-scrollbar{width:9px}
+.stage .inner::-webkit-scrollbar-thumb{background:var(--line);border-radius:9px}
+.stage .inner::-webkit-scrollbar-track{background:transparent}
+
+/* 可拉的那條線。**要看得出來可以拉**——不然它就是一條裝飾線。 */
+.grip{flex:none;height:14px;margin:0 30px;cursor:ns-resize;display:flex;
+  align-items:center;justify-content:center;position:relative}
+.grip::before{content:'';width:46px;height:4px;border-radius:4px;background:var(--line);
+  transition:.16s}
+.grip:hover::before{background:var(--aqua);width:70px}
+.grip.on::before{background:var(--aqua);width:70px}
+/* 拉的時候整頁不要選到字 */
+body.dragging{user-select:none;cursor:ns-resize}
+/* 這一列 2026-09-01 起裝五樣東西：工作線／兩顆入口／模式／加一格／
+   換專案＋掃描。`row-gap` 是換行時那兩行之間的距離——沒有它，
+   換行之後兩行會黏在一起。 */
+.stage .hd{display:flex;align-items:center;gap:10px 12px;flex-wrap:wrap;padding:11px 22px;
+  background:var(--surface);border-bottom:1px solid var(--line-soft)}
+.stage .hd b{font-size:.88rem}
+.stage .hd .seq{font-size:.72rem;color:var(--text-3);font-weight:700}
+.stage .hd .spacer{margin-left:auto}
+
+/* 框裡是一張**二維的表**：左右＝階層，同一層往下堆。
+   欄的排法是「縫、格、縫、格⋯⋯縫」，所以是 `--cols` 個格加 `--cols+1` 道縫。
+   `align-items:start` 讓同一層的格子各自高度不同時不會被拉齊——
+   拉齊會讓短的那一格底下多一塊空白，看起來像那裡少了東西。 */
+.line{position:relative;display:grid;align-items:start;padding:20px 22px;overflow:auto;
+  grid-template-columns:repeat(calc(var(--cols,1) * 2 + 1), auto);
+  grid-auto-rows:auto;row-gap:16px}
+.line .cell{display:flex}
+/* 寬度由 `equaliseSlots()` 每次重畫時量出來套上——**一排卡片寬度不一，
+   讀起來就是「有幾格沒弄好」**。沒有那個值的時候退回各自的自然寬度。 */
+.line .cell > .slot{width:var(--slot-w,auto)}
+.line .insCol{display:flex;align-items:center;justify-content:center;padding:0 2px}
+
+/* 框裡那幾條線。SVG 蓋在格子上面但不吃點擊。 */
+.line svg.links{position:absolute;left:0;top:0;pointer-events:none;overflow:visible}
+.line svg.links .lk{fill:none;stroke:var(--line);stroke-width:2}
+.line .linklabels{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none}
+.line .lklb{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;
+  font-size:.68rem;font-weight:800;letter-spacing:.04em;color:var(--text-2);
+  background:var(--panel);border-radius:8px;padding:2px 7px}
+.line .lklb b{color:var(--aqua)}
+/* 「往下再分一行」。跟那個標籤黏在一起——**它講的就是這條線**，
+   不是旁邊那一格。平常淡，滑上去才實，跟縫裡的 ⊕ 同一個語彙。 */
+.line .lklb{pointer-events:auto}
+.line .lkdown{margin-left:6px;width:18px;height:18px;border-radius:50%;
+  border:1px dashed var(--line);background:transparent;color:var(--text-3);
+  font-family:inherit;font-size:.72rem;font-weight:800;cursor:pointer;
+  opacity:.55;transition:.16s;vertical-align:middle;padding:0}
+.line .lkdown:hover{opacity:1;border-style:solid;border-color:var(--aqua);
+  color:var(--aqua);background:var(--surface2)}
+
+/* 接不上的時候。**整張圖退回執行順序那一排**（Python 那邊就這樣送），
+   而這一條講的是「哪一格接不上、為什麼」——不是「這份陣容不合法」。
+   他有九格，只講不合法等於沒講。 */
+.linkbad{margin:10px 22px 0;padding:10px 14px;border-radius:12px;
+  border:1px solid var(--rose);background:color-mix(in srgb,var(--rose) 12%,transparent);
+  font-size:.76rem;color:var(--text-2);line-height:1.7}
+.linkbad b{color:var(--rose)}
+
+/* 一格 */
+/* **下限 268 不是 210。** 老闆 2026-08-27：「為啥現在工作線下面每個方框
+   都那麼直？這不對吧」——量到的是 **210 寬 × 363 高**，一根柱子。
+
+   210 這個數字從來沒有被算過，而 `ROADMAP:2986` 早就量出它不夠：
+   **四顆操作鈕自然寬 188.2px，而卡片內容寬只有 178** ——它們在這個寬度上
+   本來就塞不下。上面那一列更擠：職責▾72 ＋ 會寫檔案 52 ＋ 廠牌▾90 ＋ 間距
+   ＝ 230px。
+
+   2026-08-27 稍早我把那一列改成會換行，於是它不再溢出、也沒有字被壓成
+   直的——**而那只是把「橫向擠爆」換成「往下疊」**，`.top` 自己疊到 160px 高。
+   幾何檢查兩條都過，因為它量的是溢出與被壓扁的字，**不量整張卡片變成柱子**。
+
+   ## 而那個數字本身就是問題（老闆 2026-08-27 當場點出來）
+
+   > 我覺得現在機制寫死可能有點笨，因為有些時候使用者可能不會全螢幕使用，
+   > 如果縮小的話，那現在的方式會有問題吧?
+
+   實測四個視窗寬（1920／1400／1100／900）**卡片都是 268×314**——縮小視窗
+   不會壞，只會捲更多。但他點的那件更根本：**210 是沒人算過的數字，
+   268 是我算的數字，兩個都是寫死的**，而且沒有任何東西會在它不夠用的那天
+   變紅。字體改了、職責名字變長了（使用者自訂職責還是未決的一題）、
+   翻成英文——**268 會安靜地變成下一個 210**。
+
+   所以那個數字整個拿掉：`min-width:min-content`，而下面兩列各自宣告
+   `max-content`（**那一列不准折**）。卡片的下限**由瀏覽器照實際內容算**，
+   內容變長它自己就變寬。 */
+.slot{flex:1 1 0;min-width:min-content;max-width:300px;background:rgba(0,0,0,.18);
+  border:1px solid var(--line-soft);border-radius:18px;padding:13px 15px;transition:.2s;cursor:pointer}
+html[data-mode="day"] .slot{background:rgba(255,255,255,.62)}
+.slot.empty{border-style:dashed;opacity:.75}
+.slot.focus{border-color:var(--aqua);box-shadow:var(--glow)}
+/* 從那條黏著的列捲回來時亮一下。**捲回去不夠**——他捲了很久，
+   要有東西告訴他「就是這一格」。 */
+@keyframes ping{0%,100%{box-shadow:var(--glow)}50%{box-shadow:0 0 0 6px rgba(79,209,255,.35)}}
+.slot.ping{animation:ping .9s ease-in-out}
+.slot.incomplete{border-color:var(--gold)}
+.slot.blocked{border-color:var(--rose)}
+/* 資料裡存著、但引擎目前跑不到的座位。
+   不能隱藏（那是另一種說謊：資料存在卻不顯示），
+   但也不能長得像會跑的格子。 */
+/* 比中的專案。一列一個，現在打開的那一個標出來。 */
+/* 頁首：標題在左，搜尋專案與一鍵掃描在**同一列的右邊**。
+   老闆 2026-09-01：「其實不是把整格陣容拿掉，而是把下面的那個搜尋專案往上移」。
+   搬上來省掉的是那一整條搜尋列（44px），而標題與說明留著。
+   `flex-wrap` 是窄視窗的保險：擠不下的時候它換行，不是把說明壓成一個字一行。 */
+.page > .top{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;
+  padding:14px 30px 12px}
+.page > .top .ttl{flex:1 1 320px;min-width:0}
+.page > .top .bar{display:flex;align-items:center;gap:10px;flex:1 1 380px;
+  min-width:260px;margin-left:auto}
+.page > .top .bar .field{flex:1 1 auto;min-width:0}
+.page > .top .hits{flex:1 1 100%}
+.hits{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.hits:empty{display:none}
+.hits .hit{display:flex;align-items:baseline;gap:7px;padding:5px 10px;border-radius:9px;
+  border:1px solid var(--line-soft);background:rgba(0,0,0,.16);font-size:.72rem;cursor:default}
+html[data-mode="day"] .hits .hit{background:rgba(255,255,255,.55)}
+.hits .hit b{font-weight:800}
+.hits .hit span{color:var(--text-3);font-size:.66rem}
+/* 現在打開的那一個。**引擎算好的**（`current`）——畫面拿名字自己比會出錯，
+   同名的資料夾是存在的。 */
+.hits .hit.cur{border-color:var(--mint);color:var(--mint)}
+.hits .none{font-size:.72rem;color:var(--text-3)}
+
+/* 「＋ 新增對話」。**它長得不能像一個既有的對話**——虛線框 ＋ 一個 ＋ 號，
+   一眼看得出這不是一個對話，是開一個新的。虛線在這一頁已經是
+   「還沒有東西／要你動手」的語彙（`.slot.empty`）。 */
+/* ⛔ 2026-09-01 之前這一格量出來是**高 48px、邊框色 rgb(34,41,80)**——
+   而它旁邊的對話卡是 95px、有底色。老闆的原話：
+
+   > 跟下面方框長不一樣有點醜
+
+   它不是寬度的問題（兩個都是 635px），是**它根本沒有看起來像一個框**：
+   虛線的顏色跟底色幾乎同一個，底色又是透明的，於是它讀起來是一段浮著
+   的字，而不是一張「開一段新的」的卡片。
+
+   改成跟旁邊同一個家族：看得見的水藍虛線、有底、兩行（動作 ＋ 說明），
+   高度落在對話卡附近。 */
+.conv.newconv{border-style:dashed;border-color:color-mix(in srgb,var(--aqua) 40%,transparent);
+  background:color-mix(in srgb,var(--aqua) 7%,transparent);
+  display:flex;flex-direction:column;justify-content:center;gap:5px;
+  font-weight:800;color:var(--aqua)}
+/* ⛔ 這裡本來還有一個 `min-height:74px`，而它是**死的**：高度是上面那兩行
+   （動作 ＋ 說明）撐出來的，拿掉它一個像素都不變。負向驗證抓到的——
+   破壞它沒有任何斷言變紅。一段到不了的宣告會讓人以為某件事有被處理。 */
+.conv.newconv .ln{display:flex;align-items:center;gap:8px}
+.conv.newconv:hover{border-color:var(--aqua);
+  background:color-mix(in srgb,var(--aqua) 13%,transparent)}
+.conv.newconv .plus{font-size:1.05rem;line-height:1}
+.conv.newconv .sub{font-weight:500;font-size:.68rem;color:var(--text-3)}
+/* 沒被指到的那一欄按不下去，所以不要亮著誘導他按。 */
+.col.dim .conv.newconv{color:var(--text-3);border-color:var(--line-soft);
+  background:transparent}
+
+/* ── AI 執行設定 ────────────────────────────────────────────────
+   跟著整頁捲，不再釘在底下吃掉高度。預設收起來（狀態由引擎存，
+   **跟原生面板同一個鍵**——分兩個鍵的話他在一邊收起來、切到另一邊又是開的）。 */
+.runset{margin-top:18px;border:1px solid var(--line-soft);border-radius:16px;
+  background:rgba(0,0,0,.16);overflow:hidden}
+html[data-mode="day"] .runset{background:rgba(255,255,255,.55)}
+.runset .rshd{display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer}
+.runset .rshd b{font-size:.86rem;white-space:nowrap}
+/* 那一行摘要。**引擎組好的字，畫面照印**——自己拼的話，它會在引擎多一個
+   欄位的那天少講一件事，而它看起來完全正常。 */
+.runset .rsum{flex:1;min-width:0;font-size:.72rem;color:var(--text-3);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.runset .rschev{font-size:.8rem;color:var(--text-3);transition:.15s}
+.runset.open .rschev{transform:rotate(180deg)}
+.runset .rsbody{border-top:1px solid var(--line-soft);padding:15px 16px 16px}
+.runset:not(.open) .rsbody{display:none}
+
+/* 出廠表格那一列。 */
+.runset .rsprof{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  margin-bottom:14px;font-size:.72rem;color:var(--text-3)}
+.runset .rsprof button{font-size:.72rem;font-weight:700;padding:5px 12px;
+  border-radius:9px;border:1px solid var(--line-soft);background:transparent;
+  color:var(--text-2);cursor:pointer;font-family:inherit}
+.runset .rsprof button:hover{border-color:var(--aqua);color:var(--aqua)}
+.runset .rsprof button.on{border-color:var(--aqua);color:var(--aqua);
+  background:color-mix(in srgb,var(--aqua) 14%,transparent)}
+/* 三張都不是的時候。**不寫「自訂」**——那五個字讀起來像一道要先過的門，
+   它誤導過老闆一次（陣容頁的模式那一格）。 */
+.runset .rsprof .none{color:var(--text-3);font-size:.68rem}
+
+.runset .rsgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));
+  gap:11px 18px}
+/* 名字放在**上面**不是旁邊。並排的話一格只剩約 150px 給那個下拉，
+   而「Standard（Sonnet 5 無獨立加速選項）」這種選項會被裁掉——
+   2026-09-01 第一版就是這樣，而一個被裁掉的選項讀起來像另一個選項。 */
+.runset .rsone{display:flex;flex-direction:column;align-items:stretch;gap:5px;min-width:0}
+.runset .rsone .k{font-size:.68rem;color:var(--text-3);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.runset .rsone .row{display:flex;align-items:center;gap:7px;min-width:0}
+.runset .rsone select,.runset .rsone input[type=number]{flex:1 1 auto;min-width:0;
+  font-size:.72rem;font-weight:700;padding:5px 8px;border-radius:8px;
+  border:1px solid var(--line-soft);background:var(--surface);color:var(--text);
+  font-family:inherit}
+.runset .rsone select:focus,.runset .rsone input:focus{outline:none;border-color:var(--aqua)}
+/* 單位要**跟數字一起畫**——光一個 2 看不出是兩回合還是兩次。 */
+.runset .rsone .suffix{flex:0 0 auto;font-size:.68rem;color:var(--text-3)}
+
+/* 勾選框那一句**整句都要**：括號裡那半句講的是代價
+   （「會增加本次 token」「多用 Codex + Claude 各一次」），
+   而代價是他決定勾不勾的依據。縮寫掉他就看不到那件事要花什麼。 */
+.runset .rstoggles{margin-top:14px;padding-top:13px;
+  border-top:1px dashed var(--line-soft);display:flex;flex-direction:column;gap:9px}
+.runset .rstoggle{display:flex;align-items:flex-start;gap:8px;font-size:.72rem;
+  color:var(--text-2);line-height:1.55;cursor:pointer}
+.runset .rstoggle input{margin-top:2px;flex:0 0 auto}
+
+/* 右下角那顆〔切到白天〕是 `position:fixed`，**它會浮在任何捲到那裡的東西上面**。
+   這一段最後一列剛好在頁面底部，於是它壓住一個真的控制項。
+   留一段空白，讓任何一格都捲得出那顆鈕底下。 */
+.runset{padding-bottom:64px}
+.runset .rsfoot{margin-top:15px;padding-top:13px;
+  border-top:1px solid var(--line-soft);display:flex;align-items:center;gap:9px;
+  flex-wrap:wrap;font-size:.7rem;color:var(--text-3)}
+.runset .rsfoot button{font-size:.7rem;font-weight:700;padding:6px 13px;
+  border-radius:9px;border:1px solid var(--line-soft);background:transparent;
+  color:var(--text-2);cursor:pointer;font-family:inherit}
+.runset .rsfoot button:hover{border-color:var(--aqua);color:var(--aqua)}
+
+/* 搜尋對話那一列。**一欄一個**（老闆 2026-09-01：「兩個框」）。
+   長在欄標題底下、清單上面，所以它跟著那一欄，而不是跟著整頁。 */
+.convsearch{display:flex;align-items:center;gap:9px;
+  padding:0 14px 10px;flex:0 0 auto}
+.convsearch .field{flex:1 1 auto;min-width:0}
+.convsearch .convhint{flex:0 0 auto;font-size:.68rem;color:var(--text-3);
+  white-space:nowrap}
+
+.slot.dead{opacity:.5;border-style:dashed;border-color:var(--rose)}
+.slot.dead .job{color:var(--rose)}
+/* 正在執行。**呼吸的是外框，不是整張卡**——整張卡明滅的話，
+   卡片裡那些他要讀的字會跟著閃。 */
+@keyframes breathe{
+  0%,100%{box-shadow:0 0 0 0 rgba(79,209,255,.42), var(--glow)}
+  50%    {box-shadow:0 0 0 7px rgba(79,209,255,0), var(--glow)}}
+.slot.running{border-color:var(--aqua);animation:breathe 2.2s ease-in-out infinite}
+/* 會暈動症、或把系統設成「減少動態」的人，看到的是一圈不會動的光。
+   **狀態還在，只是不呼吸**——不能因為關掉動畫就看不出誰在跑。 */
+@media (prefers-reduced-motion: reduce){
+  .slot.running{animation:none;box-shadow:0 0 0 4px rgba(79,209,255,.3), var(--glow)}}
+/* 跑到一半那一格，旁邊那行小字也講一次。動畫是給眼角看的，
+   字是給讀的——只有動畫的話，截圖下來就什麼都沒說。 */
+.slot.running .runmark{display:inline-flex;align-items:center;gap:4px;
+  font-size:.62rem;font-weight:800;color:var(--aqua);margin-left:7px}
+/* **這一列會換行，而那不是保險是必需。**
+   它塞著五樣東西：名字／職責▾／會寫檔案／廠牌▾／這一輪要做什麼，
+   而格子最寬 290px（扣掉 padding 剩 258px）。不換行的話它會溢出，
+   而溢出的樣子**不是「擠了一點」**——flex 會把全部的擠壓倒給唯一縮得下去的
+   那一個（兩顆 select 一步不讓），於是最後那段字被壓成一個字寬、直著長。
+
+   2026-08-27 老闆自己打開 App 才看到那件事，而當時十三條斷言全綠：
+   元素數量一個都沒少、行為也都對，壞掉的是**寬度**。
+   幾何那一維現在有 `GEOMETRY_PROBE` 守著。 */
+.slot .top{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;
+  min-width:max-content}
+/* 名字是**這張卡片上唯一由使用者自己寫的東西**，而 2026-08-27 之前它是
+   整張卡片上最小、最灰的一個——比 AI 自動產生的對話標題（.88rem 粗體）
+   還不起眼。老闆打開 App 的反應是「我不能去改名字」。
+
+   他其實改得動（點兩下），但**沒有任何東西告訴他**：那支筆滑過去才出現、
+   只有 55% 透明，而字本身長得像一個分類標籤。
+
+   現在它是卡片的主標，而且**自己一行**——不跟職責▾／廠牌▾擠同一列。
+   虛底線是這一頁既有的「這個可以改」語彙。 */
+.slot .ord{display:inline-flex;align-items:center;font-size:.88rem;font-weight:800;
+  color:var(--text);border-bottom:1px dashed var(--text-3);padding-bottom:1px;
+  margin-bottom:9px;max-width:100%}
+/* 「這一輪要做什麼」**自己一行**，不跟上面那四樣搶寬度。
+
+   原本是 `margin-left:auto` 貼在同一列的最右邊——那個排法來自系統開發的
+   草圖，而那張草圖假設格子很寬。真實寬度下它是那一列唯一縮得下去的東西，
+   所以它把所有擠壓都吃下去。
+
+   `flex:0 0 100%` 讓它永遠佔滿一行：**它有 258px 可以用，而它最長只有
+   七個字**，再也回不到直的。 */
+/* 上半「這一格是誰」／下半「這一格怎麼設定」。
+   量出來的：一張卡片 321px，要讀的 83px、要操作的 154px——將近兩倍。
+   線本身是最輕的做法（不藏任何東西、不改卡片大小），
+   真正在做事的是**順序**：讀的收上面，設定的收下面。 */
+.slot .split{height:1px;background:var(--line-soft);margin:11px 0 12px}
+
+/* 合成之後那一列。鎖住的那一種**畫成一句話加一把鎖**，不是一個按不動的
+   下拉——按不動的控制項看起來就是壞掉，而這裡是「這一輪不歸你排」。 */
+.slot .duty{display:flex;align-items:center;gap:6px;font-size:.68rem;
+  color:var(--text-3);white-space:nowrap}
+.slot .duty select{font-size:.76rem;padding:5px 9px;border-radius:9px;font-weight:800}
+.slot .duty.locked{font-size:.64rem;font-weight:700;color:var(--aqua)}
+.slot .duty.locked b{font-weight:400;opacity:.6}
+
+.slot .job{display:block;font-size:.64rem;font-weight:700;color:var(--aqua);
+  margin:-4px 0 8px}
+/* 「接在 ⋯⋯ 後面」。整列灰字小字——它講的是這一格在圖上的位置，
+   不是它這一輪要做什麼，所以不該比上面那一行搶眼。 */
+.slot .up{display:flex;align-items:center;gap:5px;margin-bottom:8px;
+  font-size:.68rem;color:var(--text-3);white-space:nowrap}
+.slot .up select{font-size:.68rem;padding:3px 6px;border-radius:7px;font-weight:700;
+  max-width:110px}
+/* 名字點得動這件事，不能只靠游標形狀——「藏起來的功能等於不存在」。
+   滑過那一格才出現一支筆，用的是既有的 ✎（自訂身分那顆按鈕已經在用）。 */
+/* 筆**常駐**。滑過才出現的那一版等於「藏起來的功能等於不存在」。 */
+.slot .ord .pen{opacity:.45;margin-left:6px;font-weight:400;font-size:.8rem;transition:.15s}
+.slot:hover .ord .pen{opacity:.9;color:var(--aqua)}
+.slot .ordedit{font-size:.88rem;font-weight:800;width:150px;margin-bottom:9px;
+  font-family:inherit;padding:2px 6px;border-radius:7px;
+  border:1px solid var(--aqua);background:var(--surface);color:var(--text)}
+.slot .ordedit:focus{outline:none}
+/* 操作鈕與勾選框併成一列——圖示化之後那四顆只佔 100px 出頭，
+   而勾選框本來自己一整行。併起來再省一行的高度。 */
+.slot .rowops{display:flex;align-items:center;gap:12px;margin-top:10px;
+  padding-top:9px;border-top:1px dashed var(--line-soft);flex-wrap:wrap;
+  min-width:max-content}
+
+/* 「不編輯專案檔案」。整列灰字小字——它是一個選項不是一個狀態，
+   不該比旁邊那顆「會寫檔案」的事實標籤還搶眼。 */
+.slot .wf{display:flex;align-items:center;gap:6px;
+  font-size:.68rem;color:var(--text-3);cursor:pointer;user-select:none}
+.slot .wf input{margin:0;cursor:pointer;accent-color:var(--aqua)}
+/* 不可按的那一種：**畫出來但按不動**，並在 title 講原因。
+   不畫的話他會以為壞了；畫成一樣的話他會按不動然後以為壞了。 */
+.slot .wf.off{opacity:.42;cursor:default}
+.slot .wf.off input,.slot .wf.off span{cursor:default}
+/* 按不動的原因。**滑過那一列才出現**——它是一句解釋，不是一個狀態，
+   而九格各印一次會變成畫面上第九句一樣的話。
+   ⚠️ 它仍然**不是 `title` 提示**：滑到那一列（不是停在某個小圖示上）
+   就看得到，而且是畫在版面裡的一行字。
+   藏進 `title` 是這一輪已經被抓過兩次的那個病。 */
+.slot .wfwhy{font-size:.64rem;color:var(--text-3);line-height:1.5;
+  max-height:0;opacity:0;overflow:hidden;transition:.16s}
+.slot:hover .wfwhy{max-height:34px;opacity:1;margin-top:4px}
+.slot select{font-size:.76rem;padding:5px 9px;border-radius:9px;font-weight:800}
+/* 對話標題退到第二層：**它是 AI 自動產生的**，而上面那個名字是他自己取的。
+   2026-08-27 之前主從是反的。字級只降一階，不是把它藏起來——
+   他還是要靠它認出這是哪一個對話。 */
+.slot h4{font-size:.78rem;font-weight:700;color:var(--text-2);margin:2px 0 4px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slot .ph{font-size:.84rem;color:var(--text-3);font-weight:600;margin:9px 0 4px}
+.slot .meta{display:flex;gap:7px;flex-wrap:wrap;align-items:center;font-size:.68rem;color:var(--text-3)}
+.slot .ops{display:flex;gap:4px;align-items:center}
+.slot .ops button{border:0;background:transparent;color:var(--text-3);cursor:pointer;
+  font-family:inherit;font-size:.78rem;font-weight:700;line-height:1;
+  width:24px;height:24px;border-radius:7px;display:flex;align-items:center;
+  justify-content:center;padding:0}
+/* 字不准在鈕裡換行。量到的是一顆 47×38——38px 就是「前／移」疊成兩行，
+   而那正是老闆說的「那麼直」在一顆鈕上的樣子。 */
+/* 四顆操作鈕**整列不准折**，字也不准在鈕裡換行。
+   `ROADMAP:2986` 量過它們自然寬 188.2px，而舊卡片內容寬只有 178
+   ——它們在那個寬度上本來就塞不下，而結果是每顆鈕裡的字疊成兩行。 */
+.slot .ops{min-width:max-content}
+.slot .ops button{white-space:nowrap}
+.slot .ops button:hover:not(:disabled){background:var(--surface2);color:var(--text)}
+.slot .ops button:disabled{opacity:.3;cursor:default}
+.slot .ops .rm{margin-left:auto;color:var(--rose)}
+/* 這一格用的是自訂身分 —— 標記，不是裝飾。日後自訂 prompt 造成的失敗
+   如果看不出來是自訂的，會被誤判成程式壞了，而那種誤判很貴。 */
+.slot .ops .idn.on{color:var(--violet-hi);background:color-mix(in srgb,var(--violet) 22%,transparent)}
+
+/* 自訂身分編輯區：收起來的，展開才佔位。三張卡片各掛一個常駐多行輸入框
+   會把這一列撐爆，而這一頁最重要的東西（兩格之間的獨立性讀數）就在旁邊。 */
+.slot .idnbox{margin-top:9px;padding-top:9px;border-top:1px dashed var(--line-soft)}
+.slot .idnbox textarea{width:100%;box-sizing:border-box;resize:vertical;min-height:56px;
+  font-family:inherit;font-size:.76rem;line-height:1.5;padding:8px 10px;border-radius:9px;
+  border:1px solid var(--line);background:var(--surface);color:var(--text)}
+.slot .idnbox textarea:focus{outline:none;border-color:var(--aqua)}
+.slot .idnbox .hint{font-size:.66rem;color:var(--text-3);line-height:1.6;margin-top:7px}
+.slot .idnbox .hint b{color:var(--text-2)}
+/* 改不到的那半句。它跟輸入框長得不一樣是刻意的 ——
+   看起來像同一段文字的話，使用者會以為整段都能編輯。 */
+.slot .idnbox .rails{display:block;margin-top:6px;padding:6px 9px;border-radius:8px;
+  background:rgba(0,0,0,.22);color:var(--text-3);font-size:.65rem;line-height:1.55}
+
+/* 模式（一組存起來的陣容）。放在工作線標題列，因為它換掉的是整條線，
+   不是其中一格。 */
+.stage .hd .modes{display:flex;align-items:center;gap:7px}
+.stage .hd .modes select{font-size:.72rem;padding:4px 8px;border-radius:8px;font-weight:700}
+.stage .hd .modes input{font-family:inherit;font-size:.72rem;padding:5px 9px;border-radius:8px;
+  border:1px solid var(--line);background:var(--surface);color:var(--text);width:150px}
+.stage .hd .modes button{border:0;background:transparent;color:var(--text-3);cursor:pointer;
+  font-family:inherit;font-size:.7rem;font-weight:700;padding:4px 8px;border-radius:7px}
+.stage .hd .modes button:hover{background:var(--surface2);color:var(--text)}
+
+/* 兩格之間的獨立性讀數 —— 這是這一頁最重要的東西 */
+.gap{flex:none;width:132px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:6px;padding:0 6px}
+.gap .bar{width:100%;height:2px;border-radius:2px;background:var(--line)}
+/* 獨立性那三種顏色 2026-08-27 拿掉了——這道縫現在講的是「傳什麼」，
+   而顏色講的是「獨不獨立」。同一個位置兩種意思，是這個專案自己那條
+   「不要讓一張圖同時回答三個問題」在小尺度上的樣子。
+   獨立性整個搬到下面那條提示條（它本來就在那裡，而且會指名道姓）。 */
+.gap .bar{background:var(--line)}
+.gap .lb{font-size:.68rem;font-weight:800;letter-spacing:.04em;text-align:center;
+  line-height:1.5;color:var(--text-2)}
+.gap .lb b{color:var(--aqua);font-weight:800}
+
+/* 「插在這裡」。**平常淡淡的，滑上去才實**——它在每一道縫裡都有一顆，
+   全部畫成實心的話這一列會變成一排加號。
+   `flex:none` 是必要的：它跟格子一起在 `.line` 那個 flex 列上，
+   沒有的話它會被擠掉（那個病 2026-08-27 才修過一次）。 */
+.ins{flex:none;width:24px;height:24px;border-radius:50%;border:1px dashed var(--line);
+  background:transparent;color:var(--text-3);font-family:inherit;font-size:.82rem;
+  font-weight:800;cursor:pointer;opacity:.45;transition:.16s;align-self:center;margin:0 3px}
+.ins:hover{opacity:1;border-style:solid;border-color:var(--aqua);color:var(--aqua);
+  background:var(--surface2)}
+
+/* 「右邊還有 N 格」。金色——它是「有東西你沒看到」，而那需要他動一下
+   （捲過去）。靜止不脈動：沒有人在等他回答，是他自己要不要去看。
+   沒有東西在畫面外時整個不畫，不是畫一個「0 格」。 */
+.stage .hd .offscreen{display:none}
+.stage .hd .offscreen.on{display:inline-block;font-size:.72rem;font-weight:800;
+  color:var(--gold);border:1px solid var(--gold);border-radius:999px;padding:2px 10px}
+
+/* 那一列自己的捲軸要看得見。全域那條 thumb 是 var(--line) 再加 3px
+   跟底色同色的外框，10px 的軌道只剩 4px 可見，在深底上幾乎看不到
+   ——而這一列**四格就開始捲**，看不見的捲軸等於沒有捲軸。 */
+.line::-webkit-scrollbar{height:10px}
+.line::-webkit-scrollbar-thumb{background:var(--text-3);border:none;border-radius:6px}
+.line::-webkit-scrollbar-thumb:hover{background:var(--aqua)}
+
+/* 提示條：把問題與「該怎麼辦」講在同一行 */
+.notes{position:relative;display:flex;flex-direction:column;gap:0;background:var(--surface)}
+.note{display:flex;align-items:flex-start;gap:11px;padding:11px 22px;font-size:.79rem;
+  color:var(--text-2);border-top:1px solid var(--line-soft)}
+.note .k{width:7px;height:7px;border-radius:50%;margin-top:7px;flex:none}
+.note.warn .k{background:var(--gold);box-shadow:0 0 8px var(--gold)}
+.note.bad .k{background:var(--rose);box-shadow:0 0 8px var(--rose)}
+.note.ok .k{background:var(--mint);box-shadow:0 0 8px var(--mint)}
+.note b{color:var(--text)}
+.note .do{margin-left:auto;flex:none}
+
+/* ---------- 對話清單 ---------- */
+/* 對話清單不再跟工作線搶高度——它在下面，捲下去才看到。
+   `min-height` 給一個讓一欄至少放得下三張卡的高度，不然清單短的時候
+   整頁幾乎不用捲，他會以為「下面沒東西」。 */
+/* 「正在指派給」。**黏在上面，而且只在對話清單那一區**——
+   它是指派的脈絡，不是整頁的標題。 */
+/* ── 兩顆入口 ────────────────────────────────────────────────── */
+/* 併進工作線標題列之後不再自己佔一行，所以沒有 margin。 */
+.entries{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.entries .ent{display:flex;align-items:center;gap:6px;padding:5px 11px;
+  border-radius:14px;border:1px solid var(--line);background:var(--panel);
+  font-size:.8rem;font-weight:700;color:var(--text-2);cursor:pointer;
+  font-family:inherit;transition:.16s}
+.entries .ent:hover{border-color:var(--aqua);color:var(--text)}
+/* 有人在等的時候那一顆是金色。**金＝需要你動作**，語彙照舊。
+   ⚠️ 不用脈動——脈動在這個產品裡是「正在執行」（`DECISIONS`）。 */
+.entries .ent.waiting{border-color:var(--gold);color:var(--gold);
+  box-shadow:var(--glow-gold)}
+.entries .ent .who{color:var(--aqua);font-weight:800}
+
+/* ── 輸入視窗 ────────────────────────────────────────────────── */
+.sheetwrap{position:fixed;inset:0;z-index:80;display:flex;align-items:center;
+  justify-content:center;background:var(--cold);backdrop-filter:blur(3px);padding:24px}
+.sheetwrap[hidden]{display:none}
+.sheet{width:min(560px,100%);background:var(--panel);border:1px solid var(--line);
+  border-radius:20px;box-shadow:var(--shadow);padding:20px 22px}
+.sheethd{font-size:.92rem;font-weight:800;margin-bottom:6px}
+.sheethd b{color:var(--aqua)}
+.sheetq{font-size:.82rem;color:var(--text-2);line-height:1.75;margin-bottom:12px;
+  padding:10px 14px;border-radius:12px;background:var(--surface2)}
+.sheetq:empty{display:none}
+.sheet textarea{width:100%;box-sizing:border-box;font-family:inherit;font-size:.85rem;
+  line-height:1.7;padding:12px 14px;border-radius:12px;border:1px solid var(--line);
+  background:var(--surface);color:var(--text);resize:vertical}
+.sheet textarea:focus{outline:none;border-color:var(--aqua)}
+.sheetnote{font-size:.72rem;color:var(--text-3);line-height:1.6;margin-top:8px}
+.sheetops{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+
+/* 卡片上那顆回覆鈕。**沒有人在等的時候是暗的，但按得下去**
+   ——老闆 2026-08-27：「在這邊暗掉不代表不能按」。 */
+.slot .ops .say{opacity:.35}
+/* ⛔ 這裡 2026-09-01 之前只有 `color:var(--gold)`——**而 💬 是彩色 emoji，
+   它吃不到 color**。結果「正在等你回話」那顆跟其他三顆長得一模一樣，
+   只是亮一點。金色在這個產品裡的意思是「需要你動作」，而它從來沒出現過。
+   改成上底色，跟旁邊那顆 `.idn.on` 同一個做法。 */
+.slot .ops .say.on{opacity:1;color:var(--gold);
+  background:color-mix(in srgb,var(--gold) 22%,transparent);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--gold) 45%,transparent)}
+
+.assignbar{position:sticky;top:0;z-index:30;margin:0 30px;padding:9px 16px;
+  border-radius:0 0 14px 14px;background:var(--panel);
+  border:1px solid var(--line-soft);border-top:0;box-shadow:var(--shadow);
+  font-size:.78rem;color:var(--text-2);display:flex;align-items:center;gap:8px;
+  cursor:pointer}
+.assignbar b{color:var(--aqua);font-weight:800}
+.assignbar .to{margin-left:auto;font-size:.72rem;color:var(--text-3)}
+.assignbar:hover{border-color:var(--aqua)}
+
+/* ── 滿版捲動（老闆 2026-08-27）──────────────────────────────────
+   他的原話：
+
+   > 我希望當滾輪往下時
+   > 1. 當工作線往上時可以把範圍拉到滿版
+   > 2. claude、codex 的範圍也拉到滿版，一樣一左一右，然後各加一個
+   >    可以滾輪控制的條
+
+   第 1 點整頁可捲那一輪已經給了（工作線不再被夾在 59%）。
+   這裡做第 2 點：**這一區自己就是一個滿版**，兩欄各自撐滿、各捲各的。
+
+   ⚠️ **`height` 不是 `min-height`。** 我第一版寫 `min-height`，理由是
+   「對話多的時候讓它自己長高一點」——**而長高正是「各捲各的」的反面**：
+   那一區跟著內容長，欄也跟著長，於是捲軸永遠不出現，變成整頁一起捲。
+
+   塞 30 個對話進去實測：欄高 **3152px**，一根捲軸都沒有。
+   （示範資料一欄只有四個，塞不滿一個視窗，所以這件事在示範資料上
+    完全看不出來——`verify_pages` 那條現在會自己塞滿再驗。） */
+.lists{height:calc(100vh - 36px);display:grid;grid-template-columns:1fr 1fr;
+  gap:16px;padding:16px 30px 20px}
+@media(max-width:900px){.lists{grid-template-columns:1fr}}
+/* 欄本身不長高——它撐滿這一區，**裡面那一段自己捲**。
+
+   `min-height:0` 留著是保險，**不是承重的**：`.lists` 改成固定高度之後
+   這一欄本來就撐不開（負向驗證實測：把 `.col .body` 那一行的
+   `min-height:0` 拿掉，檢查照樣綠）。留著的理由是哪天 `.lists` 又變回
+   會長高的時候，它是擋在前面的那一道。
+   **這段註解 2026-08-27 改過**——原本寫「是必要的」，而那句在
+   `.lists` 從 `min-height` 改成 `height` 之後就不成立了。 */
+.col{display:flex;flex-direction:column;min-height:0;background:var(--surface);
+  border:1px solid var(--line-soft);border-radius:20px;overflow:hidden;transition:.2s}
+.col.dim{opacity:.4}
+.col .hd{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--surface2);flex:none}
+.col .hd .dot{width:9px;height:9px;border-radius:50%}
+.col.c .hd .dot{background:var(--aqua);box-shadow:0 0 10px var(--aqua)}
+.col.x .hd .dot{background:var(--violet);box-shadow:0 0 10px var(--violet)}
+.col .hd b{font-size:.88rem}
+.col .hd .n{margin-left:auto;font-size:.72rem;color:var(--text-3);font-weight:700}
+/* 這一段就是他要的「可以滾輪控制的條」。`flex:1` 讓它吃掉欄裡剩下的高度
+   ——沒有它，內容少的時候欄底下會空一塊，而捲軸只在內容多的時候才出現，
+   兩種狀態的高度會跳。 */
+.col .body{flex:1;min-height:0;overflow-y:auto;padding:10px;
+  display:flex;flex-direction:column;gap:8px}
+/* 捲軸畫得跟框裡那一根一致——同一頁上兩根捲軸長得不一樣，
+   會讓人以為它們是兩種不同的東西。 */
+.col .body::-webkit-scrollbar{width:9px}
+.col .body::-webkit-scrollbar-thumb{background:var(--line);border-radius:9px}
+.col .body::-webkit-scrollbar-track{background:transparent}
+.col .none{padding:24px 16px;text-align:center;color:var(--text-3);font-size:.8rem}
+
+.conv{background:var(--surface2);border:1px solid var(--line-soft);border-radius:14px;
+  padding:11px 13px;cursor:pointer;transition:.16s}
+.conv:hover{border-color:var(--line);transform:translateY(-1px)}
+.conv.used{border-color:var(--aqua);box-shadow:var(--glow)}
+.conv h4{font-size:.86rem;font-weight:700;margin:0 0 6px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.conv .badges{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px}
+.conv .meta{display:flex;justify-content:space-between;gap:8px;font-size:.68rem;color:var(--text-3)}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- ── 頁首 ────────────────────────────────────────────────
+       ⛔ 2026-09-01 我一度把這整條刪掉。老闆當場更正：
+
+       > 其實不是把整格陣容拿掉，而是把下面的那個搜尋專案往上移
+
+       他圈的兩個框在標題那一行的**右邊**——也就是「搬上來跟標題同一列」，
+       不是「刪掉」。我把「他圈了它」讀成「他不要它」，而他圈的是**要搬的
+       東西**，不是要丟的東西。
+
+       搬上來省掉的是那一整條搜尋列（44px）——而標題與說明留著。 -->
+  <div class="top">
+    <div class="ttl">
+      <h1>陣容</h1>
+      <div class="lead">決定這條工作線由誰組成、依什麼順序跑。順序就是執行順序，上一格的產出是下一格的輸入。</div>
+    </div>
+    <div class="bar">
+      <div class="field grow sm ico-l">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+          <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+        <input id="q" placeholder="搜尋專案（資料夾名稱或路徑）…">
+      </div>
+      <!-- ⚠️ 這顆**不准在改版時被順手收掉**。老闆 2026-08-27：
+           「我想保留一鍵掃描全機的功能」。 -->
+      <button class="btn q" data-act="scan">重新掃描本機</button>
+    </div>
+    <!-- 比中的專案。**比不到就是空的，不准回全部**。 -->
+    <div class="hits" id="prjhits"></div>
+  </div>
+
+  <div class="stage">
+    <div class="hd"><b>工作線</b><span class="seq" id="seq"></span>
+      <!-- 兩顆入口併進這一列（老闆 2026-09-01 圈的）。它們本來自己佔一整行，
+           而那一行只放兩顆鈕——**44px 的高度換兩顆鈕，在滿版這件事上太貴**。 -->
+      <span class="entries" id="entries"></span>
+      <!-- 「右邊還有 N 格」。四格起這一列就會捲，而以前捲出去是**無聲的**
+           ——真正的 bug 不是捲動，是捲動沒有被講出來。 -->
+      <span class="offscreen" id="offscreen"></span>
+      <span class="spacer"></span>
+      <span class="modes" id="modes"></span>
+      <span class="seq" id="cap"></span>
+      <!-- 「＋ 加一格」從那一列的尾端搬到這裡。留在裡面的話它**自己會捲出去**
+           ——實測四格時它整顆在畫面外（右緣 1407 vs 容器 1123），
+           也就是使用者按了加一格之後，他剛按的那顆鈕不見了。 -->
+      <!-- 能在縫裡插的時候這顆會被收起來（`render` 裡做）——**一件事兩個
+           入口，使用者得先決定用哪一個**。這裡是靜態 HTML，不是樣板字串，
+           所以開關寫在 JS 那一側；寫成 ${…} 的話它會被當成純文字印出來。 -->
+      <button class="btn q sm" id="addLast" data-add="" title="在最後加一格">＋ 加一格</button>
+      </div>
+    <div class="inner" id="stageInner">
+      <div class="line" id="line"></div>
+      <!-- 接不上的那幾條線。空的時候整個不畫（不是畫一個空盒子）。 -->
+      <div id="linkbad"></div>
+      <div class="notes" id="notes"></div>
+    </div>
+  </div>
+  <!-- 可拉的分隔線。**拉到底要停在下方仍放得下一張完整的對話卡**
+       ——老闆 2026-08-22 的原話是「框變大不得把另一個功能弄壞」，
+       而下面那兩欄是他指派對話的唯一入口。 -->
+  <div class="grip" id="grip" title="上下拉，決定這個框佔多少高度"
+       role="separator" aria-orientation="horizontal" tabindex="0"></div>
+
+  <!-- 捲到對話清單那一區時黏在上面：**現在在填哪一格**。
+       老闆 2026-08-27：整頁可捲之後清單移到下面，而清單很長的時候
+       連欄標題都會捲出畫面——那時候這一條是唯一還說得出「填哪一格」的東西。
+       點它會捲回那一格。 -->
+  <div class="assignbar" id="assignbar"></div>
+
+  <div class="lists" id="lists">
+    <div class="col c" id="colC">
+      <div class="hd"><span class="dot"></span><b>Claude</b><span class="n" id="nC">—</span></div>
+      <!-- ── 搜尋對話：**一欄一個** ────────────────────────────────
+           老闆 2026-09-01：「兩個框，我不是貼給你示意圖了」——
+           他貼的示意圖本來就是兩欄各一塊，而他要找一段對話的時候
+           是先想「那是我跟 Claude 還是跟 Codex 談的」。
+
+           ⛔ 我 2026-09-01 一度只做一個，理由是「他的原話沒說兩個」。
+           **那是拿他的字句去找反證，而他的圖已經回答了。**
+
+           比對還是 Python 做的（`set_provider_query`）——`score_session()`
+           連對話內容都比得到，畫面自己濾只能比標題。 -->
+      <div class="convsearch">
+        <div class="field grow sm ico-l">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+            <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+          <input id="convqC" data-convq="claude" placeholder="在 Claude 的對話裡找…">
+        </div>
+        <span class="convhint" id="hintC"></span>
+      </div>
+      <div class="body" id="listC"></div>
+    </div>
+    <div class="col x" id="colX">
+      <div class="hd"><span class="dot"></span><b>Codex</b><span class="n" id="nX">—</span></div>
+      <div class="convsearch">
+        <div class="field grow sm ico-l">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+            <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+          <input id="convqX" data-convq="codex" placeholder="在 Codex 的對話裡找…">
+        </div>
+        <span class="convhint" id="hintX"></span>
+      </div>
+      <div class="body" id="listX"></div>
+    </div>
+  </div>
+
+  <!-- ── AI 執行設定 ────────────────────────────────────────────────
+       老闆 2026-08-27：
+
+         > 把選 claude 和 codex 的地方和 **AI 執行設定的地方**，像是網站一樣
+         > 和工作線放在一個頁面，然後滾輪往下就可以往下看到其他設定之類的呢
+
+       在這之前它是一條釘在畫面最底下的原生 Qt 面板，**會吃掉頁面高度**。
+       放在這裡＝跟著整頁一起捲，而它本來就是「偶爾調一次」的東西。
+
+       **任務不在這裡。**任務是他每一次執行都要打的，收在工作線上面那顆
+       〔📄 專案內容與目標〕入口——兩個東西的節奏差很多，收在同一個
+       預設關著的抽屜裡，等於每次要跑之前都得先捲到底。 -->
+  <section class="runset" id="runset"></section>
+
+</div>
+
+<!-- 回覆／專案內容的輸入視窗。**三顆鈕，而且 Enter 不送出**
+     （老闆 2026-08-27 明確提的——今天那個系統小視窗按 Enter 就送）。 -->
+<div class="sheetwrap" id="sheetwrap" hidden>
+  <div class="sheet" role="dialog" aria-modal="true">
+    <div class="sheethd" id="sheethd"></div>
+    <div class="sheetq" id="sheetq"></div>
+    <textarea id="sheettext" rows="7"
+      placeholder="在這裡打字。Enter 是換行，不會送出。"></textarea>
+    <div class="sheetnote" id="sheetnote"></div>
+    <div class="sheetops">
+      <button class="btn" data-sheet="send">確認送出</button>
+      <button class="btn q" data-sheet="draft">暫存不送</button>
+      <button class="btn q" data-sheet="cancel">取消</button>
+    </div>
+  </div>
+</div>
+
+<button class="modebtn" id="tg">☀ 切到白天</button>
+
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script>
+/* ============================================================
+   render(data)
+   d = {
+     mode, query, project_name,
+     sequence: { label, jobs:{"<idx>":"職責"}, executed_slots:2 },
+                                    // jobs 是「這次序列派工給哪幾格」，
+                                    // key 是座位序號。**沒有 key 的那一格
+                                    // 這次不會跑**——不要用序號大小推，
+                                    // 規劃者坐在最前面而計畫序列不派工給它。
+     lineup: {
+       providers: ["claude","codex"],
+       max_slots: 3,               // 引擎最多坐得下幾格（≠ 這次派送幾格）
+       presets: [{ name, description, built_in, roles }],   // 存起來的模式
+       active_preset: "",          // 目前這條線符合哪一個（比出來的，"" = 都不符合）
+       slots: [{ role, provider, session_id, title, updated_rel,
+                 can_write,        // 這一格會寫檔案
+                 can_remove,       // 移除這一格引擎會照做（只有選配的那格）
+                 identity,         // 使用者改寫的「你是⋯⋯」（"" = 用出廠的）
+                 shipped_identities, // **複數**：一格跑好幾個步驟，職稱不只一種
+                 identity_max,     // 超過會被截掉
+                 in_project }]     // 指派的對話是否綁在目前專案
+     },
+     claude: [conv], codex: [conv]      // conv 同對話庫：{id,title,source_label,
+                                        //   resume,updated_rel,in_project,snippet}
+   }
+
+   動作：scan / run
+        set_slot_provider  arg="<idx>:<provider>"
+        set_slot_session   arg="<idx>:<sessionId>"
+        add_slot           arg=""
+        remove_slot        arg="<idx>"
+        move_slot          arg="<idx>:-1" | "<idx>:1"
+        set_slot_identity  arg="<idx>:<文字>"（空字串 = 回到出廠身分）
+        apply_preset       arg="<模式名稱>"
+        save_preset        arg="<模式名稱>"
+   ============================================================ */
+
+let DATA=null, FOCUS=0;
+/* 哪一格的身分編輯區是展開的（-1 = 都沒有）。存在這裡而不是 DOM 上，
+   理由跟 FOCUS 一樣：每次推狀態都會重畫，展開狀態必須活過重畫，
+   否則存檔的當下框就自己關起來了。 */
+let OPEN_IDN=-1;
+/* 哪一格的名字正在編輯。跟 OPEN_IDN 同理：展開狀態必須活過重畫，
+   不然 render() 一跑輸入框就沒了。-1 = 沒有人在編輯。 */
+let EDIT_NAME=-1;
+/* 「另存為模式」的輸入框有沒有展開。同上。 */
+let NAMING=false;
+
+const ORD=['第一位','第二位','第三位','第四位','第五位'];
+/* 四種職責的中文名。引擎那一側是 plan／work／review／approve
+   （`app/core/lineup.py` 的 VALID_DUTIES），畫面只負責把它講成人話。 */
+const DUTY={plan:'擬做法', work:'執行', review:'複查', approve:'核准'};
+
+/* 一格交給下一格的是什麼。**由左邊那一格的職責決定**——四種職責是封閉集合
+   （引擎的 `VALID_DUTIES`），所以這是推導，不是我發明的第五種東西。
+
+   老闆 2026-08-27：「加了很多 node 之後⋯⋯很難看懂他在干嘛。」
+   而在那之前，兩張卡片中間那條線上寫的是「不同廠牌／間資料來源」——
+   **那句講的是「這兩格獨不獨立」，不是「這裡傳什麼過去」**，
+   而同一件事下面那條提示條已經又講了一次。
+
+   **整條線最該回答「東西怎麼流」的那個位置，被一句在別處已經有家的話佔著。**
+
+   讀不懂的職責回一句中性的，不猜。 */
+const HANDOFF={plan:'做法', work:'產出', review:'意見', approve:'結論'};
+const PROV={claude:'CLAUDE', codex:'CODEX'};
+
+/* ---------- 獨立性 ----------
+   真正的變數不是廠牌，是資訊不對稱。
+   廠牌只是代理指標，而且很粗糙：兩個 Claude 帶完全不同的資料，
+   可能比兩個不同廠牌帶同一份 context 更獨立。
+   所以兩個軸都畫出來，讓使用者看到真正在動的是什麼。 */
+function independence(a,b){
+  if(!a.session_id || !b.session_id) return null;
+  if(a.session_id===b.session_id)
+    return {level:'bad', lb:'同一個對話',
+            note:'這不是互審，是同一份 context 再看一次。第二格幾乎一定會同意第一格。'};
+  const sameProv = a.provider===b.provider;
+  const sameCtx  = a.in_project===b.in_project;
+  if(sameProv && sameCtx)
+    return {level:'bad', lb:'同廠牌<br>同資料來源',
+            note:'兩格共享訓練也共享 context —— 抓得到疏忽，抓不到共同誤解。'};
+  if(sameProv)
+    return {level:'weak', lb:'同廠牌<br>資料來源不同',
+            note:'共享訓練與盲點，但兩邊看到的東西不一樣 —— 不對稱本身就是價值來源。'};
+  if(sameCtx)
+    return {level:'weak', lb:'不同廠牌<br>同資料來源',
+            note:'廠牌不同但兩邊看到一樣的東西，能抓到的差異有限。'};
+  return {level:'good', lb:'不同廠牌<br>資料來源不同', note:null};
+}
+
+/* ── 模式：一組存起來的陣容（ROADMAP P10 Stage E）──────────────
+   「目前是哪個模式」由 Python **比出來**，不是記住的（手改一格之後
+   畫面不可以還說「三格模式」）。所以沒有符合任何一個時，選單要有一個
+   誠實的空選項——不能讓它停在上一個名字上。
+
+   內建的模式改不掉：`save_preset` 會被後端拒絕並經由 action_failed
+   顯示出來。頁面不預先擋，因為那會變成同一條規則的第二份副本。
+   ──────────────────────────────────────────────────────────── */
+function modesHTML(lu){
+  const list=lu.presets||[];
+  if(!list.length) return '';
+  const active=lu.active_preset||'';
+  if(NAMING)
+    return `<input id="modeName" placeholder="模式名稱" maxlength="40">
+      <button data-savemode="1">存起來</button>
+      <button data-cancelmode="1">取消</button>`;
+  const opts=list.map(p=>
+    `<option value="${p.name}"${p.name===active?' selected':''}
+       title="${p.description||''}">${p.name}${p.built_in?'（內建）':''}</option>`).join('');
+  /* 「都不符合」那一項只在真的都不符合時才存在。常駐的話它會是一個選得到、
+     選了不做事的選項——而這一頁上個版本剛因為同一件事修過三顆按鈕。 */
+  /* **「自訂（沒有存成模式）」那五個字誤導過老闆一次**（2026-08-27）：
+
+       > 我現在在自訂模式裡面，我不能去改⋯⋯我現在是自訂模式為什麼不能改
+       > 這些設定呢？
+
+     它**不是一個他「在裡面」的模式**——它是 Python 每次重新比出來的一個
+     狀態，意思只有「這條線目前不符合任何存過的模式」，而且**它不鎖任何東西**。
+
+     但「模式」這個詞在任何軟體裡都會鎖東西，所以它讀起來像一道門。
+     改成一句**描述現況的話**，而且明說改東西不會被擋。 */
+  return `<select id="modeSel" title="套用一組存好的陣容">
+      ${active?'':'<option value="" selected'
+        +' title="這不是一種模式，是現況：你這條線跟存過的都不一樣。'
+        +'改任何一格都不會被擋——改完它就一直是這一句，直到你按「另存為模式…」。'
+        +'">這條線還沒存成模式</option>'}
+      ${opts}</select>
+    <button data-namemode="1" title="把目前這條線存成一個模式">另存為模式…</button>`;
+}
+
+/* ── 自訂身分（ROADMAP P10 Stage D）────────────────────────────
+   使用者要的原話是「給每個 NODE 加上讓客戶自己加 prompt 的功能」，
+   定案的形狀最小：**一格一個文字框，換掉那一格的「你是⋯⋯」開場白。**
+
+   三件在畫面上一定要講對的事：
+
+   1. **`shipped_identities` 是複數。** 一格會跑好幾個步驟，而那些步驟的
+      出廠職稱不一樣（作者寫程式時是開發工程師，檢查記憶草案時是共同記憶
+      審查者）。打一句話，**全部都會被換掉**——這是使用者要的行為，但不是
+      看著這個框的人會猜到的。所以講出數量，而且用陣列長度算，不要寫死。
+   2. **清空就是還原**，沒有還原按鈕。按鈕加輸入框是兩個狀態，不一致時
+      會變成「我按了還原但它還是用我打的那個」。
+   3. **後面那半句安全欄杆改不到**，而且不能讓人以為改得到。所以
+      placeholder 只放 identity 那一半，欄杆另外用不同的樣式列出來。
+   ──────────────────────────────────────────────────────────── */
+function identityHTML(s,i){
+  const shipped=s.shipped_identities||[];
+  const first=shipped[0]||'';
+  const more=shipped.length-1;
+  return `<div class="idnbox">
+    <textarea data-identity="${i}" maxlength="${s.identity_max||200}"
+      placeholder="${first}">${s.identity||''}</textarea>
+    <div class="hint">${s.identity
+      ? (more>0
+          ? `這一格會跑 <b>${shipped.length}</b> 個步驟，<b>每一個都會用你打的這一句</b>。`
+          : `這一格會用你打的這一句。`)
+        + `<b>清空就會回到出廠身分</b>，沒有另外的還原按鈕。`
+      : `目前用出廠身分：<b>${first}</b>${more>0?`（另外還有 ${more} 種，
+         同一格在不同步驟的職稱不一樣）`:''}。
+         打了字就${more>0?`這 ${shipped.length} 種全部`:''}換成你打的這句。`}
+      <span class="rails">改不到的部分：這句後面接的安全規定
+        （不得修改檔案、不得安裝套件、不得執行 Git⋯⋯）永遠會被接回去，
+        不在這個框裡。</span>
+      離開輸入框就會存起來。</div>
+  </div>`;
+}
+
+function slotHTML(s,i,d){
+  const lu=d.lineup, seq=d.sequence||{}, jobs=seq.jobs||{};
+  const filled=!!s.session_id;
+  const blocked=s.can_write && s.provider!=='claude';
+  /* 這一格這次會不會跑，看的是**它有沒有被派工**，不是它排第幾個。
+     用位置推（i>=executed_slots）在計畫序列＋三格時剛好兩個都相反：
+     規劃者坐最前面而計畫序列不派工給它，於是規劃者被畫成會跑、
+     審查者被畫成不會跑。實機量到的就是這個。
+     沒有 sequence 就沒有人派工過（單獨用瀏覽器開），那時誰都不標死。 */
+  const dead=seq.jobs ? !(String(i) in jobs) : false;
+  /* 移除做不做得到也是引擎的事實：後端只肯拿掉選配的那一格，拿掉作者或
+     審查者它直接 return。以前這裡用 slots.length<=2 推，於是三格時三顆
+     「移除」都是亮的，其中兩顆按下去畫面完全沒變。
+     **一顆按了什麼都不會發生的按鈕，比一顆明著停用的更糟。** */
+  const canRemove='can_remove' in s ? !!s.can_remove : lu.slots.length>2;
+  const rmWhy=lu.slots.length<=2 ? '至少要兩格才是互審'
+            : '只有選配的那一格可以移除，作者與審查者是這條線的骨架';
+  const cls=['slot'];
+  if(!filled) cls.push('empty');
+  if(i===FOCUS) cls.push('focus');
+  if(blocked) cls.push('blocked');
+  if(s.provider && !filled) cls.push('incomplete');
+  if(dead) cls.push('dead');
+  /* 正在跑的那一格。**只亮自己，不暗別人**（老闆 2026-08-27 同意）：
+     `.dead` 已經是 opacity .5，別人再變暗的話「這次跑不到」跟
+     「現在不是它在跑」會長得一模一樣，而前者要他去改陣容、後者
+     幾秒後就換人。脈動在這個產品裡的意思就是「正在執行」
+     （`concept_v1.html` 的視覺語言、`DECISIONS`），這裡是照用不是新增。 */
+  if(lu.running && s.role === lu.running) cls.push('running');
+
+  /* ⛔ 這裡 2026-09-01 之前寫著「會寫檔案的那一格只能是 Claude」，而底下的
+     廠牌下拉會把 Codex 直接濾掉。老闆當天的原話：
+
+       > 哪個智障說只有 claude 可以寫的，我之前明明就說都可以，
+       > 只是在預設設定的時候說過那個 node 用 codex 剛好只有審閱、
+       > 不需要寫資料而已
+
+     **他是對的。** 翻遍全部對話紀錄、`DECISIONS.md`、`WHY.md`——沒有一句是
+     他講的。源頭是引擎「Codex 的沙箱寫入旗標沒被驗證過」那段註解，也就是
+     **一個還沒填的值**。2026-09-01 填上 `-s workspace-write`（只能寫專案
+     資料夾裡面，跟 Claude 那一半對等），兩家從此都排得上執行那一格。 */
+  /* 職責。**引擎只看這個**——名字是使用者取的，職責決定它會不會被派工、
+     拿不拿得到寫入權限、駁回的時候找不找得到它。
+     這裡先把它顯示出來；換成下拉是本輪版面改動的一部分。 */
+  const duty = DUTY[s.duty] || s.duty || '';
+
+  /* 職責的四個值是封閉的，所以用下拉——跟廠商那一顆同一種控制項，
+     使用者不用學第二種。四個中文從 DUTY 來，畫面不自己維護第二份。 */
+  const dutyOpts=Object.keys(DUTY).map(v=>
+    `<option value="${v}"${s.duty===v?' selected':''}>${DUTY[v]}</option>`).join('');
+
+  const opts=(lu.providers||['claude','codex'])
+    .map(p=>`<option value="${p}"${s.provider===p?' selected':''}>${PROV[p]||p}</option>`).join('');
+
+  return `<div class="${cls.join(' ')}" data-slot="${i}">
+    ${/* 名字**自己一行，而且是主標**。2026-08-27 之前它跟職責▾、廠牌▾擠在
+          同一列，是那一列裡最小最灰的東西——而它是這張卡片上唯一由使用者
+          自己寫的字。老闆打開 App 的第一句是「我不能去改名字」。 */''}
+    ${EDIT_NAME===i
+      ? `<input class="ordedit" data-role="${i}" value="${(s.role||'').replace(/"/g,'&quot;')}"
+           title="離開輸入框就存。名字不能是空的，也不能跟別格同名——這兩件引擎會擋，理由會原樣顯示。英文會存成小寫。">`
+      : `<span class="ord" data-editname="${i}"
+           title="這一格的名字，你自己取的。整條線是靠它指人的——點一下就能改"
+           >${s.role||ORD[i]||('第 '+(i+1)+' 位')}<b class="pen">✎</b></span>`}
+    ${/* 動畫只講給眼角聽。**截圖下來、動畫被關掉、或是他正在看別的地方
+          的時候，那圈光什麼都沒說。** 所以同一件事再用字講一次。 */''}
+    ${(lu.running && s.role === lu.running)
+      ? `<span class="runmark" title="這一格正在跑">● 正在跑</span>` : ''}
+    ${/* 合成一列之後這一句不再印——**它已經在上面那個下拉裡了**。
+          只有在引擎還沒推 `sequence.mode` 的時候才印（維持原樣）。 */''}
+    ${(seq.mode==='development'||seq.mode==='planning') ? ''
+      : `<span class="job">${dead?'不會被執行':(jobs[String(i)]||'')}</span>`}
+    ${filled
+      ? `<h4 title="${s.title}">${s.title}</h4>
+         <div class="meta">
+           ${s.in_project?'<span class="bdg mint">本專案</span>':'<span class="bdg grey">其他來源</span>'}
+           ${s.title_source==='local'?'<span class="bdg quiet" '
+             +'title="這是推測出來的名字，指派前建議先確認是不是你要的那個對話">推測名稱</span>':''}
+           <span>${s.updated_rel||''}</span></div>`
+      : `<div class="ph">尚未指定對話</div>
+         <div class="meta">從下面的 ${PROV[s.provider]||''} 清單選一個</div>`}
+    ${/* ── 上半「這一格是誰」／下半「這一格怎麼設定」──────────────
+          老闆 2026-08-27：「工作線那邊很不方便使用者閱讀」。
+
+          量出來的：一張卡片 321px，其中**要讀的 83px、要操作的 154px**
+          ——將近兩倍。而他有九格，等於畫面上有 36 顆操作鈕在跟內容搶注意力。
+
+          他選了 B＋C：操作鈕改圖示 ＋ 卡片內加分隔。
+          **順序也跟著改**：掃視的時候需要的東西全部收到線上面，
+          排陣容的時候才要的全部收到線下面。原本它們是交錯的
+          （名字→控制列→這一輪→接在→標題→操作鈕），
+          於是每讀一行資訊就要跳過一行控制項。
+
+          **一個控制項都沒有藏起來**——那是被否決過的做法
+          （「格子不能改小」「細節搬到下方工作檯」）。 */''}
+    <div class="split"></div>
+    <div class="top">
+      ${/* 職責是下拉不是標籤：引擎只看這一個欄位，而使用者改得動它。
+            四種一律不上色——把它們畫成四種同等的樣子，等於宣稱它們同等重要，
+            而唯一真正要緊的那件事（誰寫得了檔案）會消失在其他三個裡面。
+            那件事由旁邊「會寫檔案」那顆標籤單獨講。 */''}
+      ${/* ── 「職責」與「這一輪」合成一列（老闆 2026-08-27）─────────
+            他的原話：「能不能把這一輪 XX 的 XX 用下拉式選單就好?」
+
+            在這之前是**兩列講同一件事、一個能改一個不能改**：
+              職責 [執行▾]        ← 改得動
+              這一輪：動手做       ← 改不動，而它就是上面那一格的結果
+
+            ## 而兩條序列給的權限不一樣，那也是他定的
+
+            > 那計畫序列的要鎖定，然後開發序列的用下拉式選單，畢竟是不同功能。
+
+            **開發序列**：他在排執行流程，職責要能改 → 下拉。
+            **計畫序列**：那一輪是叫 AI 想一份計畫，角色分派不是他排的東西 → 鎖定。
+
+            這個定案順便解掉 PM 原本要解的那件事（「計畫序列裡他選得到
+            一個引擎不會派工的職責」）——**那一輪根本不給選**。
+
+            ⚠️ **`sequence.mode` 沒推就維持原樣（兩列）。**
+            引擎今天只推序列的**中文名字**，而拿中文當判斷的鍵是這個專案
+            禁的那條——症狀是英文版上線那天判斷永遠不成立，
+            **而畫面看起來完全正常**。 */''}
+      ${(()=>{
+        const mode = seq.mode || '';
+        const job  = dead ? '不會被執行' : (jobs[String(i)] || '');
+        if(mode === 'planning')
+          return `<span class="duty locked"
+            title="計畫序列是叫 AI 想一份計畫，那一輪的角色分派不是你排的——所以這裡鎖著。切回開發序列就改得動。"
+            >這一輪：${job || '沒有派工'} <b>🔒</b></span>`;
+        /* **這個下拉只寫一次。** 開發序列跟「引擎還沒推代號」兩種只差外面
+           那層 `<span class="duty">`，而寫成兩份的代價不是重複——是
+           `mutations_duty_badge_colour` 的 B5 失去牙齒：那條配方破壞其中
+           一個，另一個還在，於是「畫職責的那一段找不到了」永遠不會成立。
+           一條抓不到自己目標的前提檢查，會讓它底下每一條都變成恆真的綠燈。
+
+           **不要再加一個「這一輪」的標籤**：`duty_choices` 推過來的 `text`
+           本身就是「這一輪：動手做」那一句（PM 交接寫明）。
+           加了會變成「這一輪 [這一輪：動手做]」——重複，而且把卡片撐寬。
+           （等寬那條斷言當場抓到：300／333px。） */
+        /* 下面那個 select 的 `data-duty` 與 `title` **要留在同一行**：
+           `mutations_duty_badge_colour` 的 B1 與 B4 兩條配方認的就是
+           那一整串開頭，拆行之後它們會變成「找不到要破壞的字串」——
+           **那不是綠燈也不是紅燈，是沒有結果**，而沒有結果最容易被當成通過。
+
+           而且**不要在註解裡把那一串照抄一次**：那些配方是整份檔案做字串比對，
+           抄一次就變成出現兩次，而工具只換第一個——2026-09-01 這個註解
+           自己犯過這個錯，症狀跟拆行一模一樣。 */
+        const dutyTitle = mode === 'development'
+          ? '這一格這一輪做什麼。引擎只看這一個欄位。'
+          : '這一格的職責。名字是給人讀的，職責是引擎唯一看的';
+        const pick = `<select data-duty="${i}" title="${dutyTitle}">${dutyOpts}</select>`;
+        return mode === 'development' ? `<span class="duty">${pick}</span>` : pick;
+      })()}
+      ${/* 這顆標籤看的是 `writes_files`（**這一輪會不會**動檔案），
+            不是 `can_write`（**職責准不准**）。兩者不一樣：使用者把下面
+            那顆「不編輯專案檔案」勾起來之後，職責還是「執行」（准），
+            但這一輪不會動（不會）。
+            **看 can_write 的話，標籤會跟那顆勾選框講相反的話**——
+            一個說「會寫檔案」，一個打著勾說「不要動」。 */''}
+      ${s.writes_files?`<span class="bdg grey" `
+        +`title="這一格這一輪會改你的專案檔案。四種職責裡只有「執行」寫得了，`
+        +`而且下面那顆框沒有被勾起來。">會寫檔案</span>`:''}
+      <select data-provider="${i}" ${s.can_write?'title="這一格會寫檔案，只能由 Claude 擔任"':''}>${opts}</select>
+    </div>
+    ${/* 「這一輪要做什麼」**自己一行，在那一列外面**。
+
+          它以前在 `.top` 裡面靠 `flex:0 0 100%` 佔滿一行——看起來一樣，
+          但 `.top` 現在宣告 `min-width:max-content`（那一列不准折），
+          而一個 `100%` 寬的成員會讓瀏覽器算出一個沒有意義的 max-content。
+          **那一列的下限要只由「職責▾／會寫檔案／廠牌▾」決定。** */''}
+    ${/* ── 「接在哪一格後面」──────────────────────────────────────
+          **這是分支唯一的入口**（老闆 2026-08-22：「有需要才往下增加分支」）。
+          2026-08-27 之前畫面上沒有這顆，而引擎那一側早就做完了
+          ——`set_slot_parent` 收得下、`layer`／`upstream` 也推得出來。
+          老闆的話：「往下擴增第二行的那個功能按不出來。」**因為它不在。**
+
+          送出去的是**上一格的名字**不是序號：線是用名字拉的（派工、駁回、
+          蓋章都是），而序號會在任何一次新增／移除之後指到別人身上。
+
+          清單只列**排在它前面的那幾格**——引擎規定上一格必須排在自己前面
+          （`with_parent` 的 `parent_runs_later`）。列出接不到的選項等於
+          做一顆按了會被拒絕的按鈕。
+
+          第一格沒有這一列：它沒有上一格可以接。 */''}
+    ${/* 老闆 2026-08-27：「目前沒有一個可以往下面用第二行的東西啊，
+          為啥我在操作上沒有呢」。
+
+          **那個東西在，只是它從來沒說過自己是幹嘛的。** 畫面上一個
+          「分支」或「第二行」都沒出現，唯一的解釋寫在滑鼠提示裡——
+          而那正是這一輪才幫「不編輯專案檔案」修掉的同一個病：
+          **原因藏在 title 裡，等於沒有講。**
+
+          修在他做決定的那一刻：**選項自己講出選下去會發生什麼。**
+          選一個已經有別人接著的格子 → 那一項直接寫「分支：往下多一行」。 */''}
+    ${i===0 ? '' : (()=>{
+      /* 每一格已經有幾個人接著（不算自己）。有人接著的那一格，
+         再接一個上去就是分支——這個數字是算出來的，不是猜的。 */
+      const kids = {};
+      lu.slots.forEach((o,k)=>{ if(k!==i && o.upstream) kids[o.upstream]=(kids[o.upstream]||0)+1; });
+      const prev = (lu.slots[i-1]||{}).role;
+      return `<label class="up">接在
+      <select data-parent="${i}" title="這一格接在哪一格後面。兩格接同一格，就會往下疊成第二行——那就是分支。">
+        <option value=""${!s.upstream||s.upstream===prev?' selected':''}
+          >前面那一格（跟著順序走）</option>
+        ${lu.slots.slice(0,i).map(p=>
+          /* 字尾是**預測**——「選下去會發生什麼」。已經選中的那一項不是預測，
+             而且它會被塞進那個只有 110px 的關起來的框裡裁掉（2026-09-01 撞到：
+             畫面上顯示的是「author（分支：往」）。**選中的只講是誰，
+             沒選的才講會發生什麼。** */
+          `<option value="${p.role}"${s.upstream===p.role?' selected':''}
+            >${p.role}${(kids[p.role] && s.upstream!==p.role)?'（分支：往下多一行）':''}</option>`
+        ).join('')}
+      </select>後面</label>`;
+    })()}
+    ${/* 四顆改成圖示。**一個控制項都沒有拿掉，只是不再用文字喊**——
+          九格 × 四顆文字鈕 ＝ 36 段文字在跟卡片上的內容搶注意力。
+          每一顆都留著 `title`，滑上去就知道是什麼。 */''}
+    <div class="rowops">
+    <div class="ops">
+      <button data-move="${i}:-1"${i===0?' disabled':''} title="往前搬一格">◀</button>
+      <button data-move="${i}:1"${i===lu.slots.length-1?' disabled':''} title="往後搬一格">▶</button>
+      <button class="idn${s.identity?' on':''}" data-idn="${i}"
+        title="${s.identity?'這一格用的是你自己寫的身分（點開來改）':'換掉這一格的「你是⋯⋯」開場白'}"
+        >✎</button>
+      ${/* 同一件事、從他正在看的地方按。**沒有人在等的時候是暗的，
+            但按得下去**——老闆 2026-08-27：「在這邊暗掉不代表不能按，
+            而是在運行中如果沒有等待指示或回覆的話，不是本來就要預設是
+            暗掉的嗎?」他的理由：「因為專案內容隨時可能會去更改」。 */''}
+      <button class="say${(lu.waiting||{}).who===s.role?' on':''}" data-say="${s.role}"
+        title="${(lu.waiting||{}).who===s.role
+          ? '這一格正在等你回話' : '跟這一格講話（它現在沒有在等，但你隨時可以講）'}"
+        >💬</button>
+      <button class="rm" data-remove="${i}"${canRemove?'':` disabled title="${rmWhy}"`}
+        ${canRemove?'title="把這一格移除"':''}>✕</button>
+    </div>
+    ${/* ── 「不編輯專案檔案」──────────────────────────────────────
+          老闆 2026-08-25：「一般使用者像我的話可以自己選擇要不要寫入文件」
+          ——他後來澄清那指的是**改我專案裡的檔案**，不是 AICC 自己的紀錄。
+
+          **不寫成「唯讀」**：唯讀聽起來像那一格被停用了，而它其實照跑、
+          照講話，話照樣傳給下一格（引擎那側實測過：兩格都不寫檔，
+          第二格拿到的東西裡原封不動寫著第一格說的話）。
+
+          **也不寫成「不要動我的檔案」**（那是 2026-08-25 之前的字，老闆退掉）。
+          「動」把範圍講得比實際大——關掉之後那一格**照樣讀得到**專案裡的檔案，
+          它只是不改。使用者照「動」去理解，會以為勾起來等於把資料藏起來，
+          於是在他其實只是不想被改檔的時候，誤以為那一格什麼都看不到了。
+          **「編輯」把界線畫在真的那條線上**：讀得到，改不了。
+          「專案檔案」也比「我的檔案」精確——AICC 自己的紀錄不在這顆框管的範圍內。
+
+          勾起來 → 送 `off`（明著關）。取消 → 送空字串（**照職責**），
+          不送 `on`——「沒有人被問過這一題」跟「他明著說可以」是兩件事，
+          而取消一個勾勾的意思是前者。
+
+          **職責不是「執行」的格子：畫成不可按，不是不畫。**
+          不畫的話他會看到別格有這顆框、這格沒有，然後以為壞了；
+          畫成不可按加一句原因，他學到的是「原來那由職責決定」。
+          ——「藏起來的功能等於不存在」的另一半。 */''}
+    <label class="wf${s.can_write?'':' off'}">
+      <input type="checkbox" data-writes="${i}"
+        ${s.can_write?'':'disabled'}
+        ${s.can_write&&!s.writes_files?'checked':''}>
+      <span title="${s.can_write
+        ? '勾起來之後這一格照樣會跑、照樣讀得到你專案裡的檔案、照樣給意見——它只是不改檔。它說的話一樣會傳給下一格。'
+        : '這一格本來就動不了檔案——四種職責裡只有「執行」寫得了。要讓它改檔案，先把職責改成「執行」。'}"
+        >不編輯專案檔案</span>
+    </label>
+    ${/* **按不動的東西，看起來就是壞掉。**
+
+          老闆 2026-08-27：「什麼『不編輯專案檔案』這邊不能選⋯⋯我現在是
+          自訂模式為什麼不能改這些設定呢」。
+
+          它按不動的理由是真的、而且不該解鎖——**四種職責裡只有「執行」
+          寫得了檔案**，而那是安全界線：`SECURITY_MODEL` 寫著寫檔權限
+          不能由一個他打的字決定。名字是自由文字，職責是封閉集合。
+
+          但那個理由 2026-08-27 之前只寫在 `title` 裡，**要滑上去停一下
+          才看得到**。所以他看到的是一個壞掉的框，不是一條規則。
+
+          寫在旁邊之後，它變成上面那顆職責下拉的**後果**：
+          職責改成「執行」，這個框就活了。**那一刻他學到的是規則。** */''}
+    </div>
+    ${s.can_write?'':'<div class="wfwhy">只有「執行」改得了檔案</div>'}
+    ${OPEN_IDN===i?identityHTML(s,i):''}
+  </div>`;
+}
+
+function render(state){
+  const d=typeof state==='string'?JSON.parse(state):state;
+  DATA=d;
+  document.documentElement.dataset.mode=d.mode||'night';
+  /* 上面那個框現在問的是**專案**，不是對話。字由引擎存
+     （`projects.typed`）——畫面自己記一份的話，切走再回來會是兩個答案。 */
+  /* ⛔ `projects` 在 `d.lineup` 底下，不是 `d`。引擎那一側
+     `"projects": self._projects_entry()` 跟 `running`／`waiting` 同一層。
+     寫成 `d.projects` 的時候它永遠是空的——**而空的搜尋結果，
+     跟一個「什麼都沒比中」的搜尋結果長得一模一樣。** */
+  const prj = (d.lineup||{}).projects || {typed:'', found:[]};
+  const qEl = document.getElementById('q');
+  if(document.activeElement !== qEl) qEl.value = prj.typed || '';
+  paintProjectHits(prj);
+  /* 搜尋對話那個框的字**由 Python 存**（`collect_state` 的 `query`）。
+     重畫之後要填回去，不然掃描一跑完框就被清空，而他還在看結果。
+     正在打字的時候不覆蓋——那會把游標踢到最後面。 */
+  /* 兩個框的字**由 Python 存**（`lineup.queries`）。重畫之後填回去，
+     不然掃描一跑完框就被清空，而他還在看結果。
+     正在打字的時候不覆蓋——那會把游標踢到最後面。 */
+  const qs = d.queries || {};
+  [['convqC','claude'],['convqX','codex']].forEach(([id,pv])=>{
+    const el = document.getElementById(id);
+    if(el && document.activeElement !== el) el.value = qs[pv] || '';
+  });
+  paintRunSettings(d);
+
+  const lu=d.lineup||{slots:[]}, slots=lu.slots||[];
+  if(FOCUS>=slots.length) FOCUS=0;
+
+  const seq=d.sequence||{};
+  /* executed —— **這次序列**派工給幾格，隨開發／計畫序列變動。用來標
+     「這次不會跑」的那幾格，**不是**上限。 */
+  const executed = seq.executed_slots ?? slots.length;
+  /* ── 這一頁不算任何格數上限，`max_slots` 一眼都不看 ──────────────
+     老闆 2026-08-22 拍板：「**不要顯示數字，加號永遠可按就好。**」
+     `DECISIONS` 那條【陣容是一個框，不是一排卡片】的不變式寫死：
+     **格數不設畫面上限——上限是引擎的事實，畫面不准發明一個。**
+
+     這裡本來有 `noSeatLimit` / `seats` 兩個變數在算上限，而它們的
+     唯一用途（把加號變灰、寫「最多 N 格」）已經拿掉了。留著會讓下一個人
+     以為這一頁還要管上限，然後把它接回去。
+
+     那段程式碼的歷史值得留一句：`max_slots` 從三改成 0（＝沒有上限）之後，
+     `slots.length >= 0` 恆真，於是加號永遠是關的、按鈕上寫著「最多 0 格」
+     ——**比灰掉更糟，它明著講一句假話，而且把剛做出來的功能鎖死。**
+     那不是那一行寫錯，是**畫面根本不該去算這件事**。 */
+  document.getElementById('modes').innerHTML=modesHTML(lu);
+  document.getElementById('seq').textContent=seq.label||'';
+  document.getElementById('cap').textContent=
+    `${slots.length} 格 · 這次序列派工給 ${executed} 格`;
+
+  /* ── 「插在這裡」──────────────────────────────────────────────
+     老闆 2026-08-27：
+
+     > 新增一個往哪裡新增？⋯⋯這個加號應該在格子邊邊，那我先按加號才可以在
+     > 這兩個 node 之間插入一個新的 node 才對。然後在右上角放這個加一，
+     > 等於是在最後面加，那樣子好像會有點問題。
+
+     **他是對的，而且引擎早就做得到**——`Lineup.with_node(role, provider,
+     duty, at)` 的 `at` 就是「插在第幾格前面」。是畫面送出去的 `add_slot`
+     從來沒帶位置。
+
+     ⚠️ **但收的那一端今天收不下。** `lineup_web_panel.handle_action` 現在寫的是
+     `self._add_slot()`——`arg` 被丟掉，所以帶了位置也還是加在最後面。
+
+     所以這裡**不畫一顆說謊的按鈕**：Python 明著推 `supports_insert_at`
+     才畫 ⊕。沒推的時候維持原樣（右上角那顆「＋ 加一格」）。
+     那四行 Python 一落地，這裡自己就活了。 */
+  const canInsert = !!lu.supports_insert_at;
+  /* **兩個入口並存，右上角那顆永遠看得到。**
+     2026-08-27 之前這裡寫的是 `addLast.hidden = canInsert`，理由是
+     「同一件事兩個入口」——那個理由本身沒錯，但它撞掉兩件更硬的事：
+
+       1. 老闆 2026-08-22 的原話：**「不要顯示數字，加號永遠可按就好」**。
+       2. `ROADMAP.md:2984` 記著的實測事故：格數多的時候「＋ 加一格」
+          **整顆捲出畫面**——「使用者按了加一格，然後他剛按的那顆鈕不見了」。
+
+     而縫裡那一排 ⊕ 長在 `.line` 裡面，那一區**左右可捲**。所以把右上角
+     那顆藏掉，等於讓「加在最後」這件最常用的事回到會捲出畫面的地方——
+     同一個事故換一顆按鈕重演。
+
+     分工改成：**右上角＝加在最後（永遠在）／縫裡的 ⊕＝插在這裡。**
+     兩顆的 title 各自講清楚是哪一種，不靠使用者猜。 */
+  const addLast = document.getElementById('addLast');
+  if(addLast){ addLast.hidden = false; }
+  const plus = at => canInsert
+    ? `<button class="ins" data-add="${at}" title="在這裡插一格">＋</button>` : '';
+
+  /* ── 陣容：**一個框，左右是階層，同一層往下堆** ──────────────
+     老闆 2026-08-22 的原話（`ROADMAP:2957`）：
+
+     > 有分支或沒分支無所謂，應該要是在一個方框內，有需要才往下增加分支，
+     > 然後才把方框垂直距離增加放下第二條線。
+
+     **現在那一排是這個框「每一層剛好一格」的特例**，不是另一套版面。
+     所以這裡只有一份程式：`layer` 決定第幾欄，同一層的照 `slots` 的順序
+     往下堆，`rows` 決定框要多高。三個值**全部由 Python 算好推過來**
+     ——頁面自己數的話，「同一層有幾格」會變成它那一份推論，
+     而這一頁已經為同一個形狀壞過兩次（座位上限、`gate_floor`）。 */
+  const rows = Math.max(1, +lu.rows || 1);
+  const layerOf = i => Math.max(0, +(slots[i].layer ?? i) || 0);
+  const maxLayer = slots.length ? Math.max(...slots.map((_,i)=>layerOf(i))) : 0;
+
+  /* 同一層的第幾個。照 `slots` 的順序——**不另外送一個「第幾列」**，
+     那會是同一件事的第二個答案。 */
+  const rowOf = [];
+  { const used = {};
+    slots.forEach((_,i)=>{ const L=layerOf(i); used[L]=(used[L]||0); rowOf[i]=used[L]++; }); }
+
+  let html='';
+  /* ⊕ 插在第 L 欄之前。每一欄之間一道，含最前面與最後面。
+     它跨滿整個框的高度，所以分支多的時候那一道縫還是按得到。 */
+  const colPlus = L => canInsert
+    ? `<div class="insCol" style="grid-column:${L*2+1};grid-row:1/-1">`
+      + `<button class="ins" data-add="${firstIndexOfLayer(L)}" title="在這一欄前面插一格">＋</button></div>`
+    : '';
+  function firstIndexOfLayer(L){
+    for(let i=0;i<slots.length;i++) if(layerOf(i)>=L) return i;
+    return slots.length;
+  }
+
+  for(let L=0; L<=maxLayer; L++) html += colPlus(L);
+  html += colPlus(maxLayer+1);
+
+  slots.forEach((s,i)=>{
+    html += `<div class="cell" style="grid-column:${layerOf(i)*2+2};grid-row:${rowOf[i]+1}">`
+          + slotHTML(s,i,d) + `</div>`;
+  });
+
+  const line = document.getElementById('line');
+  /* 欄：⊕、格、⊕、格⋯⋯所以是 `maxLayer+1` 格加上 `maxLayer+2` 道縫。 */
+  line.style.setProperty('--cols', String(maxLayer+1));
+  line.style.setProperty('--rows', String(rows));
+  line.innerHTML = html;
+  equaliseSlots();
+  drawLinks(slots, d);
+
+  /* ── 接不上的那幾條線 ────────────────────────────────────────
+     `shape_problems` 非空的時候，Python 已經把整張圖**退回執行順序那一排**
+     （`LineupShape` 那段：不拼半成品）。所以畫面上那張圖是真的，
+     只是它不是他排的那一張——**必須講出來**，不然他會照著一張自己沒畫過
+     的圖做事。
+
+     一格一句、指名道姓。只講「這份陣容的形狀不合法」等於沒講，他有九格。 */
+  const bad = lu.shape_problems || [];
+  const badBox = document.getElementById('linkbad');
+  if(badBox){
+    badBox.innerHTML = bad.length
+      ? `<div class="linkbad">畫面上這張圖<b>不是你排的那一張</b>——`
+        + `下面這幾格接不上，所以整條線暫時照執行順序排：`
+        /* 不自己跳脫：狀態在 Python 那一側已經過 `escape_state()`
+           （`build_pages.py` 的註解寫著那是縱深防禦），而這一頁其他每一處
+           都照同一個契約寫。多一份自己的跳脫＝同一件事兩個答案。 */
+        + bad.map(b=>`<div>· <b>${b.role}</b> 想接到「${b.parent}」，`
+            + (b.reason==='forward'
+               ? '而那一格排在它後面——東西還沒做出來。把它往前搬，或改接別格。'
+               : '而這份陣容裡沒有那個名字。')
+            + '</div>').join('')
+        + `</div>`
+      : '';
+  }
+  paintOverflow();
+
+  paintNotes(d,slots);
+  paintLists(d,slots);
+}
+
+/* 提示：問題與「該怎麼辦」寫在同一行。
+   同廠牌不擋、也不只是警告 —— 直接講出真正有用的補救方式。 */
+/* 有幾格**完全**在畫面外。
+   ── 為什麼要有這個 ──────────────────────────────────────────
+   一格最小 210、兩格之間的讀數 132，而 1400 視窗下可用寬只有 1070
+   ——**四格就有一格在畫面外**，五格更多。而 `.line` 是 overflow-x:auto，
+   所以它不會擠壞版面，它會**安靜地把格子藏起來**。
+   使用者排了五格、看到三格半，而畫面沒有一個字說還有東西。
+
+   ── 為什麼只數「完全看不到」的 ──────────────────────────────
+   露出一半的那一格**本身就是「右邊還有東西」的訊號**，把它也算進去
+   會讓數字比他感覺到的多一格。左右都數，是因為捲到右邊之後
+   左邊那幾格會變成同一個問題的鏡像。 */
+/* ── 輸入視窗 ────────────────────────────────────────────────────
+   三顆鈕：確認送出／暫存不送／取消。**Enter 不送出**（老闆明確提的——
+   今天那個系統小視窗按 Enter 就送，而他要打的是多行的話）。
+
+   所以這裡**沒有任何一行把 Enter 綁去送出**。少寫比多寫安全：
+   一個「Enter 送出、Shift+Enter 換行」的貼心設計，會在他打到一半換行的
+   時候把半句話送出去。 */
+/* 這裡叫 `what`，是刻意避開一個字。
+   `test_no_field_is_pushed_into_the_void` 判斷「這個欄位畫面讀了沒」，
+   用的是**那個欄位名有沒有出現在這個檔案裡的任何地方**——連註解都算。
+   而 `run_settings.controls[]` 裡表示「這是下拉還是數字框」的那個欄位
+   還沒有人接，它靠那張待接清單提醒下一個人去接。
+   一個同名的區域變數會讓守衛以為那筆債還完了，**然後清單自己把自己刪掉**。
+
+   ⚠️ 那條守衛太粗這件事本身要修（一個出現在註解裡的字不該算「讀了」），
+   已經寫進交接。在那之前，這個檔案不要用那幾個欄位名當變數名。 */
+let SHEET = null;          // {what:'task'|'reply', who:'', question:''}
+
+/* 有別人在等的時候，他按了另一格。**講出來，但不要擋死。**
+   兩顆按鈕都是出口——沒有「知道了」那種只能回頭的選項。 */
+function askWhich(waitingWho, wantWho){
+  const wrap = document.getElementById('sheetwrap');
+  const hd   = document.getElementById('sheethd');
+  const q    = document.getElementById('sheetq');
+  document.getElementById('sheettext').style.display = 'none';
+  hd.innerHTML = '<b>' + waitingWho + '</b> 正在等你回覆。';
+  q.innerHTML = '你現在要講話的是 <b>' + wantWho + '</b>。';
+  document.getElementById('sheetnote').textContent = '';
+  document.querySelector('.sheetops').innerHTML =
+    `<button class="btn q" data-which="${wantWho}">還是跟 ${wantWho} 講</button>`
+  + `<button class="btn" data-which="${waitingWho}">去回 ${waitingWho}</button>`;
+  wrap.hidden = false;
+}
+
+document.getElementById('sheetwrap')?.addEventListener('click', e=>{
+  const w = e.target.closest('[data-which]');
+  if(!w) return;
+  /* 選完之後把視窗還原成輸入的樣子——**不還原的話下一次打開沒有輸入框**，
+     而那個症狀是「回覆功能壞了」，跟這一段完全無關。 */
+  document.getElementById('sheettext').style.display = '';
+  document.querySelector('.sheetops').innerHTML =
+    '<button class="btn" data-sheet="send">確認送出</button>'
+  + '<button class="btn q" data-sheet="draft">暫存不送</button>'
+  + '<button class="btn q" data-sheet="cancel">取消</button>';
+  openSheet('reply', w.dataset.which, DATA);
+});
+
+
+function openSheet(what, who, d){
+  const lu = (d || DATA).lineup || {};
+  const w  = lu.waiting || {};
+  SHEET = {what, who: who || '', question: (who && w.who === who) ? (w.question || '') : ''};
+
+  const wrap = document.getElementById('sheetwrap');
+  const hd   = document.getElementById('sheethd');
+  const q    = document.getElementById('sheetq');
+  const ta   = document.getElementById('sheettext');
+  const note = document.getElementById('sheetnote');
+
+  if(what === 'task'){
+    hd.textContent = '專案內容與目標';
+    q.textContent = '';
+    ta.value = (lu.task || {}).text || '';
+    /* 寫進哪一個檔要講出來：計畫序列寫的是另一個檔名，
+       看不出來的話他會以為自己改的是同一份。 */
+    note.textContent = '會存進 ' + ((lu.task || {}).file || 'task.md')
+      + '。按「確認送出」才存——打字不會自動存。';
+  } else {
+    hd.innerHTML = '回覆 <b>' + (SHEET.who || '（還沒有人在等）') + '</b>';
+    q.textContent = SHEET.question;
+    ta.value = ((lu.drafts || {})[SHEET.who]) || '';
+    /* **「暫存不送」關掉 App 會不見**，這一句一定要在畫面上：
+       引擎存在記憶體裡沒有落硬碟（落硬碟要先決定它的家，那還沒拍板）。
+       不講的話他會以為存住了。 */
+    note.textContent = '「暫存不送」只留在這一次開著的期間 —— 關掉 AICC 就會不見。';
+  }
+  wrap.hidden = false;
+  ta.focus();
+}
+
+function closeSheet(){
+  SHEET = null;
+  document.getElementById('sheetwrap').hidden = true;
+}
+
+document.getElementById('sheetwrap')?.addEventListener('click', e=>{
+  const b = e.target.closest('[data-sheet]');
+  if(!b) return;
+  const text = document.getElementById('sheettext').value;
+  const act_ = b.dataset.sheet;
+  if(act_ === 'cancel'){ closeSheet(); return; }
+  if(!SHEET) return;
+  if(SHEET.what === 'task'){
+    if(act_ === 'send') act('set_task', text);
+    /* 專案內容沒有「暫存」——它本來就是一個檔案，存了就是存了。 */
+    closeSheet();
+    return;
+  }
+  if(!SHEET.who) return;               // 沒有對象就沒有東西可送
+  act(act_ === 'send' ? 'answer_seat' : 'set_draft', SHEET.who + ':' + text);
+  closeSheet();
+});
+
+/* ── 兩顆入口：專案內容與目標／回覆某一格 ────────────────────────
+   查完是兩件事不是重複（老闆問「不應該要有兩個地方可以做同一件事嗎?」）：
+   一個是開場，一個是跑到一半有人問他。
+
+   **等待中那一顆用金色不用脈動**——脈動在這個產品裡是「正在執行」。 */
+function paintEntries(d, slots){
+  const box = document.getElementById('entries');
+  if(!box) return;
+  const lu = d.lineup || {};
+  const w  = lu.waiting || {};
+  const first = (slots[0] || {}).role || '';
+  /* `waiting.who` 空的時候**不要編一個名字**——引擎答不出是誰在問的時候
+     就是留空，而一個編出來的名字跟一個對的名字在畫面上長得一模一樣。 */
+  box.innerHTML =
+    `<button class="ent" data-open="task">📝 專案內容與目標`
+    + `${first?` <span class="who">→ ${first}</span>`:''}</button>`
+    + `<button class="ent${w.who?' waiting':''}" data-open="reply">`
+    + (w.who ? `💬 回覆 <span class="who">${w.who}</span>` : '💬 回覆')
+    + `</button>`;
+}
+
+/* ── 框裡那幾條線 ────────────────────────────────────────────────
+   老闆 2026-08-22：「**連線畫在框裡**」。
+
+   二維之後那道縫的做法不成立了：線要從**上一格的右邊**拉到**這一格的左邊**，
+   而那兩格可能不在同一列。所以改成一層 SVG 蓋在格子上面。
+
+   **每一條線的起點由 `upstream` 決定，不由「排在它前面那一格」決定。**
+   兩者今天一樣（每一層剛好一格），分支之後就不一樣了——而畫面照順序猜的
+   那一天，它畫出來的是一張沒有人排過的圖。
+
+   `upstream` 是 Python **解出來的答案**，不是 `slot.parent` 那個字面值：
+   空字串在字面值裡是「還沒有人被問過這一題」，在這裡只有在
+   「這一格就是第一層」的時候才是空的。 */
+/* ── 所有格子等寬 ──────────────────────────────────────────────
+   老闆 2026-08-27：「欸 你只改第一個格子」。
+
+   **他看到的是九格寬度不一樣**，而第一格最寬——所以它看起來像「改過的
+   那一格」，其他八格像沒改。
+
+   原因：每一格的寬度由它自己的內容決定（`min-width:min-content`）。
+   第一格是「執行」，多一顆「會寫檔案」標籤；其他是「複查」，沒有。
+   多一顆就寬一點——**而一排寬度不一的卡片，讀起來就是「有幾格沒弄好」**。
+
+   量出來的差別在他那台才看得到：我的示範資料每一格都有對話標題，
+   長字串把卡片撐到 `max-width` 上限，於是**看起來剛好一樣寬**；
+   他的九格全是「尚未指定對話」，卡片就縮到各自的內容寬。
+   （示範資料比真實情況容易的第三次，所以下面那一格 `unassigned` 是刻意排的。）
+
+   做法是**量出來的不是寫死的**：先把上一次算的寬度拿掉，讓每一格回到它
+   自然的寬度，量最寬的那一個，再套給全部。內容變長它自己就跟著變。 */
+function equaliseSlots(){
+  const line = document.getElementById('line');
+  const cards = [...line.querySelectorAll('.slot')];
+  if(!cards.length) return;
+  line.style.removeProperty('--slot-w');
+  /* 先讀一次強迫重新排版，不然量到的還是上一次套上去的那個寬度。 */
+  void line.offsetWidth;
+  let w = 0;
+  cards.forEach(c => { w = Math.max(w, Math.ceil(c.getBoundingClientRect().width)); });
+  line.style.setProperty('--slot-w', w + 'px');
+}
+
+function drawLinks(slots, d){
+  const line = document.getElementById('line');
+  const old = line.querySelector('svg.links');
+  if(old) old.remove();
+  if(!slots.length) return;
+
+  const cells = [...line.querySelectorAll('.cell')];
+  const base = line.getBoundingClientRect();
+  const at = i => {
+    const b = cells[i].getBoundingClientRect();
+    return {l:b.left-base.left+line.scrollLeft, r:b.right-base.left+line.scrollLeft,
+            t:b.top-base.top+line.scrollTop,  b:b.bottom-base.top+line.scrollTop};
+  };
+  const byRole = {};
+  slots.forEach((s,i)=>{ if(s.role) byRole[s.role]=i; });
+
+  let paths='', labels='';
+  slots.forEach((s,i)=>{
+    const up = s.upstream;
+    if(!up) return;                       // 第一層，沒有線
+    const j = byRole[up];
+    if(j===undefined || !cells[j] || !cells[i]) return;
+    const a=at(j), b=at(i);
+    const y1=(a.t+a.b)/2, y2=(b.t+b.b)/2, x1=a.r, x2=b.l;
+    const mx=(x1+x2)/2;
+    /* 轉角用貝茲不用直角：同一層有好幾格的時候，直角線會互相蓋住而看不出
+       哪一條接哪一條。 */
+    paths += `<path class="lk" d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}"/>`;
+    const hand = HANDOFF[slots[j].duty] || '接力';
+    /* ── 「從這條線往下再分一行」──────────────────────────────
+       老闆 2026-08-27：
+
+       > 我覺得 ＋ 號是在兩個 node 中間加一個 node，
+       > 但往下一行的話，是要兩個 node 中間**往下拉一行**出來才對。
+
+       **所以分支的起點是那條線本身，不是某一格。** 這一顆就掛在線的
+       中點上（那裡已經有「傳什麼過去」那個標籤了，位置本來就對）。
+
+       按下去 = 在「${slots[j].role}」後面再開一格，跟「${s.role}」並排
+       往下疊。**送的是同一個動作，只是多帶一個上一格是誰**：
+       `add_slot | <插在第幾格前面>@<接在誰後面>`。
+
+       ⚠️ 跟 ⊕ 同一個旗標擋著：`lineup_web_panel` 今天連位置都收不下
+       （`self._add_slot()` 把 `arg` 丟掉）。**收不下就不畫**——
+       一顆寫著「往下分一行」、實際加在最後面的按鈕，是說謊。 */
+    /* `canInsert` 是 render 裡的區域變數，這一支拿不到——從推過來的資料
+       自己讀一次。**不要改成全域變數**：那會多一個「上一次是什麼」的狀態，
+       而這一頁已經為那種狀態壞過。 */
+    const down = !!(d && d.lineup && d.lineup.supports_insert_at)
+      ? `<button class="lkdown" data-add="${i}@${slots[j].role}"`
+        + ` title="從這裡往下再分一行：在「${slots[j].role}」後面多開一格，`
+        + `跟「${s.role||'這一格'}」並排">↓</button>` : '';
+    labels += `<div class="lklb" style="left:${mx}px;top:${(y1+y2)/2}px"`
+           + ` title="${slots[j].role||'上一格'}做完之後，交給${s.role||'下一格'}的東西">`
+           + `${hand} <b>▶</b>${down}</div>`;
+  });
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('class','links');
+  svg.setAttribute('width', line.scrollWidth);
+  svg.setAttribute('height', line.scrollHeight);
+  svg.innerHTML = paths;
+  line.appendChild(svg);
+  const wrap = document.createElement('div');
+  wrap.className = 'linklabels';
+  wrap.innerHTML = labels;
+  line.appendChild(wrap);
+}
+
+/* ── 滾輪 ────────────────────────────────────────────────────────
+   老闆 2026-08-27：「那能不能讓我滾輪可以上下翻，Ctrl+滾輪可以左右滾?」
+
+   上下本來就會動（`.inner` 有 `overflow-y:auto`），**但只有在框真的被夾住
+   高度的時候才有東西可以捲**——那正是同一輪修掉的那個 bug。
+
+   左右要自己接：`.line` 的橫向捲動預設吃不到滾輪。
+   `preventDefault` 是必要的——不擋的話 Ctrl+滾輪會變成整頁縮放，
+   而**縮放之後他排的那張圖全部跑掉**。 */
+(function(){
+  const line = document.getElementById('line');
+  line.addEventListener('wheel', e=>{
+    if(!e.ctrlKey) return;              // 沒按 Ctrl 就讓它照常上下捲
+    if(line.scrollWidth <= line.clientWidth) return;   // 沒東西可以左右捲就不要攔
+    e.preventDefault();
+    line.scrollLeft += (e.deltaY || e.deltaX);
+    paintOverflow();
+  }, {passive:false});
+})();
+
+function paintOverflow(){
+  const line=document.getElementById('line');
+  const tag=document.getElementById('offscreen');
+  if(!line||!tag) return;
+  const L=line.scrollLeft, R=L+line.clientWidth;
+  let left=0,right=0;
+  line.querySelectorAll('.slot').forEach(el=>{
+    if(el.offsetLeft+el.offsetWidth-2<=L) left++;
+    else if(el.offsetLeft+2>=R) right++;
+  });
+  const parts=[];
+  if(left)  parts.push(`左邊還有 ${left} 格`);
+  if(right) parts.push(`右邊還有 ${right} 格`);
+  tag.textContent=parts.join('　·　');
+  tag.classList.toggle('on', parts.length>0);
+}
+
+function paintNotes(d,slots){
+  const out=[];
+  const seq=d.sequence||{}, jobs=seq.jobs;
+
+  /* 排得出來、但**這次序列**不派工的座位。不隱藏，因為藏起來是另一種說謊；
+     要指名是哪一格。
+
+     以前這裡寫「最後 N 格」並附一顆「移除最後一格」，兩句都是從
+     slots.length-executed_slots 推出來的，而那個減法假設閒著的一定排在後面。
+     規劃者坐在最前面，所以計畫序列＋三格時它指到的是**審查者**——一格
+     這次真的會跑的座位——而那顆按鈕送出的 remove_slot 會被後端拒絕，
+     於是使用者按了一顆紅字提示給的補救按鈕，畫面完全沒變。
+
+     補救按鈕整個拿掉了：閒著不等於該刪。換一種序列它就會跑，而每一格自己
+     那顆「移除」已經照 can_remove 停用了，真的想拿掉在那裡拿。 */
+  const idle=jobs ? slots.map((s,i)=>i).filter(i=>!(String(i) in jobs)) : [];
+  if(idle.length)
+    out.push(`<div class="note warn"><span class="k"></span>
+      <!-- 用那一格自己的名字，不用序數：使用者取的名字才指得到人，
+           而 ORD 只有五個元素——第六格起會印出「undefined」。
+           （這段註解裡不准出現反引號：它整段活在一個樣板字串裡面，
+           一個反引號就把字串提早關掉——2026-08-25 真的發生過一次。） -->
+      <div><b>${idle.map(i=>slots[i].role||ORD[i]||('第 '+(i+1)+' 位')).join('、')}</b>
+      在${seq.label||'這次序列'}裡沒有工作，這次不會跑。
+      設定還在，換一種序列時才會用到。</div></div>`);
+
+  const missing=slots.filter(s=>!s.session_id).length;
+  if(missing)
+    out.push(`<div class="note warn"><span class="k"></span>
+      <div>有 <b>${missing}</b> 格還沒指定對話，這條線還不能執行。</div></div>`);
+
+  /* ⛔ 這裡 2026-09-01 之前有一條紅色提示「會寫檔案的位置只能是 Claude」。
+     那條規則沒有人問過老闆（見上面那一段），已經整條拿掉。 */
+
+  /* 誰跟誰比：**每一格 vs 排在它前面的每一格**，不是只比隔壁。
+     ── 為什麼改 ──────────────────────────────────────────────
+     只比隔壁的時候，第 1 格與第 5 格指到同一個對話會畫成四段全綠，
+     提示條還會寫「這條線可以執行」——**那條線上有兩格是同一顆腦袋，
+     而畫面說一切良好**。使用者跑完會記下「這一段可以」，
+     而那個結論讀起來跟真的成功一模一樣。
+
+     為什麼是「往前」而不是任意兩格：老闆 2026-08-24——
+     「那邊呈現的主要是要呈現專案架構，**沒有說不代表不能跳著找對應
+     人員詢問或討論**。」架構圖畫的是東西怎麼流，而誰可以問誰是任何人
+     都可以往前問，所以任何一對都可能重要。
+
+     ── 為什麼一種說法一行，不是一對一行 ──────────────────────
+     同一句話印八遍不是八個資訊；而且那會讓提示條的高度隨格數長，
+     把下面的對話清單擠到看不見（九格時 Claude 那一欄只剩 80px，
+     而一張對話卡是 95px——連一張都放不完整）。
+     名字用節點自己的名字，不用 `ORD` ——`ORD` 只有五個元素，
+     第六格起會印出「undefined與undefined」。 */
+  const nameOf=i=>slots[i].role||ORD[i]||('第 '+(i+1)+' 位');
+  const byNote=new Map();
+  for(let i=1;i<slots.length;i++)
+    for(let j=0;j<i;j++){
+      const ind=independence(slots[j],slots[i]);
+      if(!ind || !ind.note) continue;
+      if(!byNote.has(ind.note)) byNote.set(ind.note,{ind,pairs:[]});
+      byNote.get(ind.note).pairs.push([j,i]);
+    }
+  byNote.forEach(({ind,pairs})=>{
+    const who=pairs.map(([j,i])=>`<b>${nameOf(j)}</b>與<b>${nameOf(i)}</b>`).join('、');
+    /* 同一個對話沒有「去分配資料」這條路——那不是資料撞在一起，
+       是同一段對話被排了兩次，要改的是指派不是資料。 */
+    const sameConv=pairs.every(([j,i])=>slots[j].session_id===slots[i].session_id);
+    const fix = ind.level==='bad' && sameConv
+      ? '' : `<button class="btn sm q do" data-act="open_documents">去分配資料</button>`;
+    out.push(`<div class="note ${ind.level==='bad'?'bad':'warn'}"><span class="k"></span>
+      <div>${who}：${ind.note}</div>${fix}</div>`);
+  });
+
+  if(!out.length && slots.length>=2)
+    out.push(`<div class="note ok"><span class="k"></span>
+      <div>這條線可以執行。兩邊廠牌不同、看到的資料也不同——互審才有意義。</div>
+      <button class="btn sm do" data-act="run">開始執行</button></div>`);
+
+  document.getElementById('notes').innerHTML=out.join('');
+}
+
+/* 對話清單：聚焦中的那一格決定哪一欄可用。
+   點一張卡片就是指派給那一格 —— 不用先選再按。 */
+function paintLists(d,slots){
+  const cur=slots[FOCUS]||{};
+  /* 那一條黏著的脈絡列。**印他自己取的名字**，理由同欄標題。 */
+  paintEntries(d, slots);
+  const bar=document.getElementById('assignbar');
+  if(bar){
+    const who = cur.role || ORD[FOCUS] || ('第 '+(FOCUS+1)+' 位');
+    bar.innerHTML = slots.length
+      ? `正在指派給：<b>${who}</b>`
+        + `<span class="to">${cur.session_id?'已經有對話了，點清單可以換':'從下面的 '+(PROV[cur.provider]||'')+' 清單選一個'}</span>`
+      : '還沒有任何一格';
+    bar.title = '回到「' + who + '」那一格';
+  }
+  const used=new Set(slots.map(s=>s.session_id).filter(Boolean));
+  /* **不要自己再濾一次。** Python 那邊 `score_session()` 比對的是標題、
+     專案路徑**和最多 80 則訊息的內容**——這裡再用標題篩一次，會把靠內容
+     命中的那幾則藏起來，等於把那條路關掉。
+     （`tests/test_conversation_search_reaches_python.py` 盯著這件事。）
+
+     ⛔ 2026-09-01 我一度把它改成畫面本地濾，理由是「`lineup_web_panel` 裡
+     沒有 `set_query`」。**那個理由是錯的**：`LineupWebPanel` 繼承
+     `ConversationWebPanel`，而那個動作收在父類別。我查了子類別跟最上層的
+     base，**跳過了中間那一層**。那兩條測試當場把它抓紅。
+
+     單獨用瀏覽器開這個檔案預覽時沒有後端，那時候才退回本地篩選。 */
+  const QS = d.queries || {};
+  [['claude','listC','nC','colC','hintC'],
+   ['codex','listX','nX','colX','hintX']].forEach(([p,listId,nId,colId,hintId])=>{
+    const all=d[p]||[];
+    const q=(QS[p]||'').trim().toLowerCase();
+    const shown=(q && !bridge) ? all.filter(c=>(c.title+' '+c.project_path).toLowerCase().includes(q)) : all;
+    const active = cur.provider===p;
+    /* 濾掉了多少要講出來。只把清單變短、什麼都不說的話，他會以為那些
+       對話不見了——而不見與被濾掉，畫面上長得一模一樣。 */
+    const hint = document.getElementById(hintId);
+    if(hint) hint.textContent = q ? `比中 ${shown.length} 個` : '';
+    document.getElementById(colId).classList.toggle('dim', !!cur.provider && !active);
+    document.getElementById(nId).textContent=
+      /* **印他自己取的名字，不是序數。**
+         老闆 2026-08-27 拍板整頁可捲之後，對話清單移到工作線下面——
+         於是這一句變成**唯一告訴他「現在在填哪一格」的東西**，
+         而它原本寫的是「指派到第一位」。他那幾格叫執行者／複查者／核准者，
+         「第一位」要他自己回想那是誰。
+         （同一個病閒置提示那邊修過一次，這一處當時漏掉。
+          `ORD` 只有五個元素，第六格起還會印 undefined。） */
+      active ? `指派到 ${cur.role || ORD[FOCUS] || ('第 '+(FOCUS+1)+' 位')}`
+             : (d.scanning ? '掃描中⋯' : `${shown.length} 個對話`);
+    /* ── 「＋ 新增對話」永遠是清單的第一項 ──────────────────────
+       老闆 2026-08-27：「新增對話那邊我想直接把這個按鈕放在選對話的頁面⋯⋯
+       或者就像選下面的對話框一樣，給一個小框去選然後那個叫做新增對話」。
+       **用後面那一種**：手勢跟選一段既有對話一樣、廠牌天生就對
+       （左欄 Claude 右欄 Codex）、而且兩欄各自捲的時候不用煩惱它要不要釘住。
+
+       引擎不用加東西：`set_slot_session` 的值**送空的**就是「開一段新的」。
+
+       **搜尋的時候不藏。**它不是一個搜尋結果，是一個動作——
+       打了字之後它跟著不見的話，他會以為新增對話這個功能沒有了。
+
+       **兩欄都畫。**他的草圖是兩欄各一列，而既有對話本來也是兩欄都印、
+       只有被指到那一欄按得下去——這裡照同一個規矩，不另外發明一條。
+       （只畫在被指到那一欄的話，他換一格之後那一列會跳到另一邊，
+        而一顆會移動的按鈕比一顆暗掉的按鈕難用。） */
+    const newRow = `<div class="conv newconv"
+           ${active?`data-assign="${FOCUS}:"`:''}
+           title="${active?'開一段新的對話，指派給這一格'
+                          :'這一格現在指到的是 '+(PROV[cur.provider]||'另一家')+'，先改廠牌才能在這裡開新的'}">
+         <span class="ln"><span class="plus">＋</span><span>新增對話</span>
+           <span class="sub">${PROV[p]||p}</span></span>
+         <span class="sub">${active
+           ? '開一段全新的對話，指派給「' + (cur.role || ORD[FOCUS] || '這一格') + '」'
+           : '這一格現在指到的是 ' + (PROV[cur.provider]||'另一家')}</span>
+       </div>`;
+    document.getElementById(listId).innerHTML= newRow + (shown.length
+      ? shown.map(c=>`<div class="conv${used.has(c.id)?' used':''}"
+             ${active?`data-assign="${FOCUS}:${c.id}"`:''}>
+          <h4 title="${c.title}">${c.title}</h4>
+          <div class="badges"><span class="bdg grey">${c.source_label}</span>
+            ${c.resume==='resumable'?'<span class="bdg aqua">可續接</span>'
+                                    :'<span class="bdg grey">僅供上下文</span>'}
+            ${c.in_project?'<span class="bdg mint">本專案</span>':''}
+            ${c.title_source==='local'?'<span class="bdg quiet" '
+              +'title="AICC 從內容推出來的名字，不是這個對話真正的標題">推測名稱</span>':''}</div>
+          <div class="meta"><span>${c.project_path}</span><span>${c.updated_rel}</span></div>
+        </div>`).join('')
+      /* 掃描搬到背景之後，這一格必須分得出兩件事：**還沒找完**與**找不到**。
+         兩個都是空清單，畫面上一模一樣——而使用者看到「沒有符合的對話」會
+         直接放棄，事實是它還在讀。 */
+      : (d.scanning
+          ? `<div class="none">正在找本機對話⋯</div>`
+          : (q ? `<div class="none">沒有對話比中「${q}」。</div>`
+               : `<div class="none">沒有符合的對話。</div>`)));
+  });
+
+}
+
+/* ---------- 事件委派 ---------- */
+/* `?.` 不是防禦性寫法而已：少了它，這個元素不在的時候**整支腳本會在這裡
+   死掉**，於是頁面一片空白——而檢查看到的是「探針沒有回傳」，不是「少了
+   那條列」。那種紅燈跟真的當機長得一模一樣，會把診斷帶去錯的方向。 */
+document.getElementById('assignbar')?.addEventListener('click',()=>{
+  /* 捲回那一格並亮一下。**不是只捲回去**——他捲了很久回到上面，
+     要有東西告訴他「就是這一格」，不然他還要自己找。 */
+  const cell=document.querySelectorAll('.cell')[FOCUS];
+  if(!cell) return;
+  cell.scrollIntoView({block:'center', inline:'center'});
+  const s=cell.querySelector('.slot');
+  if(s){ s.classList.add('ping'); setTimeout(()=>s.classList.remove('ping'), 900); }
+});
+
+document.addEventListener('click',e=>{
+  /* ── 點編輯框以外的任何地方 → 離開編輯 ────────────────────────
+     老闆 2026-08-27：「我想要按這個框以外的地方就可以取消編輯，
+     比較符合使用者習慣。」
+
+     在這之前只有兩條路離開編輯：按 Esc，或**把字改掉**（`change` 事件
+     在離開輸入框時才發）。**沒改字就點別的地方，`change` 不會發，
+     於是那個輸入框一直開著**——而他已經在做別的事了。
+
+     這裡不 `return`：關掉編輯之後，那一下點擊照樣要做它本來要做的事。
+     少了那一句，他的第一下會「只是關掉編輯」，第二下才真的按到東西
+     ——而他不會知道自己剛剛按掉的是什麼。
+
+     改過字的情況不會走到這裡：`change` 比 `click` 先發，
+     而那一支已經把 `EDIT_NAME` 收掉了。 */
+  if(EDIT_NAME>=0 && !e.target.closest('.ordedit')){
+    EDIT_NAME=-1;
+    render(DATA);
+  }
+
+  /* ── 兩顆入口 ＋ 卡片上那顆回覆鈕 ────────────────────────────
+     **按了一顆「暗的」不會被擋死**——老闆 2026-08-27：
+     「因為專案內容隨時可能會去更改」。真的有別人在等的時候跳一句提醒，
+     然後**兩條路都給他**，不是只給一條。
+
+     ⚠️ 這一句提醒不違反「通知永不搶注意力、不彈窗」那條安全規則：
+     那條講的是 AICC **主動來煩他**，這裡是**回應他自己按下去的動作**。 */
+  const ent = e.target.closest('[data-open]');
+  if(ent){
+    const w = (DATA.lineup||{}).waiting || {};
+    if(ent.dataset.open === 'task') openSheet('task', '', DATA);
+    else openSheet('reply', w.who || '', DATA);
+    return;
+  }
+  const say = e.target.closest('[data-say]');
+  if(say){
+    const who = say.dataset.say;
+    const w = (DATA.lineup||{}).waiting || {};
+    if(w.who && w.who !== who) return askWhich(w.who, who);
+    openSheet('reply', who, DATA);
+    return;
+  }
+
+  const slot=e.target.closest('[data-slot]');
+  const btn =e.target.closest('button, [data-assign], [data-add]');
+
+  if(btn){
+    if(btn.dataset.move)   return act('move_slot',   btn.dataset.move);
+    if(btn.dataset.remove) return act('remove_slot', btn.dataset.remove);
+    /* `data-add` 的值是**插在第幾格前面**，空字串＝加在最後（引擎的 `at=None`）。
+       用 `!== undefined` 不是用真假值：`data-add="0"` 是「插在最前面」，
+       而 `'0'` 在 JS 裡是真的、`''` 是假的——用真假值判斷的話，
+       「加在最後」那一顆會整個按不動。 */
+    if(btn.dataset.add!==undefined) return act('add_slot', btn.dataset.add);
+    if(btn.dataset.assign) return act('set_slot_session', btn.dataset.assign);
+    /* 身分編輯區只是展開／收合，純畫面的事，不送動作。 */
+    if(btn.dataset.idn!==undefined){
+      const i=+btn.dataset.idn;
+      OPEN_IDN = OPEN_IDN===i ? -1 : i;
+      render(DATA);
+      document.querySelector(`[data-identity="${i}"]`)?.focus();
+      return;
+    }
+    if(btn.dataset.namemode)  { NAMING=true;  render(DATA);
+                                document.getElementById('modeName')?.focus(); return; }
+    if(btn.dataset.cancelmode){ NAMING=false; render(DATA); return; }
+    if(btn.dataset.savemode){
+      const name=(document.getElementById('modeName')?.value||'').trim();
+      /* 空名字不送。後端也會擋，但這一顆按了不送比按了收到一句錯誤好——
+         使用者知道自己還沒打字。 */
+      if(!name) { document.getElementById('modeName')?.focus(); return; }
+      NAMING=false;
+      return act('save_preset', name);
+    }
+    if(btn.dataset.act)    return act(btn.dataset.act,'');
+  }
+  /* ── 點名字就改名字 ─────────────────────────────────────────
+     老闆 2026-08-27：「我左鍵狂點也沒辦法改執行者複查者等等的欸」。
+
+     **他是對的，而且原因不是他點得不夠快——那個功能是死的。**
+
+     以前是「點兩下改名字」，而下面那一行「點卡片換焦點」會 `render(DATA)`
+     **把整段 innerHTML 換掉**。於是雙擊的第二下落在一個全新的元素上，
+     瀏覽器永遠不會發出 `dblclick`。**點幾下都一樣。**
+
+     我上一輪還在交接文件裡寫「他其實改得動，點兩下」——那句話是錯的，
+     而我當時驗的是 `[data-editname]` 這個屬性在不在。**屬性在，功能是死的。**
+
+     改成單擊，並且**在這裡就 return**，不要落到下面那行換焦點。
+     當初避開單擊的理由（那一格同時是「選這一格」的目標）用這個 return
+     解掉：**點名字＝改名字，點卡片其他地方＝選這一格**。 */
+  const nm=e.target.closest('[data-editname]');
+  if(nm){
+    EDIT_NAME=+nm.dataset.editname;
+    render(DATA);
+    const box=document.querySelector(`[data-role="${EDIT_NAME}"]`);
+    box?.focus(); box?.select();
+    return;
+  }
+  /* 點卡片換焦點，但點在展開的編輯區、或正在打字的名字框裡面不算
+     —— 那會在每次點輸入框時重畫，游標跳掉、選取消失。 */
+  if(slot && !e.target.closest('.idnbox') && !e.target.closest('.ordedit')){
+    FOCUS=+slot.dataset.slot; render(DATA);
+  }
+});
+/* 「點兩下改名字」那個處理器 2026-08-27 拿掉了——**它從來沒有真的動過**
+   （上面那段註解寫了為什麼），而現在單擊就會進編輯。
+   留著的話第二下會再進一次編輯、把使用者剛選取的字重設掉。 */
+/* 捲動與視窗大小改變都會換掉「還有幾格」。不放在 render 裡就好——
+   這兩件事都不改資料，重畫整列只是浪費，而且會把正在編輯的輸入框弄掉。 */
+document.getElementById('line').addEventListener('scroll', paintOverflow, {passive:true});
+window.addEventListener('resize', paintOverflow);
+
+
+/* Esc 放棄這一次編輯。change 還沒發，所以什麼都不會送出去。 */
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape' || EDIT_NAME<0) return;
+  if(!e.target.closest('[data-role]')) return;
+  EDIT_NAME=-1; render(DATA);
+});
+document.addEventListener('change',e=>{
+  const sel=e.target.closest('[data-provider]');
+  if(sel) return act('set_slot_provider', sel.dataset.provider+':'+sel.value);
+  const up=e.target.closest('[data-parent]');
+  if(up) return act('set_slot_parent', up.dataset.parent+':'+up.value);
+  const duty=e.target.closest('[data-duty]');
+  if(duty) return act('set_slot_duty', duty.dataset.duty+':'+duty.value);
+  /* 勾起來＝明著關（`off`）；取消＝**照職責**（空字串），不是明著開。
+     「沒有人被問過這一題」跟「他明著說可以」是兩件事，而取消一個勾勾
+     的意思是前者。 */
+  const wf=e.target.closest('[data-writes]');
+  if(wf) return act('set_slot_writes', wf.dataset.writes+':'+(wf.checked?'off':''));
+  /* 名字：change 在離開輸入框時才發，所以打字中途不會每個字送一次。
+
+     ⚠️ 2026-08-25 更正：這裡本來寫著「清空送空字串，而空字串就是『回到
+     出廠名字』」，**而引擎不是那樣做的**——`Lineup.renamed()` 對空字串
+     直接拒絕（「位子要有名字。沒有名字的節點，駁回的時候指不到。」），
+     而且「出廠名字」在引擎那邊根本不存在：新的一格叫 `node3`，
+     底下那個 `ORD=['第一位',…]` 是畫面自己編的，`s.role` 永遠不是空的，
+     所以那個 fallback 一次都不會跑到。
+     **一句畫面上說了、按下去卻不會發生的話，跟一個壞掉的功能一樣貴。**
+
+     引擎另外還會 `.lower()`：打「NODE3」存進去是「node3」。中文沒差。
+     這兩件都寫進 title 了。
+
+     名字重複也會被引擎擋下來，那句話原樣進警告框——**畫面不改寫它**。 */
+  const nm=e.target.closest('[data-role]');
+  if(nm){ EDIT_NAME=-1; return act('set_slot_role', nm.dataset.role+':'+nm.value.trim()); }
+  const mode=e.target.closest('#modeSel');
+  /* 空選項是「目前不符合任何模式」，它是一個狀態不是一個動作 —— 選它不做事。 */
+  if(mode) return mode.value ? act('apply_preset', mode.value) : undefined;
+  /* 身分：change 在離開輸入框時才發，所以打字中途不會每個字送一次。
+     清空送的是空字串，而空字串就是「用出廠的」—— 還原走的是同一條路，
+     沒有第二個旗標可以跟它講不一樣的話。 */
+  const idn=e.target.closest('[data-identity]');
+  if(idn) return act('set_slot_identity', idn.dataset.identity+':'+idn.value);
+});
+/* 搜尋交給 Python。
+   這個框本來只改 DATA.query 然後自己重畫，**那個字從來沒有離開過瀏覽器**——
+   於是能比對到對話內容的那條路（score_session 會看 80 則訊息）一直沒有人走，
+   而使用者記得一段對話的方式通常是「裡面談了什麼」，不是它的自動標題。
+
+   debounce 是必要的不是講究：一次搜尋量到約 0.7 秒，每一個字母打一次會塞住。
+   打完停下來才送，Enter 立刻送。 */
+let qTimer=null;
+/* ⛔ 這裡 2026-09-01 之前送的是 `set_query`，而**這一頁的引擎沒有收那個字**
+   （只有 `conversation_web_panel` 有，`lineup_web_panel` 沒有，
+   base 的 `handle_action` 是空的）——他在 App 裡打字什麼都不會發生。
+   現在送 `find_projects`，那一個引擎收得下。 */
+function sendProjectQuery(v){
+  clearTimeout(qTimer);
+  if(!DATA.projects) DATA.projects = {typed:'', found:[]};
+  DATA.projects.typed = v;
+  act('find_projects', v);
+}
+document.getElementById('q').addEventListener('input',e=>{
+  const v=e.target.value;
+  clearTimeout(qTimer);
+  qTimer=setTimeout(()=>sendProjectQuery(v), 250);
+});
+document.getElementById('q').addEventListener('keydown',e=>{
+  if(e.key==='Enter') sendProjectQuery(e.target.value);
+});
+
+/* 比中的專案。**比不到就是空的，不准回全部**——一個「查不到就給你全部」
+   的搜尋框，跟一個壞掉的搜尋框長得一模一樣。所以這裡明著印一句
+   「沒有專案比中」，不是留白（留白讀起來像還沒查）。 */
+function paintProjectHits(prj){
+  const box = document.getElementById('prjhits');
+  if(!box) return;
+  const typed = (prj.typed||'').trim();
+  const found = prj.found || [];
+  if(!typed){ box.innerHTML=''; return; }
+  box.innerHTML = found.length
+    ? found.map(p=>`<span class="hit${p.current?' cur':''}" title="${p.path}">`
+        + `<b>${p.name}</b><span>${p.path}</span>`
+        + (p.current?'<span>· 現在打開的</span>':'') + '</span>').join('')
+    : `<span class="none">沒有專案比中「${typed}」。</span>`;
+}
+
+/* ── AI 執行設定 ────────────────────────────────────────────────
+   老闆 2026-08-27：「AI 執行設定那邊一樣吃到頁面，不能按照我剛剛講的去改嗎?」
+
+   **一格都不自己編。** 引擎推什麼就畫什麼——控制項清單、每一格的名字、
+   每一個下拉的可選項、數字框的上下限、勾選框那一整句，全部來自
+   `run_settings_options.py` 那一份宣告，而原生面板讀的是同一份。
+   這一頁已經為「畫面自己拼一份事實」壞過兩次（座位上限、`gate_floor`）。 */
+function esc(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+function paintRunSettings(d){
+  const box = document.getElementById('runset');
+  if(!box) return;
+  const rs = (d.lineup || {}).run_settings;
+  /* 引擎沒推就整段不畫。**不要畫一個空殼**——一段沒有值的設定，
+     跟一段全部是出廠值的設定，在畫面上長得一模一樣。 */
+  if(!rs || !(rs.controls || []).length){ box.innerHTML = ''; box.classList.remove('open'); return; }
+
+  const open = !!rs.expanded;
+  box.classList.toggle('open', open);
+
+  const one = c => {
+    const name = `<span class="k" title="${esc(c.label)}">${esc(c.label)}</span>`;
+    if(c.kind === 'choice'){
+      /* 可選項只從 `c.options` 來。畫面自己寫一份的話，引擎改了之後
+         畫面會繼續提供一個已經不存在的選擇——他選了它，送回來落進
+         `set_run_setting` 的擋門，然後什麼都沒發生。 */
+      const opts = (c.options || []).map(o =>
+        `<option value="${esc(o.id)}"${String(o.id)===String(c.now)?' selected':''}
+          >${esc(o.text)}</option>`).join('');
+      return `<label class="rsone">${name}
+        <div class="row"><select data-rset="${esc(c.key)}">${opts}</select></div></label>`;
+    }
+    if(c.kind === 'number'){
+      /* 單位跟數字一起畫——光一個 2 看不出是兩回合還是兩次。 */
+      return `<label class="rsone">${name}
+        <div class="row"><input type="number" data-rset="${esc(c.key)}" value="${esc(c.now)}"
+               min="${esc(c.min)}" max="${esc(c.max)}">
+        ${c.suffix ? `<span class="suffix">${esc(c.suffix)}</span>` : ''}</div></label>`;
+    }
+    return '';
+  };
+
+  const toggles = (rs.controls || []).filter(c => c.kind === 'toggle');
+  const rest    = (rs.controls || []).filter(c => c.kind !== 'toggle');
+
+  box.innerHTML = `
+    <div class="rshd" data-runset="toggle" title="展開／收起來（跟原生面板同一個狀態）">
+      <b>AI 執行設定</b>
+      ${/* 這一行是引擎組好的（`run_summary.summary_line`）。**照原樣印。** */''}
+      <span class="rsum">${esc(rs.summary)}</span>
+      <span class="rschev">▾</span>
+    </div>
+    <div class="rsbody">
+      <div class="rsprof">出廠組合
+        ${(rs.profiles || []).map(pf =>
+          `<button data-rprofile="${esc(pf.id)}"${rs.profile===pf.id?' class="on"':''}
+            >${esc(pf.text)}</button>`).join('')}
+        ${rs.profile ? '' :
+          '<span class="none">這一組跟三張都不一樣</span>'}
+      </div>
+      <div class="rsgrid">${rest.map(one).join('')}</div>
+      ${toggles.length ? `<div class="rstoggles">${toggles.map(c =>
+        `<label class="rstoggle"><input type="checkbox" data-rset="${esc(c.key)}"
+           ${c.now?'checked':''}><span>${esc(c.note)}</span></label>`).join('')}</div>` : ''}
+      <div class="rsfoot">
+        <button data-rsave="project">存成專案預設</button>
+        <button data-rsave="global">存成全域預設</button>
+        <span>上面改的<b>這一次</b>就生效；要下次也一樣才需要按存。</span>
+      </div>
+    </div>`;
+}
+
+/* ── 搜尋對話：一欄一個框 ────────────────────────────────────
+   送 `set_provider_query`（`"<claude|codex>:<他打的字>"`），**由 Python 去比**
+   ——`score_session()` 比對標題、專案路徑與最多 80 則訊息的內容，
+   而使用者記得一段對話的方式通常是「裡面談了什麼」。
+
+   debounce 是必要的不是講究：一次搜尋量到約 0.7 秒，每個字母送一次會塞住。
+   打完停下來才送，Enter 立刻送。 */
+const convTimers = {};
+function sendConvQuery(provider, v){
+  clearTimeout(convTimers[provider]);
+  if(!DATA.queries) DATA.queries = {};
+  DATA.queries[provider] = v;
+  act('set_provider_query', provider + ':' + v);
+}
+['convqC','convqX'].forEach(id=>{
+  const el = document.getElementById(id);
+  if(!el) return;
+  const provider = el.dataset.convq;
+  el.addEventListener('input', e=>{
+    const v = e.target.value;
+    clearTimeout(convTimers[provider]);
+    convTimers[provider] = setTimeout(()=>sendConvQuery(provider, v), 350);
+  });
+  el.addEventListener('keydown', e=>{
+    if(e.key==='Enter') sendConvQuery(provider, e.target.value);
+  });
+});
+
+let bridge=null;
+function act(k,a){ bridge?bridge.on_action(k,a):console.log('demo',k,a); }
+
+/* ── AI 執行設定：那幾顆的事件 ──────────────────────────────────
+   委派在 `#runset` 上，因為那一整段每次 render 都重畫。 */
+document.getElementById('runset')?.addEventListener('click', e => {
+  const hd = e.target.closest('[data-runset="toggle"]');
+  if(hd){
+    /* 展開狀態**存在引擎**（`ui_preferences` 那一個鍵，原生面板讀的也是它）。
+       畫面自己記一份的話，他在一邊收起來、切到另一邊又是開的——
+       同一個設定的第二個答案。 */
+    const willOpen = !document.getElementById('runset').classList.contains('open');
+    document.getElementById('runset').classList.toggle('open', willOpen);
+    if(!DATA.lineup.run_settings) DATA.lineup.run_settings = {};
+    DATA.lineup.run_settings.expanded = willOpen;
+    act('toggle_run_settings', willOpen ? '1' : '');
+    return;
+  }
+  const pf = e.target.closest('[data-rprofile]');
+  if(pf){
+    /* 送**代號**不送那三個中文字：`AISettingsStore.profile()` 吃代號，
+       而這個專案的硬規則是不准拿中文當查詢的鍵。
+       ⚠️ 引擎那一側套用的時候**不會動權限模式**——三張表是額度預設，
+       安全姿態跟著使用者走。 */
+    act('apply_run_profile', pf.dataset.rprofile);
+    return;
+  }
+  const sv = e.target.closest('[data-rsave]');
+  if(sv){ act('save_run_defaults', sv.dataset.rsave); return; }
+});
+
+/* 值變了才送。**不用 `input` 事件**：數字框每按一下方向鍵就送一次，
+   而每一次都會存檔＋重畫整頁。 */
+document.getElementById('runset')?.addEventListener('change', e => {
+  const el = e.target.closest('[data-rset]');
+  if(!el) return;
+  const key = el.dataset.rset;
+  const value = el.type === 'checkbox' ? (el.checked ? '1' : '') : el.value;
+  act('set_run_setting', key + ':' + value);
+});
+
+/* ── 可拉的分隔線 ──────────────────────────────────────────────
+   老闆 2026-08-22 拍板：框內捲動與可拉分隔線**兩個都要**，而且
+   「**框變大不得把另一個功能弄壞**」。
+
+   下限是量出來的，不是寫死的：下方至少要放得下**一張完整的對話卡**
+   （欄標題 ＋ 一張 `.conv` ＋ 外距）。寫死一個像素數的話，
+   卡片改高一點那天下限就悄悄變成「放得下四分之三張」——
+   而四分之三張卡片跟一張完整的卡片，在畫面上長得幾乎一樣。 */
+const GRIP = document.getElementById('grip');
+const PAGE = document.querySelector('.page');
+/* 量不到下限的時候回這個。**回一個很大的數＝這一輪不准動框的高度**
+   ——量不到還放行，等於在資料還沒到的時候把下面壓掉。 */
+const FLOOR_UNKNOWN = 1e9;
+/* 他自己拉過沒有。拉過就不要再自動夾——**自動的東西不准蓋掉他手動做的事**。 */
+let USER_SIZED = false;
+
+function listsFloor(){
+  /* 一張完整的對話卡要多高：欄標題 ＋ 一張卡 ＋ 上下外距。
+     一張都沒有的時候，下限退成「兩欄的標題還看得見」——
+     **沒有卡片可以留，就留住那個入口本身**。 */
+  const head = document.querySelector('.col > .hd');
+  const card = document.querySelector('.col .conv');
+
+  /* **量不到就不准拉。**
+
+     這裡原本寫的是「兩個都量不到才不准拉」，而那有一個安靜的洞：
+     欄標題那個選擇器打錯的話，`headH` 變成 0、`cardH` 還在，
+     於是下限**少算一整個標題高**——它不會爆，只會讓使用者拉到
+     「剩四分之三張卡片」。而四分之三張卡片跟一張完整的卡片，
+     在畫面上長得幾乎一樣。
+
+     所以規則是：**該在的東西有一個不在，就整個不准拉**。
+     一個算錯的下限比不能拉糟。 */
+  if(!head) return FLOOR_UNKNOWN;                        // 版面變了，這支不知道自己在量什麼
+  const headH = head.getBoundingClientRect().height;
+  if(!headH) return FLOOR_UNKNOWN;                       // 還沒畫好
+  if(!card) return Math.ceil(headH + 36);      // 真的一個對話都沒有：留住入口本身
+  const cardH = card.getBoundingClientRect().height;
+  if(!cardH) return FLOOR_UNKNOWN;                       // 卡片在但量不到 = 還沒畫好
+  return Math.ceil(headH + cardH + 36);
+}
+
+/* ── 自動夾高度：2026-08-27 拿掉了 ─────────────────────────────
+   這裡本來有一支 `capStage()`：框長太高就自動夾住，底線是「下面仍放得下
+   一張完整的對話卡」。它修的是老闆那天撞到的
+   「為啥我不能滾輪往下，這樣下面的東西我看不到欸」。
+
+   **同一天他又拍了整頁可捲**，於是那個補丁的前提沒了——下面的東西本來就
+   在下面，捲下去就看得到，而自動夾只會平白把框縮小。
+
+   > 一個補丁最好的結局，是**它要補的那個洞被填掉**。
+
+   `setStageHeight()` 與那條可拉的分隔線留著：那是老闆 2026-08-22 的決定
+   （「框內捲動＋可拉分隔線兩個都要」），不是我的補丁。整頁可捲之後它變成
+   可選的——要不要留是他的決定，寫進交接了。 */
+
+/* 框最多可以多高。**從框自己的上緣算起，不是從整頁算起**——
+   框上面還有頁標題與搜尋列（量到 142px）。少扣那一塊的話，
+   算出來的高度看起來對，而下面實際只剩三十幾 px。**算式對，起點錯。**
+
+   （這一支被我 2026-08-27 剪 `capStage` 的時候一起剪掉了，
+    而它還有人在用——`setStageHeight` 下一行就叫它。
+    症狀是整支探針回空字串，看起來像頁面爛掉，其實是少了一個函式。） */
+function roomForStage(floor){
+  const stage = document.querySelector('.stage');
+  const top = stage.getBoundingClientRect().top - PAGE.getBoundingClientRect().top;
+  return PAGE.clientHeight - top - floor - GRIP.offsetHeight - 16;
+}
+
+function setStageHeight(px){
+  const min = 140;                      // 標題列 ＋ 一小段內容，再小就沒有意義
+  const max = roomForStage(listsFloor());
+  const h = Math.max(min, Math.min(px, Math.max(min, max)));
+  document.documentElement.style.setProperty('--stage-h', h + 'px');
+  return h;
+}
+
+(function(){
+  let dragging = false;
+  const stage = document.querySelector('.stage');
+
+  function move(e){
+    if(!dragging) return;
+    USER_SIZED = true;
+    const top = stage.getBoundingClientRect().top;
+    setStageHeight(e.clientY - top);
+  }
+  function stop(){
+    if(!dragging) return;
+    dragging = false;
+    GRIP.classList.remove('on');
+    document.body.classList.remove('dragging');
+  }
+  GRIP.addEventListener('pointerdown', e=>{
+    dragging = true;
+    GRIP.classList.add('on');
+    document.body.classList.add('dragging');
+    GRIP.setPointerCapture?.(e.pointerId);
+    e.preventDefault();
+  });
+  document.addEventListener('pointermove', move);
+  document.addEventListener('pointerup', stop);
+  document.addEventListener('pointercancel', stop);
+
+  /* 鍵盤也要拉得動。**一條只有滑鼠拖得動的分隔線，對用鍵盤的人等於不存在**
+     ——跟「藏起來的功能等於不存在」同一條，只是換一種藏法。 */
+  GRIP.addEventListener('keydown', e=>{
+    const step = e.shiftKey ? 60 : 20;
+    if(e.key==='ArrowUp')        { USER_SIZED=true; setStageHeight(stage.getBoundingClientRect().height - step); }
+    else if(e.key==='ArrowDown') { USER_SIZED=true; setStageHeight(stage.getBoundingClientRect().height + step); }
+    else if(e.key==='Home'){
+      /* 回到出廠＝把高度交還給「不指定」，也就是框自然多高就多高。
+         （2026-08-27 整頁可捲之後不再自動夾——那個補丁是為了
+          「三塊搶一個視窗」寫的，前提沒了。） */
+      USER_SIZED = false;
+      document.documentElement.style.removeProperty('--stage-h');
+    }
+    else return;
+    e.preventDefault();
+  });
+
+  /* 視窗變小的時候，之前拉出來的高度可能已經把下面壓垮了。重新夾一次。
+     **不夾的話那個下限只在拉的當下成立**，而視窗大小是會變的。 */
+  window.addEventListener('resize', ()=>{
+    const cur = getComputedStyle(document.documentElement)
+      .getPropertyValue('--stage-h').trim();
+    if(cur) setStageHeight(parseFloat(cur));
+  });
+})();
+if(window.qt&&qt.webChannelTransport){
+  new QWebChannel(qt.webChannelTransport,ch=>{bridge=ch.objects.bridge;
+    bridge.stateChanged.connect(render); bridge.ready();});
+}
+document.getElementById('tg').onclick=()=>{const h=document.documentElement;
+  h.dataset.mode=h.dataset.mode==='night'?'day':'night';
+  document.getElementById('tg').textContent=h.dataset.mode==='night'?'☀ 切到白天':'☾ 切到夜空';
+  if(bridge)bridge.on_action('mode',h.dataset.mode);};
+
+/* ---------- 示範資料：刻意排出一條「同廠牌同來源」的線 ---------- */
+const DEMO={mode:'night',query:'',project_name:'AICC 自身開發',
+ /* executed_slots／jobs —— 這次序列派工給哪幾格。由後端給，畫面不自己訂。
+
+    `max_slots` 後端照樣會送，但**這一頁不讀它**：引擎 2026-08-22 起送 0
+    （＝沒有上限），而【陣容是一個框】那條定案寫死「格數不設畫面上限」。
+    示範資料跟著送 0，**不是留著那個舊的 3**——示範資料要站在現況那一邊，
+    我編的資料不會違反我自己的假設，只有真實資料會。 */
+ /* ⚠️ 這兩個字串**必須跟引擎真的會推的一樣長**（`app/i18n.py` 的 `job.*`）。
+
+    2026-08-27 之前這裡寫的是 `寫程式`／`審查`——**三個字與兩個字**，
+    而引擎推的是「這一輪：動手做」**七個字**。版面在七個字上壞掉，
+    在三個字上不壞，於是設計端每次打開都是好的，老闆打開 App 才看到
+    那一格被壓成直的。
+
+    **示範資料比真實情況容易的那一天，它就不再是示範資料，是遮蔽。**
+    要換的話去 `app/i18n.py` 找最長的那一個，不要自己編一個短的。 */
+ /* ⚠️ `mode` 是**代號**不是那句中文。畫面靠它決定職責能不能改
+    （老闆 2026-08-27：開發序列給下拉、計畫序列鎖定），而**拿中文當判斷
+    的鍵是這個專案禁的那條**——症狀是英文版上線那天判斷永遠不成立。
+    ⚠️ 引擎今天還沒推這一欄，所以真機上會走「維持原樣」那條路。 */
+ sequence:{label:'開發序列', mode:'development',
+   jobs:{'0':'這一輪：動手做','1':'這一輪：複查','2':'這一輪：複查','3':'這一輪：複查'},
+   executed_slots:4},
+ scanning:false,
+ lineup:{providers:['claude','codex'], max_slots:0,
+   /* 模式（Stage E）。內建的兩種存不掉也蓋不掉——那是回到出廠的路。
+      active_preset 是 Python 比出來的：手改一格之後它會變成空字串，
+      畫面不可以還說「兩格模式」。 */
+   presets:[
+     {name:'兩格（作者＋審查）', description:'預設。一個寫、一個審。', built_in:true,
+      roles:['author','reviewer']},
+     {name:'三格（先規劃）',     description:'加一格規劃者在最前面。',   built_in:true,
+      roles:['planner','author','reviewer']},
+   ],
+   /* ⛔ 這裡 2026-08-27 之前寫死 `'兩格（作者＋審查）'`，而示範資料是
+      **四格帶分支**——於是模式下拉寫著「兩格（作者＋審查）（內建）」，
+      畫面上卻是四格。老闆看著 PM 給的渲染圖問：「所以不是預設的兩格了吧，
+      而是自訂對吧」——**他撞到了，而且花掉他一次提問。**
+
+      而正上方那段註解逐字寫著「手改一格之後它會變成空字串，**畫面不可以
+      還說『兩格模式』**」。**規則寫在註解裡，擋不住緊接著的那一行。**
+      （今天第二次同一個形狀：上一次是「原因不要藏在 title 裡」寫在 §二，
+      然後 §五自己又犯一次。）
+
+      空字串＝「這條線目前不符合任何存過的模式」，也就是 Python 在他那台
+      真的會算出來的值。下面那條斷言會在它跟格數對不上時變紅。 */
+   active_preset:'',
+   /* ⚠️ **示範資料裡一定要有一個真的分支。**
+
+      `rows` 是框的高度（同一層最多幾格），由 Python 算好推過來。
+      這裡排成：author（第 0 層）→ reviewer 與 auditor（都在第 1 層），
+      所以 `rows` 是 2。
+
+      排成今天那一排（每層一格、`rows:1`）的話，**二維那段程式一行都跑不到**
+      ——而那正是「示範資料比真實情況容易的那一天，它就不再是示範資料，
+      是遮蔽」在這一頁的第三次。 */
+   rows:2,
+   shape_problems:[],
+   /* ⛔ 2026-09-01 之前示範資料沒有這一個欄位，而**真機推的是 true**
+      （引擎那一側 `add_slot` 已經收得下「插在第幾格＋接在誰後面」）。
+      少了它，那幾顆 ⊕ 與 ↓ 在檢視、截圖與畫面基準裡**從來沒有出現過**
+      ——而他打開 App 就看得到。示範資料比真實情況容易，這一頁為它壞過五次。 */
+   supports_insert_at:true,
+   /* 有人在等他回話。**空的時候畫面不准編一個名字**——引擎答不出是誰在問
+      的時候就是留空，而編出來的名字跟對的名字長得一模一樣。
+      示範資料排一個**有人在等**的，不然那顆金色的入口與卡片上亮著的
+      那顆回覆鈕都畫不出來。 */
+   waiting:{who:'reviewer', question:'這兩個做法我拿不定，你要哪一個？'},
+   /* **故意留空，不要幫它填。** 引擎那一側這兩個是互斥的：
+      `main_window.py` 是 `running = active_role if workflow_busy else ''`，
+      而有人在等他回話的時候 `workflow_busy` 已經是 False。
+      「有人在等」同時「有人在跑」的那一種狀態**現實上不存在**，
+      示範資料排出來只會讓一條假的路看起來驗過了。
+      呼吸特效由探針自己推一份在跑的資料去測。 */
+   running:'',
+   /* 上面那個框比中的專案。`current` 是**引擎算好的**——畫面拿名字自己比
+      會出錯，同名的資料夾是存在的。示範資料排一個「有打字、有比中」的，
+      不然那一列永遠畫不出來。 */
+   projects:{typed:'AICC', found:[
+     /* 路徑用**前斜線**寫。反斜線在 JS 字串裡是跳脫字元，不認得的跳脫
+        （\U、\s ⋯⋯）會被直接吃掉——2026-09-01 示範資料就這樣把 `D:\demo\project` 印成
+        `D:demoproject`。真實資料是引擎用 JSON 送的不會有這個問題，
+        **所以那是一個只出現在示範資料裡的假象，而它看起來像產品壞了。** */
+     {name:'AICC',            path:'D:/demo/csv-summary',                current:true},
+     {name:'AICC-視覺概念',   path:'D:/demo/notes-app',  current:false},
+   ]},
+   /* AI 執行設定。**這一份是從真的引擎倒出來的**，不是手寫的：
+      17 個控制項、那一行 130 字的摘要、每一個下拉的完整可選項。
+      手寫一份簡單的等於讓一條假的路看起來驗過了——這一頁已經為
+      「示範資料比真實情況容易」壞過四次。
+      示範資料**展開著**，不然那一整段在檢視與截圖裡永遠畫不出來。 */
+   run_settings:{
+      "summary": "本次：開發序列｜Claude sonnet / medium｜權限 auto｜最長 30 分鐘／最大回合 4｜Codex gpt-5.5 / medium｜最多自動 FIX 1 次；最壞情況約 6 次模型呼叫｜上下文 Minimal｜續接所選對話；既有 session 可能保留原模型設定｜新對話會帶入啟動提示｜記憶維護開",
+      "expanded": true,
+      "profiles": [
+         {
+            "id": "thrifty",
+            "text": "省額度"
+         },
+         {
+            "id": "standard",
+            "text": "標準"
+         },
+         {
+            "id": "deep",
+            "text": "深入"
+         }
+      ],
+      "profile": "thrifty",
+      "controls": [
+         {
+            "key": "workflow_mode",
+            "label": "工作模式",
+            "kind": "choice",
+            "now": "development",
+            "options": [
+               {
+                  "id": "planning",
+                  "text": "計畫序列"
+               },
+               {
+                  "id": "development",
+                  "text": "開發序列"
+               }
+            ],
+            "note": "",
+            "min": 0,
+            "max": 0,
+            "suffix": ""
+         },
+         {
+            "key": "claude_model",
+            "label": "Claude 模型",
+            "kind": "choice",
+            "now": "sonnet",
+            "options": [
+               {
+                  "id": "sonnet",
+                  "text": "Claude Sonnet 5"
+               },
+               {
+                  "id": "opus",
+                  "text": "Claude Opus 5"
+               },
+               {
+                  "id": "haiku",
+                  "text": "Claude Haiku"
+               },
+               {
+                  "id": "default",
+                  "text": "跟隨 Claude Code 預設"
+               }
+            ],
+            "note": "",
+            "min": 0,
+            "max": 0,
+            "suffix": ""
+         },
+         {
+            "key": "claude_effort",
+            "label": "Claude 思考",
+            "kind": "choice",
+            "now": "medium",
+            "options": [
+               {
+                  "id": "auto",
+                  "text": "Auto"
+               },
+               {
+                  "id": "low",
+                  "text": "Low"
+               },
+               {
+                  "id": "medium",
+                  "text": "Medium"
+               },
+               {
+                  "id": "high",
+                  "text": "High"
+               },
+               {
+                  "id": "xhigh",
+                  "text": "Extra High"
+               },
+               {
+                  "id": "max",
+                  "text": "Max"
+               },
+               {
+                  "id": "ultracode",
+                  "text": "Ultracode"
+               }
+            ],
+            "note": "",
+            "min": 0,
+            "max": 0,
+            "suffix": ""
+         },
+         {
+            "key": "claude_speed",
+            "label": "Claude 速度",
+            "kind": "choice",
+            "now": "standard",
+            "options": [
+               {
+                  "id": "standard",
+                  "text": "Standard（Sonnet 5 無獨立加速選項）"
+               }
+            ],
+            "note": "",
+            "min": 0,
+            "max": 0,
+            "suffix": ""
+         },
+         {
+            "key": "claude_permission_mode",
+            "label": "Claude 權限",
+            "kind": "choice",
+            "now": "auto",
+            "options": [
+               {
+                  "id": "auto",
+                  "text": "安全自動（推薦）"
+               },
+               {
+                  "id": "acceptEdits",
+                  "text": "自動編輯、指令保守"
+               },
+               {
+                  "id": "default",
+                  "text": "手動授權（非互動可能停止）"
+               },
+               {
+                  "id": "plan",
+                  "text": "唯讀規劃"
+               }
+            ],
+            "note": "",
+            "min": 0,
+            "max": 0,
+            "suffix": ""
+         },
+         {
+            "key": "claude_timeout_minutes",
+            "label": "單次最長時間",
+            "kind": "choice",
+            "now": 30,
+            "options": [
+               {
+                  "id": 10,
+                  "text": "10 分鐘"
+               },
+               {
+                  "id": 30,
+                  "text": "30 分鐘"
+               },
+               {
+                  "id": 60,
+                  "text": "1 小時"
+               },
+               {
+                  "id": 180,
+                  "text": "3 小時"
+               },
+               {
+                  "id": 360,
+                  "text": "6 小時"
+               },
+               {
+                  "id": 0,
+                  "text": "不限"
+               }
+            ],
+            "note": "",
+            "min": 0,
+            "max": 0,
+            "suffix": ""
+         },
+         {
+            "key": "codex_model",
+            "label": "Codex 模型",
+            "kind": "choice",
+            "now": "gpt-5.5",
+            "options": [
+               {
+                  "id": "gpt-5.5",
+                  "text": "GPT-5.5"
+               },
+               {
+                  "id": "gpt-5.6-sol",
+                  "text": "GPT-5.6 Sol"
+               },
+               {
+                  "id": "gpt-5.6-terra",
+                  "text": "GPT-5.6 Terra"
+               },
+               {
+                  "id": "gpt-5.6-luna",
+                  "text": "GPT-5.6 Luna"
+               },
+               {
+                  "id": "gpt-5.4-mini",
+                  "text": "GPT-5.4 Mini"
+               }
+            ],
+            "note": "",
+            "min": 0,
+            "max": 0,
+            "suffix": ""
+         },
+         {
+            "key": "codex_effort",
+            "label": "Codex 思考",
+            "kind": "choice",
+            "now": "medium",
+            "options": [
+               {
+                  "id": "low",
+                  "text": "Low"
+               },
+               {
+                  "id": "medium",
+                  "text": "Medium"
+               },
+               {
+                  "id": "high",
+                  "text": "High"
+               },
+               {
+                  "id": "xhigh",
+                  "text": "Extra High"
+               }
+            ],
+            "note": "",
+            "min": 0,
+            "max": 0,
+            "suffix": ""
+         },
+         {
+            "key": "codex_speed",
+            "label": "Codex 速度",
+            "kind": "choice",
+            "now": "model_default",
+            "options": [
+               {
+                  "id": "model_default",
+                  "text": "由模型與思考程度決定"
+               }
+            ],
+            "note": "",
+            "min": 0,
+            "max": 0,
+            "suffix": ""
+         },
+         {
+            "key": "claude_verbosity",
+            "label": "輸出長度",
+            "kind": "choice",
+            "now": "concise",
+            "options": [
+               {
+                  "id": "concise",
+                  "text": "精簡"
+               },
+               {
+                  "id": "standard",
+                  "text": "標準"
+               },
+               {
+                  "id": "detailed",
+                  "text": "詳細"
+               }
+            ],
+            "note": "",
+            "min": 0,
+            "max": 0,
+            "suffix": ""
+         },
+         {
+            "key": "context_profile",
+            "label": "上下文模式",
+            "kind": "choice",
+            "now": "minimal",
+            "options": [
+               {
+                  "id": "minimal",
+                  "text": "Minimal｜最省 token"
+               },
+               {
+                  "id": "balanced",
+                  "text": "Balanced｜一般任務"
+               },
+               {
+                  "id": "strict",
+                  "text": "Strict｜複雜/高風險"
+               }
+            ],
+            "note": "",
+            "min": 0,
+            "max": 0,
+            "suffix": ""
+         },
+         {
+            "key": "planning_rounds",
+            "label": "討論回合",
+            "kind": "number",
+            "now": 0,
+            "options": [],
+            "note": "",
+            "min": 0,
+            "max": 5,
+            "suffix": " 回合"
+         },
+         {
+            "key": "max_fix_attempts",
+            "label": "自動 FIX",
+            "kind": "number",
+            "now": 1,
+            "options": [],
+            "note": "",
+            "min": 0,
+            "max": 2,
+            "suffix": " 次"
+         },
+         {
+            "key": "claude_max_turns",
+            "label": "Claude 最大回合",
+            "kind": "number",
+            "now": 4,
+            "options": [],
+            "note": "",
+            "min": 0,
+            "max": 200,
+            "suffix": ""
+         },
+         {
+            "key": "force_new_sessions",
+            "label": "每次依目前模型設定建立新對話（確保模型／思考程度生效）",
+            "kind": "toggle",
+            "now": false,
+            "options": [],
+            "note": "每次依目前模型設定建立新對話（確保模型／思考程度生效）",
+            "min": 0,
+            "max": 0,
+            "suffix": ""
+         },
+         {
+            "key": "auto_session_bootstrap",
+            "label": "新對話自動帶入啟動提示（較好接手，但會增加本次 token）",
+            "kind": "toggle",
+            "now": true,
+            "options": [],
+            "note": "新對話自動帶入啟動提示（較好接手，但會增加本次 token）",
+            "min": 0,
+            "max": 0,
+            "suffix": ""
+         },
+         {
+            "key": "auto_memory_maintenance",
+            "label": "任務 PASS 後自動維護共同記憶（多用 Codex + Claude 各一次）",
+            "kind": "toggle",
+            "now": true,
+            "options": [],
+            "note": "任務 PASS 後自動維護共同記憶（多用 Codex + Claude 各一次）",
+            "min": 0,
+            "max": 0,
+            "suffix": ""
+         }
+      ]
+   },
+   drafts:{},
+   task:{text:'把陣容頁的工作線改成整頁可捲。', file:'task.md'},
+   slots:[
+   /* shipped_identities 刻意給不同長度：作者跑好幾個步驟、職稱不只一種，
+      而那正是這個框最容易誤導人的地方。示範資料要撐得住那句話。 */
+   {role:'author',  provider:'claude', session_id:'c1', title:'AICC Stage 2 併發鎖檢查',
+    duty:'work', writes_files:true, layer:0, upstream:'',
+    updated_rel:'12 分鐘前', can_write:true,  can_remove:false, in_project:true,
+    identity:'', identity_max:200,
+    shipped_identities:['你是此專案的開發工程師。','你是此專案的共同記憶審查者。',
+                        '你是此專案的實作顧問。']},
+   {role:'reviewer',provider:'claude', session_id:'c2', title:'AICC 視覺概念討論（星屑）',
+    duty:'review', writes_files:false, layer:1, upstream:'author',
+    updated_rel:'1 小時前',  can_write:false, can_remove:false, in_project:true,
+    identity:'你是一位特別在意錯誤處理的資深審查者。', identity_max:200,
+    shipped_identities:['你是資深程式碼審查者。']},
+   /* 第二個分支：跟 reviewer **同一層**，兩個都接在 author 後面。
+      這一格的存在讓「同一層往下堆」與「兩條線從同一格拉出去」跑得到。 */
+   {role:'auditor', provider:'codex',  session_id:'x1', title:'AI Control Center 新 session 啟動提示',
+    duty:'review', writes_files:false, layer:1, upstream:'author',
+    updated_rel:'6 天前',   can_write:false, can_remove:true, in_project:true,
+    identity:'', identity_max:200,
+    shipped_identities:['你是這個專案的外部稽核。']},
+   /* ⚠️ **這一格刻意沒有指定對話**（`session_id` 空的）。
+
+      老闆 2026-08-27 那九格全是「尚未指定對話」，而那正是寬度不一
+      現形的條件：有對話標題的時候，長字串把每一格都撐到 `max-width` 上限，
+      於是**看起來剛好一樣寬**，寬度不一那件事整個驗不到。
+
+      這是「示範資料比真實情況容易」在這一頁的第三次。 */
+   {role:'node4',   provider:'codex',  session_id:'', title:'',
+    duty:'review', writes_files:false, layer:2, upstream:'reviewer',
+    updated_rel:'',         can_write:false, can_remove:true, in_project:false,
+    identity:'', identity_max:200,
+    shipped_identities:['你是資深程式碼審查者。']},
+ ]},
+ /* 兩個框各自的字。**最上層，不是 `lineup` 底下**——引擎那一側
+    `state["queries"] = ...` 跟 `claude`／`codex` 同一層。
+    放錯一層的話它永遠是空的，而**一個空的搜尋字跟一個沒在搜尋的框
+    長得一模一樣**（`projects` 2026-09-01 早上就這樣錯過一次）。 */
+ queries:{claude:'', codex:''},
+ claude:[
+  {id:'c1',title:'AICC Stage 2 併發鎖檢查',source_label:'Claude Code',resume:'resumable',
+   updated_rel:'12 分鐘前',project_path:'…\\AICC\\AIControlCenter',in_project:true},
+  {id:'c2',title:'AICC 視覺概念討論（星屑）',source_label:'Claude Code',resume:'resumable',
+   updated_rel:'1 小時前',project_path:'…\\AICC\\AICC-視覺概念',in_project:true},
+  /* 實機量過：這台機器上四個真實 session 的標題全都是猜的。
+     示範資料要有一筆是 local，否則那個 badge 在檢視時永遠不會現形。 */
+  {id:'c3',title:'幫我看一下 phase1 的匯入流程…',source_label:'Claude Desktop',resume:'context',
+   updated_rel:'3 小時前',project_path:'…\\csv-summary',in_project:false,title_source:'local'},
+ ],
+ codex:[
+  {id:'x1',title:'AICC 測試回合 318 tests',source_label:'Codex CLI',resume:'resumable',
+   updated_rel:'8 分鐘前',project_path:'…\\AICC\\AIControlCenter',in_project:true},
+  {id:'x2',title:'合約排版驗證 docx→pdf',source_label:'Codex CLI',resume:'resumable',
+   updated_rel:'3 天前',project_path:'…\\demo-docs\\合約',in_project:false},
+ ]};
+if(!(window.qt&&qt.webChannelTransport)) render(DEMO);
+</script>
+</body>
+</html>

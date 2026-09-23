@@ -1,0 +1,114 @@
+[
+  {
+    "label": "S1 「問不出來」又落回綠燈（他看到的那一列跟一台完全正常的機器一模一樣，然後每一次執行都死在中間）",
+    "file": "app/services/setup_state.py",
+    "replace": "    return check.sign_in_unknown",
+    "with": "    return False",
+    "test": "tests/test_five_states_are_told_apart_without_reading_chinese.py::test_a_login_state_that_cannot_be_read_is_not_drawn_as_ready"
+  },
+  {
+    "label": "S2 「沒登入」被畫成「壞掉了」（他拿到重裝說明，重裝完那一列一個字都沒變，因為他要做的事一直是登入）",
+    "file": "app/services/setup_state.py",
+    "replace": "        SetupState.SIGNED_OUT,",
+    "with": "        SetupState.NOT_RUNNABLE,",
+    "test": "tests/test_five_states_are_told_apart_without_reading_chinese.py::test_a_signed_out_cli_is_not_drawn_as_broken"
+  },
+  {
+    "label": "S3 「完全找不到」被畫成「跑不起來」（安裝指令／掃描這台機器／選擇位置… 那三段出口整組不見）",
+    "file": "app/services/setup_state.py",
+    "replace": "        SetupState.MISSING,",
+    "with": "        SetupState.NOT_RUNNABLE,",
+    "test": "tests/test_five_states_are_told_apart_without_reading_chinese.py::test_a_cli_nobody_can_find_keeps_its_way_out"
+  },
+  {
+    "label": "S4 真的壞掉的那一列被畫成「找不到」（他去跑安裝指令，裝完還是壞的——壞的是那個殘留的 shim）",
+    "file": "app/services/setup_state.py",
+    "replace": "        SetupState.NOT_RUNNABLE,",
+    "with": "        SetupState.MISSING,",
+    "test": "tests/test_five_states_are_told_apart_without_reading_chinese.py::test_a_cli_that_will_not_run_lands_on_the_last_row"
+  },
+  {
+    "label": "S5 一切正常的那一列被畫成玫瑰點（他被叫去重裝一個好好的東西，而真正擋著他的那一列淹沒在裡面）",
+    "file": "app/services/setup_state.py",
+    "replace": "        SetupState.OK,",
+    "with": "        SetupState.NOT_RUNNABLE,",
+    "test": "tests/test_five_states_are_told_apart_without_reading_chinese.py::test_a_cli_that_is_ready_is_the_only_one_drawn_as_ready"
+  },
+  {
+    "label": "S6 最後一條寫成「不是 OK 就算跑不起來」（Git 沒裝、LINE 沒開那種列被畫成壞掉的 provider）",
+    "file": "app/services/setup_state.py",
+    "replace": "        lambda check: check.level is Level.BLOCKED\n        and not check.action\n        and not check.pick_provider,",
+    "with": "        lambda check: check.level is not Level.OK,",
+    "test": "tests/test_five_states_are_told_apart_without_reading_chinese.py::test_a_shape_nobody_covered_explodes_instead_of_being_called_ready"
+  },
+  {
+    "label": "S7 合不上的形狀補一個預設值（【有預設值的分類等於沒有分類】——他看到一顆薄荷點，那顆點在說「可以按開始執行了」）",
+    "file": "app/services/setup_state.py",
+    "replace": "    fits = [state for state, matches in _ROWS if matches(check)]\n    if len(fits) != 1:",
+    "with": "    fits = [state for state, matches in _ROWS if matches(check)]\n    if not fits:\n        return SetupState.OK\n    if len(fits) != 1:",
+    "test": "tests/test_five_states_are_told_apart_without_reading_chinese.py::test_a_shape_nobody_covered_explodes_instead_of_being_called_ready"
+  },
+  {
+    "label": "S8 拿 detail 那句中文當判準（今天完全正常；英文版上線那天每一列一起落到同一種狀態，而畫面看起來完全正常）",
+    "file": "app/services/setup_state.py",
+    "replace": "        lambda check: check.level is Level.BLOCKED and bool(check.action),",
+    "with": "        lambda check: check.level is Level.BLOCKED and \"尚未登入\" in check.detail,",
+    "test": "tests/test_five_states_are_told_apart_without_reading_chinese.py::test_translating_that_sentence_moves_nothing"
+  },
+  {
+    "label": "S9 中文判準藏在 or 後面（**行為那幾條一條都不會紅**——今天它算出來的答案完全正確，翻譯的那天才整組失效）",
+    "file": "app/services/setup_state.py",
+    "replace": "    return check.sign_in_unknown",
+    "with": "    return check.sign_in_unknown or \"登入狀態不明\" in check.detail",
+    "test": "tests/test_five_states_are_told_apart_without_reading_chinese.py::test_no_rule_ever_reads_that_sentence"
+  },
+  {
+    "label": "S10 兩條規則重疊，排列順序變成判準（少掉的那一半看起來就像那台機器本來就沒有那條路）",
+    "file": "app/services/setup_state.py",
+    "replace": "        and not check.action\n        and bool(check.pick_provider),",
+    "with": "        and bool(check.pick_provider),",
+    "test": "tests/test_five_states_are_told_apart_without_reading_chinese.py::test_no_check_can_fit_two_rows_at_once"
+  },
+  {
+    "label": "S11 五個字的契約被改掉一個（頁面 STATE_CLASS 查不到就走 || 'unknown'，那一列變成虛線圈——而我們明明知道他沒登入）",
+    "file": "app/services/setup_state.py",
+    "replace": "    SIGNED_OUT = \"signed_out\"",
+    "with": "    SIGNED_OUT = \"signedout\"",
+    "test": "tests/test_five_states_are_told_apart_without_reading_chinese.py::test_the_five_names_are_the_ones_the_page_reads"
+  },
+  {
+    "label": "S12 「不知道」變成欄位的預設值（每一列都畫成虛線圈，包含他五分鐘前才登入的那一支——每一列都有的提醒等於沒有提醒）",
+    "file": "app/services/startup_diagnostics.py",
+    "replace": "    sign_in_unknown: bool = False",
+    "with": "    sign_in_unknown: bool = True",
+    "test": "tests/test_five_states_are_told_apart_without_reading_chinese.py::test_a_cli_that_really_is_signed_in_does_not_get_the_dashed_circle"
+  },
+  {
+    "label": "S13 接一支沒有登入路徑的 CLI 進 _cli_check（那個縫張開：沒登入被畫成玫瑰點加「請重新安裝」，重裝完一個字都沒變）",
+    "file": "app/services/startup_diagnostics.py",
+    "replace": "    return _cli_check(\"codex\", display_name(\"codex\"), \"codex\", \"codex\")",
+    "with": "    return _cli_check(\"codex\", display_name(\"codex\"), \"codex\", \"gemini\")",
+    "test": "tests/test_five_states_are_told_apart_without_reading_chinese.py::test_the_gap_where_a_cli_has_no_login_route_is_kept_shut"
+  },
+  {
+    "label": "S14 推導改名，面板伸手拿不到（那一頁永遠寫著「還沒有收到這台機器的檢查結果」，而檢查其實跑完了、答案其實算出來了）",
+    "file": "app/services/startup_diagnostics.py",
+    "replace": "def provider_state(check: Check) -> str:",
+    "with": "def page_state(check: Check) -> str:",
+    "test": "tests/test_five_states_are_told_apart_without_reading_chinese.py::test_the_name_the_page_reaches_for_is_really_there"
+  },
+  {
+    "label": "S15 那個名字回的是列舉不是字串（頁面 STATE_CLASS 查不到就走 || 'unknown'，每一列都變虛線圈，而且沒有任何地方報錯）",
+    "file": "app/services/startup_diagnostics.py",
+    "replace": "    return state_of(check).value",
+    "with": "    return state_of(check)",
+    "test": "tests/test_five_states_are_told_apart_without_reading_chinese.py::test_the_name_the_page_reaches_for_is_really_there"
+  },
+  {
+    "label": "S16 為了「面板不要炸」在那個名字裡包一層 try（Git 沒裝那一列被畫成一顆薄荷點的 provider，而那顆點在說「可以按開始執行了」）",
+    "file": "app/services/startup_diagnostics.py",
+    "replace": "    return state_of(check).value",
+    "with": "    try:\n        return state_of(check).value\n    except Exception:\n        return \"ok\"",
+    "test": "tests/test_five_states_are_told_apart_without_reading_chinese.py::test_the_row_the_page_cannot_draw_is_not_smuggled_through_that_name"
+  }
+]

@@ -1,0 +1,44 @@
+[
+  {
+    "label": "G1 腐爛檢查永遠說沒問題（比不到目標字串的配方就再也不會被講出來）",
+    "file": "tools/negative_control.py",
+    "replace": "    problems: list[str] = []\n",
+    "with": "    return []\n    problems: list[str] = []\n",
+    "test": "tests/test_the_negative_control_recipes_still_bite.py"
+  },
+  {
+    "label": "G2 比不到目標字串不再算問題（只剩檔案在不在的那一半）",
+    "file": "tools/negative_control.py",
+    "replace": "                if found == 0:",
+    "with": "                if False:",
+    "test": "tests/test_the_negative_control_recipes_still_bite.py::test_the_check_itself_has_teeth"
+  },
+  {
+    "label": "G3 測試被改名不再算問題（配方會拿到 pytest 的 usage error 卻沒人說）",
+    "file": "tools/negative_control.py",
+    "replace": "                if re.search(pattern, haystack, re.M) is None:",
+    "with": "                if False:",
+    "test": "tests/test_the_negative_control_recipes_still_bite.py::test_the_check_itself_has_teeth"
+  },
+  {
+    "label": "G4 空的配方資料夾被當成通過（一個什麼都沒檢查的檢查是綠的）",
+    "file": "tools/negative_control.py",
+    "replace": "    return sorted(RECIPES.glob(\"mutations_*.json\"))",
+    "with": "    return []",
+    "test": "tests/test_the_negative_control_recipes_still_bite.py::test_the_recipes_are_all_in_one_place_and_there_are_some"
+  },
+  {
+    "label": "G5 過期的 .pyc 不再被清掉（第二條破壞會跑成第一條，工具改口說「沒有牙齒」）",
+    "file": "tools/negative_control.py",
+    "replace": "    cache = path.parent / \"__pycache__\"\n",
+    "with": "    return\n    cache = path.parent / \"__pycache__\"\n",
+    "test": "tests/test_the_negative_control_recipes_still_bite.py::test_the_second_mutation_is_not_run_as_the_first_one"
+  },
+  {
+    "label": "G6 找到過期的 .pyc 但不刪（清快取只剩一個空動作）",
+    "file": "tools/negative_control.py",
+    "replace": "            compiled.unlink()",
+    "with": "            pass",
+    "test": "tests/test_the_negative_control_recipes_still_bite.py::test_the_second_mutation_is_not_run_as_the_first_one"
+  }
+]

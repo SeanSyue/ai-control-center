@@ -1,0 +1,37 @@
+[
+  {
+    "label": "V1 `@` 那一刀沒了（整個字串被當成位置，他按「往下分一行」拿到一句「看不懂的位置」，而那條線是他按出來的不是他打的）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "        at, _, parent = at.partition(\"@\")",
+    "with": "        parent = \"\"",
+    "test": "tests/test_the_down_arrow_wires_the_line_it_drew.py::test_the_down_arrow_carries_the_parent_through"
+  },
+  {
+    "label": "V2 拆了但沒接（線那一半靜靜被丟掉——多出來的那一格出現了，只是沒有接在他按的那條線上，而畫面上看起來完全正常）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            if parent:\n                #",
+    "with": "            if False:\n                #",
+    "test": "tests/test_the_down_arrow_wires_the_line_it_drew.py::test_the_down_arrow_carries_the_parent_through"
+  },
+  {
+    "label": "V3 橫的 ⊕ 也自己接一條線（他只是想插一格，畫面上多出一條他沒畫過的線，而那張圖看起來像他畫的）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            if parent:",
+    "with": "            if True:\n                parent = parent or self._lineup.roles[0]",
+    "test": "tests/test_the_down_arrow_wires_the_line_it_drew.py::test_the_plain_plus_does_not_wire_anything"
+  },
+  {
+    "label": "V4 先加好再接線，接線被拒就留下半格（他拿到一句錯誤訊息**外加一格他沒要的**，而那一格會被寫進硬碟）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "        try:\n            grown = self._lineup.with_node(name, \"codex\", at=index)\n",
+    "with": "        try:\n            self._lineup = self._lineup.with_node(name, \"codex\", at=index)\n            grown = self._lineup\n",
+    "test": "tests/test_the_down_arrow_wires_the_line_it_drew.py::test_a_refused_wiring_leaves_no_half_added_seat"
+  },
+  {
+    "label": "V5 旗標只驗「插得進去」不驗「接得上線」（`@` 被拆掉的那天它還是說是，而那顆「↓」還是被畫出來——一顆說謊的按鈕）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            wired = probe.with_node(fresh, \"codex\", at=1).with_parent(",
+    "with": "            wired = probe.with_node(fresh, \"codex\", at=1) or (",
+    "test": "tests/test_the_down_arrow_wires_the_line_it_drew.py::test_the_flag_answers_for_both_halves"
+  }
+]

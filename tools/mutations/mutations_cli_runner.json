@@ -1,0 +1,65 @@
+[
+  {
+    "label": "M1 percent signs go back to being expanded by cmd.exe",
+    "file": "app/adapters/cli_runner.py",
+    "replace": "return \"%\".join(\n            cls._quote_for_cmd(segment) for segment in argument.split(\"%\")\n        )",
+    "with": "return cls._quote_for_cmd(argument)",
+    "test": "tests/test_cli_runner.py::test_cmd_shim_receives_every_argument_verbatim"
+  },
+  {
+    "label": "M2 quoting removed, arguments hit cmd.exe bare",
+    "file": "app/adapters/cli_runner.py",
+    "replace": "inner = \" \".join(cls._escape_for_cmd(item) for item in argv)",
+    "with": "inner = subprocess.list2cmdline(argv)",
+    "test": "tests/test_cli_runner.py::test_cmd_shim_argument_does_not_reach_the_shell"
+  },
+  {
+    "label": "M3 doubled quotes go back to single, JSON payload splits",
+    "file": "app/adapters/cli_runner.py",
+    "replace": "                out.append('\"\"')",
+    "with": "                out.append('\"')",
+    "test": "tests/test_cli_runner.py::test_cmd_shim_receives_every_argument_verbatim"
+  },
+  {
+    "label": "M4 newline guard switched off, first line sent silently",
+    "file": "app/adapters/cli_runner.py",
+    "replace": "        if unsendable is not None:",
+    "with": "        if False:",
+    "test": "tests/test_cli_runner.py::test_cmd_shim_refuses_a_newline_argument_instead_of_truncating"
+  },
+  {
+    "label": "M5 timeout kills only the direct child again",
+    "file": "app/adapters/cli_runner.py",
+    "replace": "                self._kill_process_tree(process)\n                stdout_bytes, stderr_bytes = self._drain_after_kill(process)",
+    "with": "                process.kill()\n                stdout_bytes, stderr_bytes = self._drain_after_kill(process)",
+    "test": "tests/test_cli_runner.py::test_timeout_kills_the_whole_process_tree"
+  },
+  {
+    "label": "M6 the wait after the kill loses its own deadline",
+    "file": "app/adapters/cli_runner.py",
+    "replace": "            return process.communicate(\n                timeout=self._SECONDS_TO_WAIT_FOR_A_KILLED_PROCESS\n            )\n        except subprocess.TimeoutExpired:",
+    "with": "            return process.communicate()\n        except subprocess.TimeoutExpired:",
+    "test": "tests/test_cli_runner.py::test_timeout_returns_even_when_the_kill_does_not_work"
+  },
+  {
+    "label": "M7 terminate_current stops killing the tree",
+    "file": "app/adapters/cli_runner.py",
+    "replace": "        self._kill_process_tree(process)\n        return True",
+    "with": "        return True",
+    "test": "tests/test_cli_runner.py::test_terminate_current_kills_in_flight_process_and_run_returns_promptly"
+  },
+  {
+    "label": "M8 /d 被拿掉：登錄檔的 AutoRun 又會被注入每一次 CLI 呼叫",
+    "file": "app/adapters/cli_runner.py",
+    "replace": "return f'{subprocess.list2cmdline([comspec])} /d /s /c \"{inner}\"'",
+    "with": "return f'{subprocess.list2cmdline([comspec])} /s /c \"{inner}\"'",
+    "test": "tests/test_cli_runner.py::test_the_cmd_shim_keeps_the_three_flags_it_needs"
+  },
+  {
+    "label": "M9 comspec 不再加引號：帶空白的 COMSPEC 會在第一個空白斷掉",
+    "file": "app/adapters/cli_runner.py",
+    "replace": "subprocess.list2cmdline([comspec])",
+    "with": "comspec",
+    "test": "tests/test_cli_runner.py::test_the_cmd_shim_survives_a_comspec_with_spaces"
+  }
+]

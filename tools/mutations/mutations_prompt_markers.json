@@ -1,0 +1,37 @@
+[
+  {
+    "label": "P1 提示詞的開場白改了而剝除規則沒跟著改（每一個對話的標題慢慢變成同一句話，而沒有人會回報——它看起來只是「標題有點怪」）",
+    "file": "app/core/prompt_markers.py",
+    "replace": "    \"你是此專案\",",
+    "with": "    \"你是本專案\",",
+    "test": "tests/test_prompt_markers_still_match.py::test_every_current_marker_really_appears_in_a_prompt"
+  },
+  {
+    "label": "P2 標成「歷史」的字其實還在寫（放錯地方的分類，下一個人會照著分類做判斷）",
+    "file": "app/core/prompt_markers.py",
+    "replace": "    \"任務要求\": \"早期版本的任務開頭。今天的 prompt_builder 一次都沒有它。\",",
+    "with": "    \"原始任務\": \"早期版本的任務開頭。今天的 prompt_builder 一次都沒有它。\",",
+    "test": "tests/test_prompt_markers_still_match.py::test_the_legacy_ones_are_really_gone_from_todays_prompts"
+  },
+  {
+    "label": "P3 只比全形冒號（某一版 AICC 用半形，那一版寫的紀錄會整段留著開場白）",
+    "file": "app/core/prompt_markers.py",
+    "replace": "        out.append(f\"{stem}:\")",
+    "with": "        pass",
+    "test": "tests/test_prompt_markers_still_match.py::test_both_kinds_of_colon_are_covered"
+  },
+  {
+    "label": "P4 剝除規則咬到真的內容（使用者那個對話真正在做的事被判成開場白丟掉，標題變成空的）",
+    "file": "app/core/prompt_markers.py",
+    "replace": "    return any(marker in text for marker in (*CURRENT, *LEGACY))",
+    "with": "    return True",
+    "test": "tests/test_prompt_markers_still_match.py::test_ordinary_content_is_not_mistaken_for_boilerplate"
+  },
+  {
+    "label": "P5 提示詞標記被當成介面文字（翻成英文之後，剝除規則對所有既有紀錄失效）",
+    "file": "tools/i18n_scan.py",
+    "replace": "    \"app/core/prompt_markers.py\":",
+    "with": "    \"app/core/prompt_markers_old.py\":",
+    "test": "tests/test_prompt_markers_still_match.py::test_this_module_is_not_treated_as_interface_text"
+  }
+]

@@ -1,0 +1,30 @@
+[
+  {
+    "label": "N1 又回到「git add 過就不算數」的那一天（diff 不跟 HEAD 比）",
+    "file": "app/core/orchestrator.py",
+    "replace": "                self._diff_base(),\n",
+    "with": "",
+    "test": "tests/test_git_defaults_do_not_erase_or_scramble_this_rounds_output.py"
+  },
+  {
+    "label": "N2 沒 commit 過的專案沒有退路（git diff HEAD 直接失敗，第一輪的產出退成一句錯誤訊息）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        return \"HEAD\" if completed.returncode == 0 else \"--cached\"",
+    "with": "        return \"HEAD\"",
+    "test": "tests/test_git_defaults_do_not_erase_or_scramble_this_rounds_output.py"
+  },
+  {
+    "label": "N3 中文檔名又變回跳脫字串（單子上看不出來是哪一個檔案）",
+    "file": "app/core/orchestrator.py",
+    "replace": "[\"git\", \"status\", \"--short\", \"-z\"],",
+    "with": "[\"git\", \"status\", \"--short\"],",
+    "test": "tests/test_git_defaults_do_not_erase_or_scramble_this_rounds_output.py"
+  },
+  {
+    "label": "N4 改名那一筆照人讀的格式解析（單子上多出一個已經不存在的檔名）",
+    "file": "app/core/orchestrator.py",
+    "replace": "            if \"R\" in status_code or \"C\" in status_code:\n                position += 1",
+    "with": "            if False:\n                position += 1",
+    "test": "tests/test_git_defaults_do_not_erase_or_scramble_this_rounds_output.py"
+  }
+]

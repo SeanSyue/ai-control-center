@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-mode="night">
+<head>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' qrc:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AICC — 共享記憶</title>
+<link rel="stylesheet" href="aicc.css">
+<style>
+.split{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1.15fr;gap:16px;padding:18px 30px 22px}
+@media(max-width:1000px){.split{grid-template-columns:1fr}}
+.pane{display:flex;flex-direction:column;min-height:0;background:var(--surface);
+  border:1px solid var(--line-soft);border-radius:20px;overflow:hidden}
+.pane .hd{display:flex;align-items:center;gap:10px;padding:13px 18px;background:var(--surface2);
+  border-bottom:1px solid var(--line-soft);flex:none}
+.pane .hd b{font-size:.88rem}
+.pane .hd .n{margin-left:auto;font-size:.72rem;color:var(--text-3);font-weight:700}
+.pane .body{overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:9px}
+
+.mem{cursor:pointer;position:relative;padding-bottom:7px}
+.mem .hem{position:absolute;left:14px;right:14px;bottom:0;height:15px;border-radius:0 0 14px 14px;opacity:0;transition:.2s}
+.mem .b{position:relative;z-index:2;background:var(--surface2);border:1px solid var(--line-soft);
+  border-radius:14px;padding:12px 14px;transition:.18s}
+.mem:hover .b{border-color:var(--line);transform:translateY(-1px)}
+.mem.sel .b{border-color:var(--aqua);box-shadow:var(--glow);background:var(--surface)}
+.mem.sel .hem{opacity:.8}
+.mem .fn{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.mem .fn h4{font-size:.88rem;font-weight:700}
+.mem .row{display:flex;justify-content:space-between;gap:10px;font-size:.7rem;color:var(--text-3)}
+.mem .sum{font-size:.74rem;color:var(--text-3);margin-top:6px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mem.stale .b{border-color:color-mix(in srgb,var(--gold) 55%,transparent)}
+
+/* ==========================================================================
+   Markdown 轉出的標籤白名單 —— 這是與 Python 轉換器的契約：
+   轉換器只能吐出這裡有樣式的標籤；要新增標籤，這裡必須同步加樣式。
+   標籤集合依 9 份真實記憶檔（926 行）實測的語法用量決定，不是憑空列的。
+   ========================================================================== */
+.doc{padding:20px 24px;overflow-y:auto;font-size:.85rem;line-height:1.9;color:var(--text-2);flex:1;
+  user-select:text}                     /* 這是文件內容，要能選取複製 */
+
+/* 標題：## 用了 56 次，是最常見的標題層級，必須壓到跟版面協調 */
+.doc h2{color:var(--text);font-size:1.06rem;margin:26px 0 10px;padding-bottom:6px;
+  border-bottom:1px solid var(--line-soft)}
+.doc h3{color:var(--text);font-size:.97rem;margin:20px 0 7px}
+.doc h4{color:var(--text-2);font-size:.89rem;margin:16px 0 6px}
+.doc h2:first-child,.doc h3:first-child,.doc h4:first-child{margin-top:0}
+
+.doc p{margin:8px 0}
+
+/* 清單：無序 415 次、有序 47 次，是內容主體 */
+.doc ul{list-style:none;margin:8px 0;padding-left:4px}
+.doc ul>li{position:relative;padding-left:18px;margin:3px 0}
+.doc ul>li::before{content:"";position:absolute;left:4px;top:.78em;width:5px;height:5px;
+  border-radius:50%;background:var(--aqua);opacity:.75}
+.doc li>ul>li::before{background:var(--text-3);opacity:.7}   /* 巢狀第二層換色 */
+.doc ol{margin:8px 0;padding-left:24px}
+.doc ol>li{margin:3px 0}
+.doc ol>li::marker{color:var(--aqua);font-weight:800}
+.doc li>ul,.doc li>ol{margin:3px 0}
+
+/* 強調：中文斜體很醜，em 改用顏色而不是字形 */
+.doc strong{color:var(--text);font-weight:800}
+.doc em{color:var(--violet-hi);font-style:normal}
+
+/* 行內碼 372 次，是全檔最高頻的語法 */
+.doc code{background:var(--surface2);padding:1px 6px;border-radius:5px;font-size:.8rem;color:var(--aqua);
+  font-family:"SF Mono",Consolas,monospace}
+.doc pre{background:var(--surface2);border:1px solid var(--line-soft);border-radius:12px;
+  padding:12px 14px;overflow-x:auto;margin:12px 0}
+.doc pre code{background:none;padding:0;color:var(--text-2);font-size:.78rem;line-height:1.75;display:block}
+
+/* 表格：寬表要自己捲，不能把整個面板撐爆（wrapTables() 會自動包上外框） */
+.doc .tablewrap{overflow-x:auto;margin:12px 0;border:1px solid var(--line-soft);border-radius:12px}
+.doc table{border-collapse:collapse;width:100%;font-size:.78rem}
+.doc th,.doc td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--line-soft)}
+.doc th{background:var(--surface2);color:var(--text);font-weight:800;white-space:nowrap}
+.doc tr:last-child td{border-bottom:0}
+
+.doc hr{border:0;border-top:1px solid var(--line);margin:20px 0}
+.doc a{color:var(--aqua);text-decoration:underline;text-underline-offset:2px}
+.doc blockquote{margin:12px 0;padding:8px 14px;border-left:3px solid var(--violet);
+  background:var(--surface2);border-radius:0 10px 10px 0;color:var(--text-3)}
+
+/* 轉換器碰到不支援的語法時，可以把整行包成這個 —— 顯示成原文但看得出來是原文 */
+.doc .md-raw{display:block;color:var(--text-3);opacity:.75;border-left:2px dashed var(--line);
+  padding-left:10px;margin:4px 0;font-family:"SF Mono",Consolas,monospace;font-size:.76rem}
+
+/* 送出預覽：誠實顯示送什麼、略過什麼、以及預算被誰吃掉
+   三種狀態而不是兩種 —— 真實資料裡有「只送前 N 字」這一種，
+   把它畫成「有送」或「沒送」都是錯的。 */
+.ctx{flex:none;border-top:1px solid var(--line-soft);background:var(--surface2);padding:14px 18px}
+.ctx h4{font-size:.78rem;letter-spacing:.08em;color:var(--text-3);margin-bottom:10px}
+
+/* 預算條：每一份檔案是一段，看得出誰吃掉了額度 */
+.ctx .bar{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--line-soft);margin-bottom:7px}
+.ctx .bar i{display:block;height:100%;min-width:1px}
+.ctx .bar i.full{background:var(--grad-btn)}
+.ctx .bar i.truncated{background:repeating-linear-gradient(45deg,
+  var(--gold) 0 5px, color-mix(in srgb,var(--gold) 45%,transparent) 5px 10px)}
+.ctx .cap{display:flex;justify-content:space-between;gap:10px;font-size:.7rem;color:var(--text-3);margin-bottom:12px}
+.ctx .cap b{color:var(--text-2)}
+.ctx .cap .over{color:var(--gold)}
+
+.ctx .it{display:flex;align-items:center;gap:9px;padding:5px 0;font-size:.78rem;color:var(--text-2)}
+.ctx .it .k{width:7px;height:7px;border-radius:50%;flex:none}
+.ctx .it.full .k{background:var(--mint);box-shadow:0 0 8px var(--mint)}
+.ctx .it.truncated .k{background:var(--gold);box-shadow:0 0 8px var(--gold)}
+.ctx .it.truncated{color:var(--text-2)}
+.ctx .it.skipped .k{background:var(--text-3)}
+.ctx .it.skipped{color:var(--text-3)}
+.ctx .it .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ctx .it .why{margin-left:auto;font-size:.7rem;color:var(--text-3);white-space:nowrap;flex:none}
+.ctx .it.truncated .why{color:var(--gold)}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <div class="top">
+    <h1>共享記憶</h1>
+    <div class="lead">Claude 與 Codex 共用的專案記憶。任務結束後由它們自己更新，不需要你手動維護。</div>
+    <div class="bar">
+      <div class="field" style="min-width:220px">
+        <select id="proj">
+          <option>AICC 自身開發</option>
+          <option>notes-app</option>
+          <option>csv-summary</option>
+        </select>
+      </div>
+      <div class="menu" id="m-mem">
+        <button class="btn q" data-menu="m-mem">記憶維護</button>
+        <div class="items">
+          <button data-act="create_files">建立記憶檔<small>補齊缺少的檔案骨架</small></button>
+          <button data-act="view_all">查看共同記憶<small>把全部記憶檔串起來一次看完</small></button>
+          <div class="sep"></div>
+          <button data-act="readiness_check">導入檢查<small>產生就緒度報告</small></button>
+        </div>
+      </div>
+      <div class="menu" id="m-handoff">
+        <button class="btn q" data-menu="m-handoff">交接</button>
+        <div class="items">
+          <button data-act="make_handoff">產生交接包<small>會寫出一份交接文件</small></button>
+          <button data-act="create_handoff_task">建立接手任務<small>送進 AI 設定面板，會切換分頁</small></button>
+        </div>
+      </div>
+      <span class="bar-sep"></span>
+      <button class="btn q" data-act="open_folder">開啟資料夾</button>
+      <button class="btn q" data-act="rescan">重新讀取</button>
+      <span class="hintline" style="margin:0">記憶檔存在專案的 <span class="mono">.aicc/knowledge/</span>，跟著 Git 走。</span>
+    </div>
+  </div>
+
+  <div class="split">
+    <!-- 左：記憶檔 -->
+    <div class="pane">
+      <div class="hd"><b>記憶檔</b><span class="n" id="nMem">—</span></div>
+      <div class="body" id="listMem"></div>
+    </div>
+
+    <!-- 右：內容 ＋ 送出預覽 -->
+    <div class="pane">
+      <div class="hd"><b id="curName">—</b><span class="n" id="curMeta"></span>
+        <span id="editArea" style="display:flex;gap:8px;align-items:center"></span></div>
+      <div class="doc" id="doc"></div>
+      <div class="ctx">
+        <h4>下一次會送給 AI 的內容</h4>
+        <div class="bar" id="ctxBar"></div>
+        <div class="cap" id="ctxCap"></div>
+        <div id="ctxList"></div>
+        <!-- 這兩個動作要先知道「你現在在做什麼」才有意義，所以放在這一區
+             ——這一區本來就是在講「這次任務會送什麼給 AI」。 -->
+        <div class="taskbar" style="margin:12px -18px -14px;border-bottom:0;border-top:1px solid var(--line-soft)">
+          <div class="field"><input id="task" placeholder="這次的任務是什麼？"></div>
+          <button class="btn sm q" data-act="make_bootstrap">產生啟動提示</button>
+          <button class="btn sm q" data-act="save_context">保存本次上下文</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<button class="modebtn" id="tg">☀ 切到白天</button>
+
+<!-- QWebChannel：嵌進 QWebEngineView 時由 Qt 從 qrc 供應。
+     用瀏覽器單獨開檔案時這行會 404，但無害——下面有 window.qt 守衛，
+     沒有 Qt 就直接走示範資料。不要改成 CDN，離線會壞。 -->
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script>
+/* ============================================================
+   render(data)
+   data = {
+     mode, project_name, selected: file_id|null,
+     files: [{ id, name, kind, kind_label, updated_rel, updated_abs,
+               updated_by:"claude"|"codex"|"you"|"unknown"（或直接省略），
+               lines, summary,
+               stale:bool,            // 內容比程式碼舊，需要重新確認
+               html,                  // 已轉好的 HTML（Python 端用 markdown 轉）
+               source }],             // 原始 Markdown。編輯功能需要它；
+                                      // 沒給的話「編輯」鈕會停用，不會給一個空白編輯器
+     context_limit: 12000,                        // 送進 context 的字數上限
+     context: [{ name, chars,                     // 這份檔案總共多少字
+                 sent_chars,                      // 實際送出多少字（0 = 沒送）
+                 state: "full"|"truncated"|"skipped",
+                 reason }]                        // skipped 時說明為什麼
+   }
+   ============================================================ */
+const STAR='M12 0C13.2 8.2 15.8 10.8 24 12 15.8 13.2 13.2 15.8 12 24 10.8 15.8 8.2 13.2 0 12 8.2 10.8 10.8 8.2 12 0Z';
+
+/* updated_by 可以是 'claude' | 'codex' | 'you'，也可以是 'unknown' 或直接省略。
+   不知道的時候「不畫」，而不是畫一個「未知」——
+   顯示「由 未知 更新」會在每一份檔案上重複同一句噪音，
+   而退回預設值（原本是 BY.you）等於把「不知道」寫成一個具體的人，那是編造。 */
+const BY={claude:['var(--aqua)','CLAUDE'],codex:['var(--violet-hi)','CODEX'],you:['var(--text-2)','你']};
+let DATA=null;
+
+/* 編輯狀態是這一頁唯一有狀態的東西。
+   唯讀與可編輯必須一眼分得出來 —— 靠底色、左側色條、和標題列的「編輯中」標記，
+   三個訊號同時給，因為只靠一個的話截圖比對很容易漏掉。 */
+let EDITING=false, DRAFT='';
+
+/* ---- 下拉選單 ---- */
+function closeMenus(except){
+  document.querySelectorAll('.menu.open').forEach(m=>{ if(m.id!==except) m.classList.remove('open'); });
+}
+/* ---- 事件委派：不用 inline onclick ----
+   inline handler 會把值放進「HTML 屬性裡的 JS 字串」，一個單引號就能跳出來。
+   改成 data-* 之後那個位置根本不存在。 */
+document.addEventListener('click',e=>{
+  const mb=e.target.closest('[data-menu]');
+  if(mb){ const id=mb.dataset.menu; closeMenus(id);
+          document.getElementById(id).classList.toggle('open'); return; }
+  closeMenus();
+
+  const item=e.target.closest('.mem[data-pick]');
+  if(item){ pick(item.dataset.pick); return; }
+
+  const btn=e.target.closest('[data-act]');
+  if(btn && !btn.disabled) act(btn.dataset.act);
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){ closeMenus(); if(EDITING) act('cancel_edit'); }
+  if(e.key==='s' && (e.ctrlKey||e.metaKey) && EDITING){ e.preventDefault(); act('save'); }
+});
+
+function memHTML(f,sel){
+  const by=BY[f.updated_by];                       // 認不得就是 undefined，不做 fallback
+  const byPart=by ? ` · 由 <b style="color:${by[0]}">${by[1]}</b> 更新` : '';
+  const byHint=by ? '' : ' title="來源未記錄"';
+  return `<div class="mem${f.id===sel?' sel':''}${f.stale?' stale':''}" data-pick="${f.id}">
+    <div class="hem fabric fabric-aqua"></div>
+    <div class="b">
+      <div class="fn"><h4 class="mono">${f.name}</h4><span class="bdg grey">${f.kind_label}</span>
+        ${f.stale?'<span class="bdg gold">可能過期</span>':''}</div>
+      <div class="row"><span${byHint}>${f.lines} 行${byPart}</span>
+        <span title="${f.updated_abs}">${f.updated_rel}</span></div>
+      <div class="sum">${f.summary}</div>
+    </div></div>`;
+}
+
+function render(state){
+  const d=typeof state==='string'?JSON.parse(state):state;
+  DATA=d;
+  document.documentElement.dataset.mode=d.mode||'night';
+  const sel=d.selected??(d.files[0]&&d.files[0].id);
+  document.getElementById('listMem').innerHTML=d.files.map(f=>memHTML(f,sel)).join('');
+  document.getElementById('nMem').textContent=`${d.files.length} 份`;
+
+  const cur=d.files.find(f=>f.id===sel);
+  document.getElementById('curName').textContent=cur?cur.name:'—';
+  document.getElementById('curMeta').textContent=cur?`${cur.lines} 行 · ${cur.updated_rel}`:'';
+  paintEditArea(cur);
+
+  const docEl=document.getElementById('doc');
+  docEl.classList.toggle('editing',EDITING);
+  if(EDITING && cur){
+    /* 編輯的是原始 Markdown，不是轉好的 HTML —— 需要 files[].source */
+    docEl.innerHTML=`<textarea class="editor" id="editor" spellcheck="false"></textarea>`;
+    const ta=document.getElementById('editor');
+    ta.value=DRAFT;
+    ta.addEventListener('input',()=>{DRAFT=ta.value;});
+    ta.focus();
+  }else{
+    docEl.innerHTML=cur?cur.html:'';
+    wrapTables(docEl);
+  }
+
+  paintContext(d);
+}
+
+/* 沒選檔案時不顯示編輯鈕 —— 沒有對象的動作不該存在 */
+function paintEditArea(cur){
+  const el=document.getElementById('editArea');
+  if(!cur){ el.innerHTML=''; return; }
+  el.innerHTML = EDITING
+    ? `<span class="editing-flag">編輯中</span>
+       <button class="btn sm" data-act="save">儲存</button>
+       <button class="btn sm q" data-act="cancel_edit">取消</button>`
+    : `<button class="btn sm q" data-act="edit"${cur.source===undefined
+          ? ' disabled title="Python 尚未提供這份檔案的原始 Markdown（files[].source）"' : ''}>編輯</button>`;
+}
+
+/* 三種狀態：full（全文送出）／truncated（只送前 N 字）／skipped（完全沒送）。
+   真實資料裡「截斷」是常態，把它畫成「有送」會讓人以為 AI 讀過整份。 */
+const NUM=n=>(n||0).toLocaleString('en-US');
+function paintContext(d){
+  const cx=d.context||[], limit=d.context_limit||0;
+  const sent=cx.reduce((a,c)=>a+(c.sent_chars||0),0);
+  const total=cx.reduce((a,c)=>a+(c.chars||0),0);
+
+  document.getElementById('ctxBar').innerHTML= limit
+    ? cx.filter(c=>c.sent_chars>0).map(c=>
+        `<i class="${c.state==='truncated'?'truncated':'full'}"
+            style="width:${Math.max(0.4,(c.sent_chars/limit)*100)}%"
+            title="${c.name} · ${NUM(c.sent_chars)} 字"></i>`).join('')
+    : '';
+
+  const nSent=cx.filter(c=>c.sent_chars>0).length;
+  document.getElementById('ctxCap').innerHTML= limit
+    ? `<span>已用 <b>${NUM(sent)}</b> / ${NUM(limit)} 字上限</span>
+       <span class="${nSent<cx.length?'over':''}">${nSent} / ${cx.length} 份進得了 context</span>`
+    : `<span>共 ${NUM(total)} 字</span>`;
+
+  document.getElementById('ctxList').innerHTML=cx.map(c=>{
+    const st=c.state||(c.sent_chars>0?'full':'skipped');
+    const why = st==='full'      ? `全文 ${NUM(c.chars)} 字`
+              : st==='truncated' ? `只送前 ${NUM(c.sent_chars)} / ${NUM(c.chars)} 字`
+              : (c.reason||'未送出');
+    return `<div class="it ${st}"><span class="k"></span>
+      <span class="nm">${c.name}</span><span class="why">${why}</span></div>`;
+  }).join('');
+}
+
+/* 表格外框由前端補，轉換器只要吐 <table> 就好 —— 少一個兩邊要對齊的約定。
+   沒有這層外框，寬表會把整個面板撐爆而不是自己捲。 */
+function wrapTables(root){
+  if(!root) return;
+  root.querySelectorAll('table').forEach(t=>{
+    if(t.parentElement && t.parentElement.classList.contains('tablewrap')) return;
+    const w=document.createElement('div');
+    w.className='tablewrap';
+    t.replaceWith(w);
+    w.appendChild(t);
+  });
+}
+
+let bridge=null;
+function pick(id){
+  if(EDITING) return;                       // 編輯中不換檔案，避免默默丟掉草稿
+  bridge?bridge.on_action('select',id):(DEMO.selected=id,render(DEMO));
+}
+
+/* 三種動作帶不同的 arg：
+   save → 整份內容；需要任務的 → 任務文字；其餘 → 選取的檔案 id */
+const NEEDS_TASK=new Set(['make_bootstrap','save_context']);
+function act(k){
+  const cur=DATA?.files.find(f=>f.id===DATA.selected);
+
+  if(k==='edit'){
+    if(!cur || cur.source===undefined){
+      console.warn('[knowledge] 這份檔案沒有 source 欄位，不能編輯');
+      return;                                  // 寧可不給編輯，也不給一個空白的編輯器
+    }
+    EDITING=true; DRAFT=cur.source; render(DATA); return;
+  }
+  if(k==='cancel_edit'){ EDITING=false; DRAFT=''; render(DATA); return; }
+
+  let arg;
+  if(k==='save'){ arg=DRAFT; EDITING=false; }
+  else if(NEEDS_TASK.has(k)) arg=document.getElementById('task')?.value||'';
+  else arg=DATA?.selected||'';
+
+  if(bridge) bridge.on_action(k,arg);
+  else { console.log('demo',k,arg.length>60?arg.slice(0,60)+'…':arg); if(k==='save') render(DATA); }
+}
+if(window.qt&&qt.webChannelTransport){
+  new QWebChannel(qt.webChannelTransport,ch=>{bridge=ch.objects.bridge;
+    bridge.stateChanged.connect(render);bridge.ready();});
+}
+document.getElementById('tg').onclick=()=>{const h=document.documentElement;
+  h.dataset.mode=h.dataset.mode==='night'?'day':'night';
+  document.getElementById('tg').textContent=h.dataset.mode==='night'?'☀ 切到白天':'☾ 切到夜空';
+  if(bridge)bridge.on_action('mode',h.dataset.mode);};
+
+/* ---- 示範資料 ---- */
+const DEMO={mode:'night',project_name:'AICC 自身開發',selected:'brief',
+ files:[
+  {id:'brief',name:'PROJECT_BRIEF.md',kind:'brief',kind_label:'專案概述',lines:69,
+   updated_rel:'2 小時前',updated_abs:'2026-08-07 23:10',updated_by:'claude',stale:false,
+   summary:'產品目標、目前方向、已實作能力、限制條件與下一步最佳工作。',
+   html:`<h3>Product Goal</h3><p>AI Control Center 是本機優先的桌面協作器，用來讓 Claude Code 與 Codex 圍繞既有專案配對、監督、續接與檢視，你只處理有意義的決定。</p>
+     <h3>Current Product Direction</h3><ul><li>先找出本機既有的 Claude / Codex 對話</li><li>優先顯示你認得的對話名稱，而不是內部 session ID</li><li>把一個 Claude 對話與一個 Codex 對話配成一組</li><li>專案資料夾與知識只是輔助上下文</li></ul>
+     <h3>Important Constraints</h3><ul><li>只能掃描桌面或 CLI 已寫入本機的 session／task 檔</li><li>金鑰、token、OAuth 資料必須留在 Git 與可攜匯出之外</li><li>Session 探索有用但脆弱，共享記憶與 Git 才是耐久的交接層</li></ul>`,
+   /* 編輯功能需要原始 Markdown。示範資料給一份，才看得出編輯狀態長什麼樣。 */
+   source:`## Product Goal
+
+AI Control Center 是本機優先的桌面協作器，用來讓 Claude Code 與 Codex 圍繞既有專案
+配對、監督、續接與檢視，你只處理有意義的決定。
+
+## Current Product Direction
+
+- 先找出本機既有的 Claude / Codex 對話
+- 優先顯示你認得的對話名稱，而不是內部 session ID
+- 把一個 Claude 對話與一個 Codex 對話配成一組
+- 專案資料夾與知識只是輔助上下文
+
+## Important Constraints
+
+- 只能掃描桌面或 CLI 已寫入本機的 \`session\` / \`task\` 檔
+- 金鑰、token、OAuth 資料必須留在 Git 與可攜匯出之外
+- Session 探索有用但脆弱，共享記憶與 Git 才是耐久的交接層`},
+  {id:'arch',name:'ARCHITECTURE.md',kind:'arch',kind_label:'架構',lines:142,
+   updated_rel:'1 天前',updated_abs:'2026-08-06 18:44',updated_by:'codex',stale:false,
+   summary:'分層結構、services 與 ui 的邊界、RunSession 的狀態機。',
+   /* 這一份刻意用滿白名單裡的每一種標籤（h2/h3/ol/ul 巢狀/table/pre/hr/strong/em），
+      示範資料如果只用得到一半語法，樣式缺口就永遠不會現形 */
+   html:`<h2>分層</h2>
+     <ul><li><code>app/services/</code> — 對話探索、索引、安全掃描
+       <ul><li>不得 import <code>app.ui</code>，單向相依</li></ul></li>
+       <li><code>app/ui/</code> — 面板，<strong>不直接碰檔案系統</strong></li>
+       <li><code>RunSession</code> — 每專案一份執行狀態</li></ul>
+     <h3>RunSession 狀態機</h3>
+     <table><thead><tr><th>狀態</th><th>進入條件</th><th>可否併發</th></tr></thead>
+       <tbody>
+       <tr><td><code>idle</code></td><td>初始／任務結束</td><td>—</td></tr>
+       <tr><td><code>queued</code></td><td>已達併發上限</td><td>否</td></tr>
+       <tr><td><code>running</code></td><td>取得執行槽</td><td>是</td></tr>
+       <tr><td><code>gated</code></td><td>觸發 Decision Gate</td><td>佔用槽位</td></tr>
+       </tbody></table>
+     <h3>啟動順序</h3>
+     <ol><li>載入專案綁定</li><li>還原上次的 session 配對</li><li>檢查過期的鎖檔</li><li>恢復佇列</li></ol>
+     <p>焦點切換與背景執行<em>已解耦</em>：切到別的專案不會中斷正在跑的任務。</p>
+     <pre><code>RunSession(project_id, claude_id, codex_id)
+    .acquire_slot()      # 取不到就進 queued
+    .run()               # 背景執行，不綁定 UI 焦點</code></pre>
+     <hr>
+     <p>相關：<code>DECISIONS.md</code> 記錄了為什麼不用單一全域佇列。</p>`},
+  /* 示範「來源未記錄」的樣子：不顯示「由 X 更新」，只留行數與時間 */
+  {id:'dec',name:'DECISIONS.md',kind:'dec',kind_label:'決策紀錄',lines:88,
+   updated_rel:'1 天前',updated_abs:'2026-08-06 18:40',updated_by:'unknown',stale:false,
+   summary:'為什麼不做雲端、為什麼共享記憶用檔案而非資料庫、Decision Gate 的觸發條件。',
+   html:`<h3>不做雲端同步為預設</h3><p>本機優先是產品定位，不是暫時的技術妥協。</p><h3>共享記憶用 Markdown 檔</h3><p>因為要能被 Git 追蹤、被人讀、被 AI 直接吃進 context。</p>`},
+  {id:'sec',name:'SECURITY_MODEL.md',kind:'sec',kind_label:'安全模型',lines:96,
+   updated_rel:'2 天前',updated_abs:'2026-08-05 09:12',updated_by:'claude',stale:true,
+   summary:'敏感專案 profile（personal / client / sensitive_kyc）與匯出前的金鑰掃描規則。',
+   html:`<h3>敏感專案 profile</h3><ul><li><code>personal</code> — 一般專案</li><li><code>client</code> — 客戶資料，匯出前強制掃描</li><li><code>sensitive_kyc</code> — 最嚴格，預設禁止雲端同步</li></ul><p style="color:var(--gold)">待補：sensitive_kyc 的「受控同步目的地」例外尚未設計。</p>`},
+  {id:'next',name:'NEXT_STEPS.md',kind:'next',kind_label:'下一步',lines:34,
+   updated_rel:'2 小時前',updated_abs:'2026-08-07 23:12',updated_by:'claude',stale:false,
+   summary:'對話庫 badge 化、本機標題清理、匯入格式擴充、Decision Gate 行為調整。',
+   html:`<h3>Next Best Work</h3><ul><li>對話庫的來源／狀態文字改成 badge</li><li>官方名稱缺失時改善本機標題清理</li><li>擴充匯入的對話格式支援</li></ul>`},
+  {id:'open',name:'OPEN_QUESTIONS.md',kind:'open',kind_label:'未決問題',lines:21,
+   updated_rel:'4 天前',updated_abs:'2026-08-03 20:05',updated_by:'you',stale:false,
+   summary:'打包體積、多機同步、以及是否要開放第三方 CLI 接入。',
+   html:`<h3>未決</h3><ul><li>WebEngine 讓打包體積增加約 150MB，可接受嗎？</li><li>多台電腦之間要怎麼同步共享記憶？</li></ul>`},
+ ],
+ /* 示範資料照實機量到的形狀：12,000 字上限，第二份就被截斷，
+    其餘六份從來沒被 AI 看過。這比原本「三送三不送」的假資料更接近真實，
+    也才畫得出「預算被前兩份吃光」這件事。 */
+ context_limit:12000,
+ context:[
+  {name:'PROJECT_BRIEF.md',   chars:5293, sent_chars:5293, state:'full'},
+  {name:'ARCHITECTURE.md',    chars:12408,sent_chars:6707, state:'truncated'},
+  {name:'DECISIONS.md',       chars:7841, sent_chars:0, state:'skipped', reason:'已達字數上限'},
+  {name:'SECURITY_MODEL.md',  chars:8120, sent_chars:0, state:'skipped', reason:'已達字數上限'},
+  {name:'NEXT_STEPS.md',      chars:2960, sent_chars:0, state:'skipped', reason:'已達字數上限'},
+  {name:'PRODUCT_REVIEW.md',  chars:6402, sent_chars:0, state:'skipped', reason:'已達字數上限'},
+  {name:'BUSINESS_MODEL.md',  chars:5137, sent_chars:0, state:'skipped', reason:'已達字數上限'},
+  {name:'OPEN_QUESTIONS.md',  chars:1884, sent_chars:0, state:'skipped', reason:'僅供人閱讀'},
+ ]};
+if(!(window.qt&&qt.webChannelTransport)) render(DEMO);
+</script>
+</body>
+</html>

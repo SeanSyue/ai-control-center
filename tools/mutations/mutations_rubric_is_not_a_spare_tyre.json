@@ -1,0 +1,65 @@
+[
+  {
+    "label": "V1 指令跑不起來被驗收標準洗成綠燈（.venv 不見的專案，一條測試都沒跑，畫面上寫「驗過了」）",
+    "file": "app/core/steps/verification.py",
+    "replace": "        never_declared = not orchestrator.verification().declared_in_file",
+    "with": "        never_declared = orchestrator.verification().command is None",
+    "test": "tests/test_a_broken_test_command_is_not_a_qualitative_project.py::test_a_declared_command_that_never_started_stops_instead_of_going_green"
+  },
+  {
+    "label": "V2 質化那條路被一起關掉（剪片／寫文件／做簡報那些沒有可執行檢查的案子，明明有標準卻被擋在門口）",
+    "file": "app/core/steps/verification.py",
+    "replace": "        never_declared = not orchestrator.verification().declared_in_file",
+    "with": "        never_declared = False",
+    "test": "tests/test_a_broken_test_command_is_not_a_qualitative_project.py::test_the_rubric_is_still_the_road_for_a_project_with_no_command"
+  },
+  {
+    "label": "V3 指令壞掉那一次也被算成「用過一次標準」（前三次「請你自己核對」是這把尺唯一的校準機會，被一次根本沒發生的判斷吃掉）",
+    "file": "app/core/steps/verification.py",
+    "replace": "        never_declared = not orchestrator.verification().declared_in_file",
+    "with": "        never_declared = True",
+    "test": "tests/test_a_broken_test_command_is_not_a_qualitative_project.py::test_the_run_is_counted_only_on_the_qualitative_road"
+  },
+  {
+    "label": "V4 兩樣都沒有的專案被放行（每一次執行都拿到綠燈，使用者要到第十次才發現沒有人在看）",
+    "file": "app/core/steps/verification.py",
+    "replace": "        if (\n            rubric is not None\n            and not qualitative_acceptance.problems_with(rubric)\n            and rubric.approved\n        ):",
+    "with": "        if True:",
+    "test": "tests/test_a_broken_test_command_is_not_a_qualitative_project.py::test_a_project_with_no_rubric_is_never_waved_through"
+  },
+  {
+    "label": "V5 沒有人過目的標準照樣拿去驗收（AI 起草的維度直接變成尺，而畫面上跟他親手寫的長得一模一樣）",
+    "file": "app/core/steps/verification.py",
+    "replace": "            and rubric.approved\n        ):",
+    "with": "            and True\n        ):",
+    "test": "tests/test_a_rubric_nobody_looked_at_is_not_a_ruler.py::test_the_verification_step_asks_again"
+  },
+  {
+    "label": "V6 派工之前那道門不問核准（晚一點才停，代價從一個對話框變成一次跑掉的派工加一棵動過的工作樹）",
+    "file": "app/core/steps/verification.py",
+    "replace": "    not_counted = qualitative_acceptance.why_it_does_not_count(rubric)\n    if not_counted:\n        return not_counted",
+    "with": "    not_counted = \"\"\n    if not_counted:\n        return not_counted",
+    "test": "tests/test_a_rubric_nobody_looked_at_is_not_a_ruler.py::test_the_gate_before_dispatch_stops_an_unapproved_rubric"
+  },
+  {
+    "label": "V7 派工前那道門不問「他寫過那一行沒有」（.venv 不見的專案在派工之前就被放行，晚一點才停＝一次已經跑掉的派工加一棵動過的工作樹）",
+    "file": "app/core/steps/verification.py",
+    "replace": "    if verification.declared_in_file:\n        return verification.problem",
+    "with": "    if False:\n        return verification.problem",
+    "test": "tests/test_a_broken_test_command_is_not_a_qualitative_project.py::test_the_gate_before_dispatch_also_refuses_a_broken_command"
+  },
+  {
+    "label": "V8 執行檔找不到的時候不記「他寫過那一行」（那一格是整個修法的全部，漏傳就等於沒修）",
+    "file": "app/services/project_verification.py",
+    "replace": "            f\"在 {_SETTINGS_LOCATION} 的 {VERIFY_COMMAND_KEY}）。\",\n            declared_in_file=True,",
+    "with": "            f\"在 {_SETTINGS_LOCATION} 的 {VERIFY_COMMAND_KEY}）。\",\n            declared_in_file=False,",
+    "test": "tests/test_a_broken_test_command_is_not_a_qualitative_project.py::test_the_real_shape_from_a_real_project_file"
+  },
+  {
+    "label": "V9 派工前那道門擋過頭（剪片那種從來沒宣告過指令的案子被擋在門外——質化驗收整個功能等於沒有）",
+    "file": "app/core/steps/verification.py",
+    "replace": "    if verification.declared_in_file:\n        return verification.problem",
+    "with": "    if True:\n        return verification.problem",
+    "test": "tests/test_a_broken_test_command_is_not_a_qualitative_project.py::test_the_gate_before_dispatch_still_lets_a_pure_qualitative_project_through"
+  }
+]

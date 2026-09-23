@@ -1,0 +1,86 @@
+[
+  {
+    "label": "A1 他打完答案送出，而沒有一格接得住（2026-08-27 之前的樣子：`role=\"\"` 交給引擎自己找，引擎退回出廠的 `author`——他在整條線上最不預期出錯的那一刻收到「這個專案的陣容裡沒有 author 這一格」）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "                    return None, self._no_worker_result(), []\n                answered = orchestrator.run_claude_with_user_answer(\n                    question=self.user_question,\n                    answer=self.user_answer,\n                    answered_by=\"user\",\n                    role=workers[-1],\n                )\n                return answered, None, [(workers[-1], answered)]",
+    "with": "                    pass\n                answered = orchestrator.run_claude_with_user_answer(\n                    question=self.user_question,\n                    answer=self.user_answer,\n                    answered_by=\"user\",\n                    role=workers[-1] if workers else \"\",\n                )\n                return (\n                    answered,\n                    None,\n                    [(workers[-1], answered)] if workers else [],\n                )",
+    "test": "tests/test_no_step_hands_the_job_to_a_seat_he_never_had.py::test_an_answer_with_nobody_to_do_the_work_stops_instead_of_a_traceback"
+  },
+  {
+    "label": "A1b 同一個破壞，量的是**挑錯那一句**：他拿到「這一輪沒有開始」（那句話叫他去換序列），而換過去照樣沒有人接他的答案——他會整輪重跑一次",
+    "file": "app/core/workflow_worker.py",
+    "replace": "                    return None, self._no_worker_result(), []\n                answered = orchestrator.run_claude_with_user_answer(\n                    question=self.user_question,\n                    answer=self.user_answer,\n                    answered_by=\"user\",\n                    role=workers[-1],\n                )\n                return answered, None, [(workers[-1], answered)]",
+    "with": "                    pass\n                answered = orchestrator.run_claude_with_user_answer(\n                    question=self.user_question,\n                    answer=self.user_answer,\n                    answered_by=\"user\",\n                    role=workers[-1] if workers else \"\",\n                )\n                return (\n                    answered,\n                    None,\n                    [(workers[-1], answered)] if workers else [],\n                )",
+    "test": "tests/test_no_step_hands_the_job_to_a_seat_he_never_had.py::test_that_ending_tells_him_which_seat_to_change"
+  },
+  {
+    "label": "A2 擋過頭：排了執行的陣容，他的答案也不再送出去（一條什麼都拒絕的門，跟一個永遠說可以的門一樣沒用——他打完字按下送出，然後什麼都沒發生）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "                workers = self._roles_with(orchestrator, DUTY_WORK)\n                if not workers:",
+    "with": "                workers = self._roles_with(orchestrator, DUTY_WORK)\n                if True:",
+    "test": "tests/test_no_step_hands_the_job_to_a_seat_he_never_had.py::test_a_line_with_a_working_seat_still_resumes"
+  },
+  {
+    "label": "A3 引擎那道門換回退路（呼叫端今天先擋住了，所以這條專門走那一條分支：明天多一個呼叫端忘了先問，他的答案就會被送給一個他沒有排的位子）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        seat = role.strip().lower() or self.required_seat_with_duty(DUTY_WORK)",
+    "with": "        seat = role.strip().lower() or self.seat_with_duty(DUTY_WORK, fallback=ROLE_AUTHOR)",
+    "test": "tests/test_no_step_hands_the_job_to_a_seat_he_never_had.py::test_the_engine_itself_refuses_the_factory_name_on_that_path"
+  },
+  {
+    "label": "G1 決策關卡換回退路（2026-08-26 實機那一次：第五次派工之後 NotImplementedError: 這個專案的陣容裡沒有「reviewer」這一格——而他問的那一題連看都沒看到）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        seat = self.required_seat_with_duty(DUTY_REVIEW)\n        task = self.task_path.read_text(encoding=\"utf-8\")",
+    "with": "        seat = self.seat_with_duty(DUTY_REVIEW, fallback=ROLE_REVIEWER)\n        task = self.task_path.read_text(encoding=\"utf-8\")",
+    "test": "tests/test_no_step_hands_the_job_to_a_seat_he_never_had.py::test_the_gate_itself_refuses_the_factory_name"
+  },
+  {
+    "label": "G2 跳過的那一步不留痕（事後跟「有跑過而且通過」長得一模一樣——他問「那一題到底有沒有人先替我看過」，`inspect_run.py` 答不出來）",
+    "file": "app/core/orchestrator.py",
+    "replace": "            self.timeline.append(\n                self.run_id,\n                \"aicc\",\n                \"decision_gate_no_seat\",\n                f\"no seat has duty {DUTY_REVIEW!r}; asked the user instead\",\n            )",
+    "with": "            pass",
+    "test": "tests/test_no_step_hands_the_job_to_a_seat_he_never_had.py::test_the_skipped_gate_leaves_a_line_in_the_timeline"
+  },
+  {
+    "label": "G3 留錯痕：跳過的那一步被記成「送過去了」（紀錄上有一次決策關卡，實際上一次都沒有——這正是這個專案最在意的那一種假訊號）",
+    "file": "app/core/orchestrator.py",
+    "replace": "                \"decision_gate_no_seat\",\n                f\"no seat has duty {DUTY_REVIEW!r}; asked the user instead\",",
+    "with": "                \"decision_gate_requested\",\n                f\"no seat has duty {DUTY_REVIEW!r}; asked the user instead\",",
+    "test": "tests/test_no_step_hands_the_job_to_a_seat_he_never_had.py::test_the_skipped_gate_leaves_a_line_in_the_timeline"
+  },
+  {
+    "label": "M1 記憶草稿那一支換回退路（這一步跑在整輪的最後：五次派工的額度全部花完之後，畫面在最後一秒變成紅燈加一坨 traceback）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        seat = self.required_seat_with_duty(DUTY_REVIEW)\n        prompt = prompt_builder.build_memory_update_prompt(",
+    "with": "        seat = self.seat_with_duty(DUTY_REVIEW, fallback=ROLE_REVIEWER)\n        prompt = prompt_builder.build_memory_update_prompt(",
+    "test": "tests/test_no_step_hands_the_job_to_a_seat_he_never_had.py::test_the_memory_draft_refuses_the_factory_name"
+  },
+  {
+    "label": "M2 審記憶草稿那一支換回退路（只修一支的話，traceback 往後挪二十行、名字從「reviewer」換成「author」，畫面一樣紅）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        seat = self.required_seat_with_duty(DUTY_WORK)\n        prompt = prompt_builder.build_memory_review_prompt(",
+    "with": "        seat = self.seat_with_duty(DUTY_WORK, fallback=ROLE_AUTHOR)\n        prompt = prompt_builder.build_memory_review_prompt(",
+    "test": "tests/test_no_step_hands_the_job_to_a_seat_he_never_had.py::test_the_memory_review_refuses_the_factory_name"
+  },
+  {
+    "label": "M3 問錯職責：審記憶草稿也去問「複查」（缺執行的人會拿到叫他去排複查的那一句，而草稿本來就擬得出來，缺的是審它的人——兩句話都還是好好的，錯的是問哪一種那一行）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        seat = self.required_seat_with_duty(DUTY_WORK)\n        prompt = prompt_builder.build_memory_review_prompt(",
+    "with": "        seat = self.required_seat_with_duty(DUTY_REVIEW)\n        prompt = prompt_builder.build_memory_review_prompt(",
+    "test": "tests/test_no_step_hands_the_job_to_a_seat_he_never_had.py::test_the_memory_review_refuses_the_factory_name"
+  },
+  {
+    "label": "M4 擋過頭：連兩種職責都排了的陣容，這三步也全部派不出工（他排得好好的，而維護共同記憶與決策關卡從此再也沒有跑過）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        seat = self.seat_with_duty(duty)\n        if not seat:",
+    "with": "        seat = self.seat_with_duty(duty)\n        if True:",
+    "test": "tests/test_no_step_hands_the_job_to_a_seat_he_never_had.py::test_a_line_with_both_seats_is_not_stopped"
+  },
+  {
+    "label": "P1 退路那個寫法重新出現在一個派工入口（這一條量的是**掃原始碼那條政策**還有沒有牙齒：`fallback=ROLE_X` 今天不會讓任何行為測試變紅，因為每一個呼叫端都先擋住了——擋著的是明天，而明天沒有測試會走到那一行）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        seat = self.required_seat_with_duty(DUTY_REVIEW)\n        prompt = prompt_builder.build_memory_update_prompt(",
+    "with": "        seat = self.seat_with_duty(DUTY_REVIEW, fallback=ROLE_REVIEWER)\n        prompt = prompt_builder.build_memory_update_prompt(",
+    "test": "tests/test_a_line_up_with_his_own_names_still_runs.py::test_no_dispatch_entry_point_hands_a_factory_name_to_the_engine"
+  }
+]

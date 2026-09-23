@@ -1,0 +1,14 @@
+﻿colorama==0.4.6
+iniconfig==2.3.0
+packaging==26.2
+pluggy==1.6.0
+Pygments==2.20.0
+PySide6==6.11.1
+PySide6_Addons==6.11.1
+PySide6_Essentials==6.11.1
+pytest==9.1.1
+shiboken6==6.11.1
+pypdf>=5,<7
+
+# Build-time only (packaging/AI Control Center.spec) - not needed to run the app
+pyinstaller==6.21.0

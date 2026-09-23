@@ -1,0 +1,44 @@
+[
+  {
+    "label": "U1 「問不出來」又落回那顆什麼都沒說的綠燈（清單全綠，然後每一次執行都死在中間）",
+    "file": "app/services/startup_diagnostics.py",
+    "replace": "        return Check(\n            key,\n            name,\n            Level.OK,\n            f\"{version}（{t('diag.sign_in_unknown')}）\",\n            sign_in_unknown=True,\n        )",
+    "with": "        return Check(key, name, Level.OK, version)",
+    "test": "tests/test_a_login_state_we_cannot_read_is_not_drawn_as_signed_in.py::test_a_login_state_that_cannot_be_read_is_not_drawn_as_a_plain_green_version"
+  },
+  {
+    "label": "U2 矯枉過正：問不出來就當成沒登入（把一個已經登入的人趕去再登一次，而他登完狀態還是問不出來）",
+    "file": "app/services/startup_diagnostics.py",
+    "replace": "            Level.OK,\n            f\"{version}（{t('diag.sign_in_unknown')}）\",\n",
+    "with": "            Level.BLOCKED,\n            f\"{version}（{t('diag.sign_in_unknown')}）\",\n",
+    "test": "tests/test_startup_diagnostics.py::test_a_cli_whose_login_state_cannot_be_read_is_not_called_signed_out"
+  },
+  {
+    "label": "U3 那句話自己在程式裡再寫死一份（英文版上線那天這一句不會跟著翻，而畫面看起來完全正常）",
+    "file": "app/services/startup_diagnostics.py",
+    "replace": "            f\"{version}（{t('diag.sign_in_unknown')}）\",\n",
+    "with": "            f\"{version}（登入狀態不明）\",\n",
+    "test": "tests/test_no_new_hardcoded_chinese.py::test_no_file_gains_new_hardcoded_interface_text"
+  },
+  {
+    "label": "U4 判斷寫成「不是 False 就加註」（每一列都寫著登入狀態不明，包含他五分鐘前才登入的那一支）",
+    "file": "app/services/startup_diagnostics.py",
+    "replace": "    if signed is None:\n        # `_signed_in()`",
+    "with": "    if signed is not False:\n        # `_signed_in()`",
+    "test": "tests/test_a_login_state_we_cannot_read_is_not_drawn_as_signed_in.py::test_a_cli_that_really_is_signed_in_does_not_get_the_note"
+  },
+  {
+    "label": "U5 那句話把版本號擠掉了（他看不出這支 CLI 到底裝好了沒，於是去重裝一個裝好好的東西）",
+    "file": "app/services/startup_diagnostics.py",
+    "replace": "            f\"{version}（{t('diag.sign_in_unknown')}）\",\n",
+    "with": "            t('diag.sign_in_unknown'),\n",
+    "test": "tests/test_a_login_state_we_cannot_read_is_not_drawn_as_signed_in.py::test_the_version_survives_saying_i_cannot_tell"
+  },
+  {
+    "label": "U6 話講了，燈沒改：只加那句字、沒立 `sign_in_unknown`（憑證入口那一頁照樣畫薄荷點——而薄荷點的意思是「你可以按開始執行了」）",
+    "file": "app/services/startup_diagnostics.py",
+    "replace": "            sign_in_unknown=True,\n",
+    "with": "",
+    "test": "tests/test_a_login_state_we_cannot_read_is_not_drawn_as_signed_in.py::test_the_credentials_page_does_not_draw_that_row_as_ready"
+  }
+]

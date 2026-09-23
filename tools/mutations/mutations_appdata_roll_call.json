@@ -1,0 +1,30 @@
+[
+  {
+    "label": "V1 判準改回含右括號的字面比對（`os.environ.get(\"APPDATA\", \"\")` 多一個預設值就整支隱形——這就是 FG19 本身）",
+    "file": "tests/test_your_real_config_stays_yours.py",
+    "replace": "        if RESOLVES_APPDATA.search(source.read_text(encoding=\"utf-8\"))",
+    "with": "        if 'os.environ.get(\"APPDATA\")' in source.read_text(encoding=\"utf-8\")",
+    "test": "tests/test_your_real_config_stays_yours.py::test_the_store_list_covers_every_place_that_reads_appdata"
+  },
+  {
+    "label": "V2 Claude 側邊欄索引改成直接算真實 roaming（測試會把索引檔寫進使用者自己的 %APPDATA%\\Claude\\，而收工比對根本不看那個資料夾）",
+    "file": "app/services/vendor_session_index.py",
+    "replace": "appdata = os.environ.get(\"APPDATA\", \"\")",
+    "with": "appdata = str(Path.home() / \"AppData\" / \"Roaming\")",
+    "test": "tests/test_your_real_config_stays_yours.py::test_every_config_store_lands_in_the_sandbox"
+  },
+  {
+    "label": "V3 清單少一項（清單型檢查的典型失效：剩下的每一條都還會過，而少的那一支正是唯一寫到別家廠商資料夾的）",
+    "file": "tests/test_your_real_config_stays_yours.py",
+    "replace": "    \"vendor_session_index\": lambda: ClaudeSidebarIndex().index_root,\n",
+    "with": "",
+    "test": "tests/test_your_real_config_stays_yours.py::test_the_store_list_covers_every_place_that_reads_appdata"
+  },
+  {
+    "label": "V4 記住的 CLI 路徑落到真實家目錄（它 2026-08-24 之前掛在「什麼都不擁有」那張表上，理由是假的，所以這一刀當時沒有人接得住）",
+    "file": "app/services/cli_discovery.py",
+    "replace": "root = Path(appdata) / \"AIControlCenter\" if appdata else Path.home() / \".aicontrolcenter\"",
+    "with": "root = Path.home() / \".aicontrolcenter\"",
+    "test": "tests/test_your_real_config_stays_yours.py::test_every_config_store_lands_in_the_sandbox"
+  }
+]

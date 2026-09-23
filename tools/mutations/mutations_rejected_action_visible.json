@@ -1,0 +1,37 @@
+[
+  {
+    "label": "R1 拒絕只發訊號不推狀態（他關掉警告框，看到的是一個已經改好的畫面，而引擎裡什麼都沒變）",
+    "file": "app/ui/web_panel.py",
+    "replace": "        self.action_failed.emit(message)\n        self.push_state()",
+    "with": "        self.action_failed.emit(message)",
+    "test": "tests/test_a_rejected_action_is_visible.py::test_reject_pushes_the_real_state_back"
+  },
+  {
+    "label": "R2 陣容頁的失敗又掉進虛空（改名字、選職責失敗都不會有任何反應——正是擋著五節點測試的那兩顆控制項）",
+    "file": "app/ui/main_window.py",
+    "replace": "        signal = getattr(widget, \"action_failed\", None)\n        if signal is not None:",
+    "with": "        signal = getattr(widget, \"action_failed\", None)\n        if signal is not None and False:",
+    "test": "tests/test_a_rejected_action_is_visible.py::test_the_lineup_page_is_one_of_them"
+  },
+  {
+    "label": "R3 只接兩個面板、其他的不接（回到 2026-08-24 之前那個「有兩個被接、一個沒有」的世界）",
+    "file": "app/ui/main_window.py",
+    "replace": "        signal = getattr(widget, \"action_failed\", None)\n        if signal is not None:",
+    "with": "        signal = getattr(widget, \"action_failed\", None)\n        if signal is not None and key in (\"knowledge\", \"documents\"):",
+    "test": "tests/test_a_rejected_action_is_visible.py::test_every_panel_in_the_window_has_somewhere_for_failures_to_go"
+  },
+  {
+    "label": "R4 面板又自己宣告一份 action_failed（各自宣告＝各自被接，而漏掉一個的時候畫面上看不出來）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "class LineupWebPanel(ConversationWebPanel):",
+    "with": "class LineupWebPanel(ConversationWebPanel):\n    action_failed = Signal(str)\n",
+    "test": "tests/test_a_rejected_action_is_visible.py::test_the_base_class_owns_the_signal"
+  },
+  {
+    "label": "R5 有人繞過 reject() 直接發訊號（第十個地方會忘記推狀態，而那正是「按了沒反應」的來源）",
+    "file": "app/ui/knowledge_web_panel.py",
+    "replace": "self.reject(f\"{kind}：{error}\")",
+    "with": "self.action_failed.emit(f\"{kind}：{error}\")",
+    "test": "tests/test_a_rejected_action_is_visible.py::test_nobody_emits_it_directly"
+  }
+]

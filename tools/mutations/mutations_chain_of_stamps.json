@@ -1,0 +1,128 @@
+[
+  {
+    "label": "A1 機器章不再需要證據（「我同意」可以自稱跑過測試——守衛只認機器章，所以這等於守衛消失）",
+    "file": "app/services/approval_chain.py",
+    "replace": "            if not self.evidence.strip():",
+    "with": "            if False:",
+    "test": "tests/test_the_chain_of_stamps_holds.py"
+  },
+  {
+    "label": "A2 審查章可以帶結果（一個人的印象與一次真的執行擠進同一個欄位，而下游只讀那個欄位）",
+    "file": "app/services/approval_chain.py",
+    "replace": "            if self.result is not None:",
+    "with": "            if False:",
+    "test": "tests/test_the_chain_of_stamps_holds.py"
+  },
+  {
+    "label": "A3 內容一改就把所有章一起劃掉（那個看起來最「誠實」的退路，實際上是說謊）",
+    "file": "app/services/approval_chain.py",
+    "replace": "        surviving = {stamp.stamp_id for stamp in self.live(versions)}",
+    "with": "        surviving = set()",
+    "test": "tests/test_the_chain_of_stamps_holds.py"
+  },
+  {
+    "label": "A4 失效不再往上傳（只比對版本碼，於是站在空氣上的章看起來還有效）",
+    "file": "app/services/approval_chain.py",
+    "replace": "            if any(parent not in alive for parent in stamp.depends_on):\n                continue",
+    "with": "            if False:\n                continue",
+    "test": "tests/test_the_chain_of_stamps_holds.py"
+  },
+  {
+    "label": "A5 自己出考卷自己考不再擋（畫面上看起來就是兩個章）",
+    "file": "app/services/approval_chain.py",
+    "replace": "        overlap = sorted(acceptance & did_the_work)",
+    "with": "        overlap = []",
+    "test": "tests/test_the_chain_of_stamps_holds.py"
+  },
+  {
+    "label": "A6 「沒得驗」被當成「驗了但是紅的」（會派人去修一個沒壞的東西）",
+    "file": "app/services/approval_chain.py",
+    "replace": "        failed = tuple(s for s in live if s.result is Result.FAIL)",
+    "with": "        failed = tuple(s for s in live if s.result in (Result.FAIL, Result.GATED))",
+    "test": "tests/test_the_chain_of_stamps_holds.py"
+  },
+  {
+    "label": "A7 版本分岔報成缺章（使用者會再蓋一次，然後得到一模一樣的結果）",
+    "file": "app/services/approval_chain.py",
+    "replace": "            if stale and len(seen) > 1:",
+    "with": "            if False:",
+    "test": "tests/test_the_chain_of_stamps_holds.py"
+  },
+  {
+    "label": "A8 Readiness 長出輪數欄位（有了分母，畫面就會畫成進度條，而走到底的意思是「該放行了」）",
+    "file": "app/services/approval_chain.py",
+    "replace": "    conflicting_role: str = \"\"",
+    "with": "    conflicting_role: str = \"\"\n    round_number: int = 0",
+    "test": "tests/test_the_chain_of_stamps_holds.py"
+  },
+  {
+    "label": "A9 版本碼不再從內容算（改成常數＝所有章永遠有效，整個失效機制是假的）",
+    "file": "app/services/approval_chain.py",
+    "replace": "    return hashlib.sha256(content.encode(\"utf-8\")).hexdigest()",
+    "with": "    return hashlib.sha256(b\"fixed\").hexdigest()",
+    "test": "tests/test_the_chain_of_stamps_holds.py"
+  },
+  {
+    "label": "A10 「實作的章」又把審查章算進去（複查角色既訂標準又簽核＝正確流程，卻會被判成違規）",
+    "file": "app/services/approval_chain.py",
+    "replace": "            if s.subject == SUBJECT_WORK and s.kind is StampKind.MACHINE",
+    "with": "            if s.subject == SUBJECT_WORK",
+    "test": "tests/test_the_chain_of_stamps_holds.py"
+  },
+  {
+    "label": "A11 審查章又可以不寫理由（章回到只能回答「誰、何時、哪一版」，回答不了憑什麼）",
+    "file": "app/services/approval_chain.py",
+    "replace": "            if not self.reasoning.strip():",
+    "with": "            if False:",
+    "test": "tests/test_the_chain_of_stamps_holds.py"
+  },
+  {
+    "label": "A12 機器章也能寫判斷（「跑出來的」與「有人認為的」界線消失）",
+    "file": "app/services/approval_chain.py",
+    "replace": "if self.reasoning.strip():\n                raise ApprovalChainError(\n                    t(\"stamp.machine.no_reasoning\")\n                )",
+    "with": "if False:\n                raise ApprovalChainError(\n                    t(\"stamp.machine.no_reasoning\")\n                )",
+    "test": "tests/test_the_chain_of_stamps_holds.py"
+  },
+  {
+    "label": "A13 理由沒被寫進硬碟（記憶體裡有、檔案裡沒有，而事後回溯讀的是檔案）",
+    "file": "app/services/approval_chain.py",
+    "replace": "        \"reasoning\": stamp.reasoning,",
+    "with": "        \"reasoning\": \"\",",
+    "test": "tests/test_the_chain_of_stamps_holds.py"
+  },
+  {
+    "label": "A14 引擎自己編一句理由，不用複查寫的（紀錄裡出現兩種說法）",
+    "file": "app/core/steps/reviewing.py",
+    "replace": "        str(data.get(\"summary\") or \"\").strip()",
+    "with": "        \"\"",
+    "test": "tests/test_the_run_actually_leaves_stamps.py"
+  },
+  {
+    "label": "A15 驗收標準改拿交付物的版本碼比（兩條版本線合回一條：標準剛訂完、東西一交出來，訂標準那個章當場失效，畫面寫「沒人訂標準」而事實是訂了）",
+    "file": "app/services/approval_chain.py",
+    "replace": "            self.criteria if subject == SUBJECT_ACCEPTANCE else self.deliverable",
+    "with": "            self.deliverable",
+    "test": "tests/test_the_chain_of_stamps_holds.py"
+  },
+  {
+    "label": "A16 驗收標準的版本碼也算進「現場有幾個版本」（任何一次正常執行都會有兩個，於是缺章永遠被報成版本分岔，而使用者照著做永遠不會有效果）",
+    "file": "app/services/approval_chain.py",
+    "replace": "                    if s.subject != SUBJECT_ACCEPTANCE and s.content_digest",
+    "with": "                    if s.content_digest",
+    "test": "tests/test_the_chain_of_stamps_holds.py"
+  },
+  {
+    "label": "A17 重跑之後舊的答案還算數（跑紅了、修好了、再跑綠了，拍板檢查說「有檢查是紅的」——而它講的是已經被修掉的那一次）",
+    "file": "app/services/approval_chain.py",
+    "replace": "            if previous is not None:\n                alive.pop(previous, None)",
+    "with": "            if False:\n                alive.pop(previous, None)",
+    "test": "tests/test_the_chain_of_stamps_holds.py"
+  },
+  {
+    "label": "A18 蓋掉放寬成「同一件事」（複查的章會蓋掉核准的章——兩個都是 work 上的審查章，但它們是兩件完全不同的事）",
+    "file": "app/services/approval_chain.py",
+    "replace": "            key = (stamp.role, stamp.subject, stamp.kind)",
+    "with": "            key = (stamp.subject, stamp.kind)",
+    "test": "tests/test_the_chain_of_stamps_holds.py"
+  }
+]

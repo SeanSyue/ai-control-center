@@ -1,0 +1,390 @@
+/* ==========================================================================
+   AICC 設計系統「星屑 Stardust」— 共用樣式
+   所有面板 HTML 都 <link> 這一份，顏色與元件只在這裡定義一次。
+   Python 端的 theme.py 必須與這裡的 token 同步（建議由同一份 tokens.json 產生）。
+   ========================================================================== */
+
+:root, html[data-mode="night"]{
+  /* 下拉打開後那個小選單是**作業系統畫的**，`select option{...}` 管不到它。
+     沒有這一行，深色介面上會彈出一個白底黑字的清單——在星空背景上等於看不見。
+     這是唯一能告訴渲染層「請用深色的原生控制項」的方法。 */
+  color-scheme:dark;
+  --bg:#0A0E24; --panel:#11162F; --surface:#161C3E; --surface2:#1C2350;
+  --line:#2C3468; --line-soft:#222950;
+  --text:#F0F3FF; --text-2:#B6C0E8; --text-3:#7B85BC;
+
+  --aqua:#4FD1FF; --aqua-hi:#9FE9FF; --violet:#8A7BF0; --violet-hi:#B5AAFF;
+  --gold:#FFD98E; --mint:#5FF0C8; --rose:#FF7BA6;
+
+  --grad-btn:linear-gradient(120deg,#4FD1FF,#8A7BF0);
+  --glow:0 0 0 1px rgba(79,209,255,.30), 0 4px 20px rgba(79,209,255,.28);
+  --glow-gold:0 0 0 1px rgba(255,217,142,.35), 0 4px 22px rgba(255,217,142,.22);
+  --shadow:0 8px 30px rgba(3,6,24,.55);
+
+  --plaid-base:#4A5578; --plaid-line:rgba(255,255,255,.14);
+  --plaid-dark:rgba(8,11,36,.42); --plaid-gold:rgba(255,217,142,.5);
+  --sky:linear-gradient(120deg,#0C1130,#181E52 55%,#123A6E);
+  --star:#FFFFFF; --grid:rgba(255,255,255,.13); --cold:rgba(4,6,20,.42);
+}
+html[data-mode="day"]{
+  color-scheme:light;
+  --bg:#EEF5FC; --panel:#FFFFFF; --surface:#FFFFFF; --surface2:#F4F9FE;
+  --line:#D3E2F1; --line-soft:#E6EFF8;
+  --text:#161C4A; --text-2:#4A5590; --text-3:#8590C0;
+
+  --aqua:#0FA5E0; --aqua-hi:#7FDCFF; --violet:#6E5FE0; --violet-hi:#A79BFF;
+  --gold:#C68F1E; --mint:#10B48A; --rose:#E64B80;
+
+  --grad-btn:linear-gradient(120deg,#0FA5E0,#6E5FE0);
+  --glow:0 0 0 1px rgba(15,165,224,.28), 0 4px 16px rgba(15,165,224,.18);
+  --glow-gold:0 0 0 1px rgba(198,143,30,.3), 0 4px 18px rgba(198,143,30,.15);
+  --shadow:0 8px 26px rgba(22,28,74,.09);
+
+  --plaid-base:#A8BAD4; --plaid-line:rgba(255,255,255,.55);
+  --plaid-dark:rgba(22,28,74,.26); --plaid-gold:rgba(198,143,30,.55);
+  --sky:linear-gradient(120deg,#E9F4FE,#D8E8FB 55%,#C6E4F7);
+  --star:#0FA5E0; --grid:rgba(22,28,74,.16); --cold:rgba(22,28,74,.07);
+}
+
+/* ---------- 基礎 ---------- */
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  font-size:14px;line-height:1.7;-webkit-font-smoothing:antialiased;
+  user-select:none;transition:background .35s}
+h1,h2,h3,h4{margin:0;font-weight:800;line-height:1.35}
+.mono{font-family:"SF Mono",Consolas,monospace}
+a{color:var(--aqua)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px;border:3px solid var(--bg)}
+::-webkit-scrollbar-thumb:hover{background:var(--aqua)}
+
+/* 嵌入模式：掛進 AICC 時側邊欄由原生 Qt 提供 */
+body.embed .side{display:none}
+
+/* ---------- 格紋布料 ---------- */
+.fabric{background-color:var(--plaid-base);
+  background-image:
+    repeating-linear-gradient(90deg,var(--plaid-dark) 0 4px,transparent 4px 13px,var(--plaid-line) 13px 17px,transparent 17px 26px,var(--plaid-dark) 26px 32px,transparent 32px 48px),
+    repeating-linear-gradient(0deg, var(--plaid-dark) 0 4px,transparent 4px 13px,var(--plaid-line) 13px 17px,transparent 17px 26px,var(--plaid-dark) 26px 32px,transparent 32px 48px),
+    repeating-linear-gradient(90deg,var(--plaid-gold) 0 1.5px,transparent 1.5px 96px),
+    repeating-linear-gradient(0deg, var(--plaid-gold) 0 1.5px,transparent 1.5px 96px)}
+.fabric-aqua{--plaid-base:#1E6E9E;--plaid-line:rgba(255,255,255,.28)}
+.fabric-violet{--plaid-base:#4A3E8E;--plaid-line:rgba(255,255,255,.24)}
+.fabric-gold{--plaid-base:#7A6330;--plaid-line:rgba(255,240,200,.28)}
+
+/* ---------- 星屑 ---------- */
+.sparks{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.spark{position:absolute;animation:tw 3.4s ease-in-out infinite}
+@keyframes tw{0%,100%{opacity:.2;transform:scale(.6) rotate(0)}50%{opacity:.95;transform:scale(1.1) rotate(20deg)}}
+
+/* ---------- 頁首 ---------- */
+.page{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.top{padding:18px 30px 16px;background:var(--panel);border-bottom:1px solid var(--line-soft);flex:none}
+.top h1{font-size:1.16rem;margin-bottom:3px}
+.top .lead{color:var(--text-3);font-size:.8rem}
+.top .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.hintline{font-size:.72rem;color:var(--text-3);margin-top:8px}
+
+/* ---------- 按鈕 ---------- */
+.btn{border:0;border-radius:14px;padding:11px 22px;font-family:inherit;font-weight:800;font-size:.83rem;
+  color:#fff;background:var(--grad-btn);box-shadow:var(--glow);cursor:pointer;transition:.2s;white-space:nowrap}
+.btn:hover:not(:disabled){transform:translateY(-2px)}
+.btn:disabled{opacity:.32;cursor:default;box-shadow:none;filter:grayscale(.6)}
+.btn.q{background:transparent;color:var(--text-2);box-shadow:none;border:1px solid var(--line)}
+.btn.q:hover:not(:disabled){border-color:var(--aqua);color:var(--aqua)}
+.btn.gold{background:linear-gradient(115deg,var(--gold),var(--rose));color:#2A1A00;box-shadow:var(--glow-gold)}
+.btn.danger{background:transparent;border:1px solid var(--rose);color:var(--rose);box-shadow:none}
+.btn.sm{padding:7px 15px;font-size:.75rem;border-radius:11px}
+
+/* ---------- 輸入 ---------- */
+.field{position:relative}
+.field.grow{flex:1;min-width:240px}
+.field input,.field select,.field textarea{width:100%;background:var(--surface);border:1px solid var(--line);
+  border-radius:14px;padding:11px 16px;color:var(--text);font-family:inherit;font-size:.88rem;outline:none;transition:.2s}
+.field.ico-l input{padding-left:42px}
+.field input::placeholder{color:var(--text-3)}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--aqua);box-shadow:var(--glow)}
+.field .ico{position:absolute;left:15px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--text-3)}
+.field.sm input{padding:7px 12px;border-radius:11px;font-size:.8rem;background:var(--surface2)}
+.field.sm.ico-l input{padding-left:32px}
+.field.sm .ico{left:11px;width:13px;height:13px}
+/* 全域 select 必須自帶完整外觀。
+   只寫 appearance:none 比什麼都不寫更糟 —— 它保證原生樣式不會來救，
+   於是任何沒被特別上樣式的 select 都會變成深色列上的白框。 */
+select{appearance:none;cursor:pointer;
+  background:var(--surface);color:var(--text);border:1px solid var(--line);
+  border-radius:11px;padding:7px 12px;font-family:inherit;font-size:.85rem;
+  font-weight:700;outline:none}
+select:focus{border-color:var(--aqua);box-shadow:var(--glow)}
+select option{background:var(--panel);color:var(--text)}
+
+/* ---------- chips / badges ---------- */
+.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.chip{font-size:.7rem;font-weight:800;padding:5px 12px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--line);color:var(--text-3);background:transparent;transition:.16s;user-select:none}
+.chip:hover{color:var(--text-2);border-color:var(--text-3)}
+.chip.on{background:var(--grad-btn);border-color:transparent;color:#fff;box-shadow:var(--glow)}
+.chip.toggle.on{background:transparent;border-color:var(--gold);color:var(--gold);box-shadow:none}
+.chips .sep{width:1px;height:16px;background:var(--line);margin:0 2px}
+
+.bdg{font-size:.62rem;font-weight:800;letter-spacing:.06em;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.bdg.grey {background:color-mix(in srgb,var(--text-3) 22%,transparent);color:var(--text-2)}
+.bdg.aqua {background:color-mix(in srgb,var(--aqua)   20%,transparent);color:var(--aqua)}
+.bdg.violet{background:color-mix(in srgb,var(--violet) 24%,transparent);color:var(--violet-hi)}
+.bdg.mint {background:color-mix(in srgb,var(--mint)   20%,transparent);color:var(--mint)}
+.bdg.rose {background:color-mix(in srgb,var(--rose)   20%,transparent);color:var(--rose)}
+.bdg.gold {background:transparent;border:1px solid var(--gold);color:var(--gold)}
+/* 註記，不是狀態 —— 用於「這個值的可信度低一階」這種限定詞。
+   例如推測出來的標題：那不是錯誤，所以不該用警告色，
+   但也不能跟實心的來源標籤長得一樣（那些是事實，這個是限定）。 */
+.bdg.quiet{background:transparent;border:1px dashed var(--line);color:var(--text-3)}
+
+/* ---------- 卡片 / 列 ---------- */
+.card{background:var(--surface);border:1px solid var(--line-soft);border-radius:18px}
+.card.pad{padding:18px 20px}
+.card.on{border-color:var(--aqua);box-shadow:var(--glow)}
+.card.warn{border-color:var(--gold);box-shadow:var(--glow-gold)}
+
+/* 裙襬：卡片底緣露出的格紋 */
+.hemwrap{position:relative;padding-bottom:9px}
+.hemwrap .hem{position:absolute;left:16px;right:16px;bottom:0;height:22px;border-radius:0 0 18px 18px;opacity:.75}
+.hemwrap .body{position:relative;z-index:2}
+
+/* ---------- 區段標題 ---------- */
+.sec{margin-bottom:14px}
+.sec .num{display:inline-block;font-size:.66rem;letter-spacing:.24em;font-weight:800;color:var(--aqua);
+  border-bottom:2px solid var(--aqua);padding-bottom:3px;margin-bottom:10px}
+.sec h2{font-size:1.05rem;margin-bottom:5px}
+.sec p{margin:0;color:var(--text-3);font-size:.8rem}
+
+/* ---------- 空狀態：唯一允許大留白的畫面 ---------- */
+.empty-state{position:relative;flex:1;display:grid;place-items:center;text-align:center;
+  margin:18px 30px 22px;border-radius:22px;overflow:hidden;background:var(--sky);border:1px solid var(--line-soft)}
+.empty-state .in{position:relative;padding:40px 24px}
+.empty-state h2{font-size:1.3rem;margin-bottom:10px}
+.empty-state p{color:var(--text-2);max-width:46ch;margin:0 auto 22px;font-size:.88rem}
+
+/* ---------- 開關 ---------- */
+.sw{position:relative;width:44px;height:24px;border-radius:999px;background:var(--line);
+  cursor:pointer;transition:.22s;flex:none}
+.sw::after{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;
+  background:var(--text-3);transition:.22s}
+.sw.on{background:var(--grad-btn);box-shadow:var(--glow)}
+.sw.on::after{left:23px;background:#fff}
+
+/* ---------- 下拉選單 ----------
+   動作一多就不能全部攤成按鈕。同一類收進一個選單，
+   按鈕名稱講「這一類是什麼」，選項講「做什麼」。 */
+.menu{position:relative;display:inline-block}
+.menu>.btn::after{content:"▾";margin-left:7px;opacity:.7;font-size:.85em}
+.menu .items{position:absolute;top:calc(100% + 6px);left:0;z-index:50;min-width:216px;
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px;
+  box-shadow:var(--shadow);opacity:0;visibility:hidden;transform:translateY(-4px);transition:.15s}
+.menu.open .items{opacity:1;visibility:visible;transform:translateY(0)}
+.menu .items.right{left:auto;right:0}
+.menu .items button{display:block;width:100%;text-align:left;border:0;background:transparent;
+  color:var(--text-2);font-family:inherit;font-size:.82rem;font-weight:600;
+  padding:9px 12px;border-radius:10px;cursor:pointer;transition:.14s}
+.menu .items button:hover:not(:disabled){background:var(--surface2);color:var(--text)}
+.menu .items button:disabled{opacity:.35;cursor:default}
+.menu .items button small{display:block;font-weight:500;font-size:.7rem;color:var(--text-3);margin-top:1px}
+.menu .items .sep{height:1px;background:var(--line-soft);margin:5px 8px}
+.menu .items .lbl{font-size:.64rem;letter-spacing:.14em;color:var(--text-3);font-weight:800;padding:8px 12px 4px}
+
+/* ---------- 破壞性動作：兩段式確認 ----------
+   不開對話框，按鈕自己變成確認鍵。移開滑鼠或按 Esc 就取消。 */
+.btn.danger.armed{background:var(--rose);color:#2A0A14;border-color:var(--rose);
+  box-shadow:0 0 0 1px var(--rose),0 4px 18px color-mix(in srgb,var(--rose) 40%,transparent)}
+
+/* ---------- 編輯狀態 ----------
+   唯讀與可編輯必須一眼分得出來，不能只靠游標形狀。 */
+.editing{background:color-mix(in srgb,var(--aqua) 7%,var(--surface));
+  box-shadow:inset 3px 0 0 var(--aqua)}
+.editing-flag{display:inline-flex;align-items:center;gap:6px;font-size:.64rem;font-weight:800;
+  letter-spacing:.1em;padding:3px 10px;border-radius:999px;
+  background:var(--grad-btn);color:#fff;box-shadow:var(--glow)}
+.editing-flag::before{content:"";width:6px;height:6px;border-radius:50%;background:#fff;
+  animation:pulse-dot 1.8s ease-in-out infinite}
+@keyframes pulse-dot{0%,100%{opacity:.45}50%{opacity:1}}
+textarea.editor{width:100%;min-height:100%;resize:none;border:0;outline:none;background:transparent;
+  color:var(--text-2);font-family:"SF Mono",Consolas,monospace;font-size:.8rem;line-height:1.85}
+
+/* ---------- 任務輸入列 ----------
+   有些動作要先知道「你現在在做什麼」才有意義（相關片段、啟動提示）。 */
+.taskbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;padding:11px 16px;
+  background:var(--surface2);border-bottom:1px solid var(--line-soft)}
+.taskbar .field{flex:1;min-width:180px}
+.taskbar .field input{padding:8px 13px;border-radius:11px;font-size:.82rem;background:var(--surface)}
+
+/* ---------- 工具列分隔 ---------- */
+.bar-sep{width:1px;height:20px;background:var(--line);margin:0 3px;flex:none}
+
+/* ==========================================================================
+   SHELL —— 側邊欄 ＋ 執行控制列 ＋ 決策橫幅
+   由 shell.js 產生，六頁共用同一份程式碼。
+   「六頁像素一致」不是靠六份複製品保持紀律，是靠只有一份。
+   ========================================================================== */
+/* 外框是它自己的 QWebEngineView（shell.html），不住在任何一頁裡。
+   所以這裡不需要 fixed 定位，也不需要幫頁面留位置 —— Qt 的版面配置負責那件事。
+   為什麼不用原生 QSS 畫側邊欄：作用中項目同時要漸層與雙層陰影，
+   QSS 沒有 box-shadow，QGraphicsDropShadowEffect 一個 widget 也只能掛一個。 */
+
+/* ---------- 側邊欄 ---------- */
+.shell-side{width:100%;height:100vh;
+  background:var(--panel);border-right:1px solid var(--line-soft);display:flex;flex-direction:column}
+.shell-side .brand{display:flex;align-items:center;gap:10px;padding:20px 20px 18px;font-weight:800;flex:none}
+.shell-side .brand .orb{width:13px;height:13px;border-radius:50%;background:var(--grad-btn);
+  box-shadow:var(--glow);flex:none}
+.shell-side .brand b{font-size:1rem;letter-spacing:.04em}
+.shell-side .brand small{display:block;font-size:.62rem;letter-spacing:.16em;color:var(--text-3);font-weight:600}
+.shell-side nav{padding:6px 12px;flex:1;overflow-y:auto}
+.shell-nv{display:flex;align-items:center;gap:11px;padding:11px 14px;border-radius:12px;color:var(--text-2);
+  font-weight:600;font-size:.88rem;margin-bottom:3px;transition:.18s;cursor:pointer;user-select:none}
+.shell-nv:hover{background:var(--surface2);color:var(--text)}
+.shell-nv.act{background:var(--grad-btn);color:#fff;box-shadow:var(--glow)}
+.shell-nv .ic{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.7;flex:none}
+.shell-nv .badge{margin-left:auto;font-size:.66rem;font-weight:800;padding:1px 8px;border-radius:999px;
+  background:color-mix(in srgb,var(--gold) 26%,transparent);color:var(--gold)}
+/* 分組界線：畫在項目上方而不是用 border-top，
+   因為項目本身是圓角的，直接加邊會跟圓角打架。 */
+.shell-nv.group-start{margin-top:17px;position:relative}
+.shell-nv.group-start::before{content:"";position:absolute;left:2px;right:2px;top:-9px;
+  height:1px;background:var(--line-soft)}
+.shell-nv.act .badge{background:rgba(255,255,255,.24);color:#fff}
+.shell-side .hem{height:74px;opacity:.5;flex:none}
+
+/* ---------- 執行控制列 ----------
+   屬於外框，不屬於任何一頁 —— 在「文件」頁一樣要能開始執行、一樣要看到在跑什麼。 */
+.shell-top{background:var(--panel);border-bottom:1px solid var(--line-soft)}
+/* 這一列**不可以** overflow:hidden：它裡面有一顆往下展開的選單，而
+   overflow 是先裁再談 z-index——裁掉之後 z-index:50 一點用都沒有。
+   2026-08-22 實測：那顆選單按得下去、選單也真的打開了，只是整片在 64px
+   以下被切光，畫面上看起來就像「按了沒反應」。
+   需要裁的東西（過長的專案路徑）自己有 overflow，不靠這一層。 */
+.shell-exec{display:flex;align-items:center;gap:12px;padding:0 22px;height:64px;flex-wrap:nowrap}
+.shell-exec .proj{display:flex;align-items:center;gap:10px;min-width:0}
+/* 兩顆 select（專案、敏感度）共用同一條規則。
+   原本只寫 .proj select，敏感度那顆漏在外面。 */
+.shell-exec select{max-width:220px}
+.shell-exec .path{font-size:.7rem;color:var(--text-3);font-family:"SF Mono",Consolas,monospace;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px}
+.shell-exec .spacer{margin-left:auto}
+.shell-exec .status{display:flex;align-items:center;gap:9px;font-size:.82rem;font-weight:700;white-space:nowrap}
+.shell-exec .status .k{width:9px;height:9px;border-radius:50%;background:var(--text-3);flex:none}
+.shell-exec .status.running .k{background:var(--aqua);box-shadow:0 0 11px var(--aqua);
+  animation:pulse-dot 1.7s ease-in-out infinite}
+/* 金色有兩種，靠「會不會動」分辨，不靠顏色：
+     gated   有人在等你回答 → 脈動
+     partial 已經結束、沒人在等 → 靜止
+   兩者都是「需要你注意」所以同色是對的；差別在還有沒有東西在等，
+   而那件事用動態講最快 —— 會動的東西看起來就是還沒結束。 */
+.shell-exec .status.gated .k{background:var(--gold);box-shadow:0 0 11px var(--gold);
+  animation:pulse-dot 2.3s ease-in-out infinite}
+.shell-exec .status.error .k{background:var(--rose);box-shadow:0 0 11px var(--rose)}
+/* 完成用薄荷色 —— 沒有這一條的話「跑完了」和「還沒跑」都是灰點，長得一樣 */
+.shell-exec .status.done .k{background:var(--mint);box-shadow:0 0 11px var(--mint)}
+.shell-exec .status.done{color:var(--mint)}
+.shell-exec .status .t{font-family:"SF Mono",Consolas,monospace;color:var(--text-3);font-weight:600}
+.shell-exec .drive{font-size:.7rem;color:var(--text-3);white-space:nowrap}
+/* 唯讀陣容摘要：按下「開始執行」前最後一眼 */
+.shell-exec .lineup{font-size:.74rem;font-weight:800;color:var(--text-3);white-space:nowrap;
+  padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);
+  cursor:pointer;transition:.16s}
+.shell-exec .lineup:hover{border-color:var(--aqua)}
+.shell-exec .lineup i{font-style:normal;opacity:.5;margin:0 5px}
+/* 正在跑的那一格亮起來 —— 「現在跑到哪」用位置講比用文字講快 */
+.shell-exec .lineup b.on{color:var(--aqua);text-shadow:0 0 10px var(--aqua)}
+
+/* 階段細節：狀態文字之外的補充，永遠是次要的，過長就截斷。
+   與用量共用同一格，但兩者**不是**互斥的：
+     執行中          → 只有階段細節（那時候還沒有用量可以算）
+     終結狀態        → 兩者並列，例如「Codex 要求 Claude 修正 · 這次執行：至少 27,000」
+   共用同一格是為了不佔新寬度，不是因為它們不會同時出現。 */
+.shell-exec .stage{font-size:.72rem;color:var(--text-3);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;max-width:230px}
+
+/* 用量：一行字，沒有金額、沒有進度條、沒有分母。
+   「至少」與數字同一個字重 —— 灰色小字的修飾語會被跳過，
+   使用者只會讀到那個數字，而那正是我們最不想發生的誤讀。 */
+.shell-exec .usage{font-size:.72rem;color:var(--text-3);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;max-width:280px}
+.shell-exec .usage b{color:var(--text-2);font-weight:800}
+.shell-exec .usage.dev{font-style:normal;opacity:.75}
+/* 異常高用量：金色（要注意），不是玫瑰色（那代表失敗，而這次其實成功了） */
+.shell-exec .usage.spike{color:var(--gold)}
+.shell-exec .usage.spike b{color:var(--gold)}
+/* 終結狀態時「原因」與「用量」並列。原因不截斷，用量不夠寬才讓步。 */
+.shell-exec .sep{color:var(--text-3);opacity:.5;margin:0 6px;font-size:.72rem}
+.shell-exec .stage{flex:none}
+.shell-exec .usage{min-width:0}
+/* 「跑完了但有狀況」—— 不是完成、也不是失敗，而且沒人在等 → 不脈動 */
+.shell-exec .status.partial .k{background:var(--gold);box-shadow:0 0 11px var(--gold);
+  animation:none}
+.shell-exec .status.partial{color:var(--gold)}
+
+/* ---------- 決策橫幅 ----------
+   A-2：這一條永遠不可收合、不可摺疊。
+   AI 停下來等人，而人沒看到，等於白等 —— 這是整個產品最重要的狀態。 */
+.shell-gate{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 26px;
+  color:#2A1A00;font-weight:800;background:linear-gradient(110deg,var(--gold),#FFC0D4);
+  box-shadow:var(--glow-gold)}
+.shell-gate .txt{flex:1;min-width:200px;font-size:.88rem}
+.shell-gate .txt small{display:block;font-weight:600;opacity:.72;font-size:.73rem}
+.shell-gate button{border:0;border-radius:999px;padding:8px 18px;font-family:inherit;
+  font-weight:800;font-size:.79rem;cursor:pointer}
+.shell-gate .y{background:#1B1030;color:#fff}
+.shell-gate .n{background:rgba(27,16,48,.16);color:#2A1A00}
+
+/* ---------- 執行中橫幅（ROADMAP P4）----------
+   它回答的是「還有哪些專案有事」，決策橫幅回答的是「這一個要你現在回答」。
+   兩件不同的事，所以排在決策橫幅**下面**：反過來的話，環顧四周會排在
+   被點名前面。
+
+   狀態點沿用執行列那一組顏色與脈動規則，一個字都不改：
+     金色會脈動 = 停下來等人   玫瑰不動 = 上一輪壞了   水藍脈動 = 在跑
+   **同一個狀態在兩個地方長得不一樣，比沒有顏色更糟**——使用者會以為那是
+   兩種不同的狀況，然後花時間去找差在哪裡。
+
+   一列到底、會換行。它不是清單，是一行掃過去的東西：閒置的專案本來就不在
+   裡面，所以它的長度跟著「有事的專案數」長，不是跟著專案數長。 */
+.shell-act{display:flex;align-items:center;flex-wrap:wrap;
+  padding:6px 20px;background:var(--surface);border-top:1px solid var(--line-soft)}
+.shell-act .it{display:flex;align-items:center;gap:8px;min-width:0;max-width:330px;
+  padding:4px 11px;margin:2px;border-radius:999px;cursor:pointer;
+  font-size:.74rem;color:var(--text-2)}
+.shell-act .it:hover{background:var(--surface2)}
+.shell-act .it .k{width:7px;height:7px;border-radius:50%;flex:none;background:var(--text-3)}
+.shell-act .it.waiting .k{background:var(--gold);box-shadow:0 0 8px var(--gold);
+  animation:pulse-dot 2.3s ease-in-out infinite}
+.shell-act .it.error .k{background:var(--rose);box-shadow:0 0 8px var(--rose)}
+.shell-act .it.running .k{background:var(--aqua);box-shadow:0 0 8px var(--aqua);
+  animation:pulse-dot 1.7s ease-in-out infinite}
+.shell-act .it .n{font-weight:800;color:var(--text);white-space:nowrap;flex:none}
+/* stage 是自由文字而且會很長（「Codex 執行失敗」那種訊息本身）。
+   截斷交給 CSS，不要指望推過來的字夠短。 */
+.shell-act .it .s{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+/* 已經在螢幕上的那一個畫淡 —— 但**不從列裡拿掉**：拿掉的話使用者正看著的
+   專案會憑空消失，數字也少一個，看起來像剛剛處理完了。 */
+.shell-act .it.here{opacity:.55}
+
+/* ---------- 模式切換鈕 ---------- */
+.modebtn{position:fixed;right:18px;bottom:18px;z-index:60;border:0;border-radius:999px;padding:11px 20px;
+  font-family:inherit;font-weight:800;font-size:.78rem;color:#fff;background:var(--grad-btn);
+  box-shadow:var(--glow);cursor:pointer}
+
+/* 敏感度那個值「是怎麼來的」。**兩種看得見，而且刻意長得不一樣**——
+   `unreadable` 是玫瑰色的 ⚠：它要擋的是「隨手改低」那個動作，而那一改，
+   客戶專案的逐字紀錄就開始往外同步。
+   `default` 是灰色虛線的 ·：它不喊危險，只說「這個值不是你給的」。
+   （2026-08-25 之前這裡寫著「default 不危險，只寫在 title 裡」，
+   而那句話在 default 拿到記號的同一天就過期了——**一句過期的註解，
+   讀起來跟一句還成立的一模一樣**。） */
+.sens-why{margin-left:-4px;font-size:.8rem;line-height:1;cursor:help;user-select:none}
+.sens-why.sens-unreadable{color:var(--rose);text-shadow:0 0 6px var(--rose)}
+/* 「這個值不是你給的」。灰色虛線，不是警告色——對一個真的是個人的專案，
+   `personal` 完全正確，給它金色會變成一個永遠在喊狼來了的記號。
+   虛線在這套語言裡已經是「推測出來的，不是讀到的」（見 .bdg.quiet）。 */
+.sens-why.sens-default{color:var(--text-3);border-bottom:1px dashed var(--text-3);
+  padding-bottom:1px}

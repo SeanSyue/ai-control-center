@@ -1,0 +1,37 @@
+[
+  {
+    "label": "N8-1 佇列的動作又收不到（畫面做出五顆控制項，按下去什麼都沒發生——跟今天陣容頁那個 bug 一模一樣）",
+    "file": "app/ui/dashboard_web_panel.py",
+    "replace": "        if kind in QUEUE_ACTIONS:\n            self._queue_action(kind, arg)",
+    "with": "        if kind in QUEUE_ACTIONS:\n            return",
+    "test": "tests/test_the_queue_controls_reach_the_engine.py::test_adding_and_removing_reach_the_store"
+  },
+  {
+    "label": "N8-2 改完佇列不告訴排程器（他按了恢復，佇列還在那裡，而什麼都沒有開始跑）",
+    "file": "app/ui/dashboard_web_panel.py",
+    "replace": "        self.refresh(self._projects)\n        self.queue_capacity_available.emit()",
+    "with": "        self.refresh(self._projects)",
+    "test": "tests/test_the_queue_controls_reach_the_engine.py::test_every_queue_action_tells_the_scheduler"
+  },
+  {
+    "label": "N8-3 不是數字的上限直接丟例外（動作處理器炸掉，而使用者按下去會看到什麼沒有人保證）",
+    "file": "app/ui/dashboard_web_panel.py",
+    "replace": "        elif kind == \"queue_limit\":\n            try:\n                limit = int(arg)\n            except (TypeError, ValueError):\n                # 送過來的不是數字**就不要動它，也不准炸**。\n                #\n                # 這裡本來的說明寫著「存一個 0 進去的話那個清單永遠沒有\n                # 位子」——**那句話是錯的**：`set_concurrency_limit` 自己\n                # 夾在 1~5。（負向驗證那一條是綠的才發現。）\n                #\n                # 真正的風險是這是一個**動作處理器**：從畫面按下去然後在\n                # Python 這一側丟例外，使用者看到什麼沒有人保證。\n                return\n            store.set_concurrency_limit(limit)",
+    "with": "        elif kind == \"queue_limit\":\n            store.set_concurrency_limit(int(arg))",
+    "test": "tests/test_the_queue_controls_reach_the_engine.py::test_a_limit_that_is_not_a_number_does_not_blow_up"
+  },
+  {
+    "label": "N8-4 路徑跟名字對不齊（他按第二列的移除，被移掉的是第三個）",
+    "file": "app/ui/dashboard_web_panel.py",
+    "replace": "        queue_paths = list(queue_state.queued_paths)",
+    "with": "        queue_paths = sorted(queue_state.queued_paths)",
+    "test": "tests/test_the_queue_controls_reach_the_engine.py::test_the_paths_stay_lined_up_with_the_names"
+  },
+  {
+    "label": "N8-5 畫面不知道佇列暫停了（那幾列看起來隨時會自己開始，而它們不會）",
+    "file": "app/ui/dashboard_web_panel.py",
+    "replace": "            \"queue_paused\": queue_state.paused,",
+    "with": "            \"queue_paused\": False,",
+    "test": "tests/test_the_queue_controls_reach_the_engine.py::test_the_page_is_told_whether_the_queue_is_paused"
+  }
+]

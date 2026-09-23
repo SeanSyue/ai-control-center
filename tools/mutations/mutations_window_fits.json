@@ -1,0 +1,23 @@
+[
+  {
+    "label": "W1 內容欄又要求比出廠視窗更高（整個內容欄進外層捲軸：使用者看不到頁尾那顆按鈕，而決策橫幅一捲就消失）",
+    "file": "app/ui/main_window.py",
+    "replace": "        self.page_stack = QStackedWidget()",
+    "with": "        self.page_stack = QStackedWidget()\n        self.page_stack.setMinimumHeight(760)",
+    "test": "tests/test_the_window_fits_what_it_ships_with.py::test_the_content_column_does_not_force_the_outer_scrollbar"
+  },
+  {
+    "label": "W2 出廠視窗大小被改小而沒有人發現（預算跟著縮，而每一頁都還是原來那麼高）",
+    "file": "app/ui/main_window.py",
+    "replace": "    FACTORY_SIZE = (980, 720)",
+    "with": "    FACTORY_SIZE = (980, 200)",
+    "test": "tests/test_the_window_fits_what_it_ships_with.py::test_no_single_page_is_over_budget_on_its_own"
+  },
+  {
+    "label": "W4 某一頁自己就塞不下而沒有人點名（它沒有被包進自己的捲軸，所以直接撐開外層）",
+    "file": "app/ui/main_window.py",
+    "replace": "        self.output.setFont(QFont(\"Consolas\", 10))",
+    "with": "        self.output.setFont(QFont(\"Consolas\", 10))\n        self.output.setMinimumHeight(900)",
+    "test": "tests/test_the_window_fits_what_it_ships_with.py::test_no_single_page_is_over_budget_on_its_own"
+  }
+]

@@ -1,0 +1,107 @@
+[
+  {
+    "label": "L1 模式檔整份讀不出來時當成「這台機器還沒存過模式」（他存一份新的，畫面說已儲存，而他存過的每一份在那一刻從硬碟上消失）",
+    "file": "app/services/lineup_presets.py",
+    "replace": "            raise PresetFileUnreadable(f\"{self.path}: {exc}\") from exc",
+    "with": "            return None",
+    "test": "tests/test_a_mode_file_this_build_cannot_parse_is_not_overwritten.py"
+  },
+  {
+    "label": "L2 形狀不對的模式檔（鍵名換過而版本號沒跳）被當成空的蓋掉（同上，只是它讀得完 JSON）",
+    "file": "app/services/lineup_presets.py",
+    "replace": "            raise PresetFileUnreadable(\n                f\"{self.path}: no readable 'presets' list in this file\"\n            )",
+    "with": "            return None",
+    "test": "tests/test_a_mode_file_this_build_cannot_parse_is_not_overwritten.py"
+  },
+  {
+    "label": "L3 存檔那條路不問「這份檔案讀得懂嗎」（版本號那道門讀不到欄位，對壞掉的檔案是開的）",
+    "file": "app/services/lineup_presets.py",
+    "replace": "        self._refuse_if_unreadable()\n        self._refuse_if_newer()\n        payload = {",
+    "with": "        self._refuse_if_newer()\n        payload = {",
+    "test": "tests/test_a_mode_file_this_build_cannot_parse_is_not_overwritten.py"
+  },
+  {
+    "label": "L4 刪除那條路不問（回 False → 呼叫端翻成「找不到那個模式」，而它就在那份檔案裡）",
+    "file": "app/services/lineup_presets.py",
+    "replace": "        self._refuse_if_unreadable()\n        self._refuse_if_newer()\n        clean = name.strip()",
+    "with": "        self._refuse_if_newer()\n        clean = name.strip()",
+    "test": "tests/test_a_mode_file_this_build_cannot_parse_is_not_overwritten.py::test_deleting_from_an_unparsable_file_does_not_say_it_was_never_there"
+  },
+  {
+    "label": "L5 擋下來了卻沒有講（他按「存成模式」，沒有訊息、沒有變化、也沒有存進去——跟存好了長得一模一樣）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "        except PresetFileUnreadable as exc:\n            self.reject(f\"{t('file.unreadable')}\\n\\n{exc}\")\n            return",
+    "with": "        except PresetFileUnreadable:\n            return",
+    "test": "tests/test_a_mode_file_this_build_cannot_parse_is_not_overwritten.py::test_the_page_says_why_the_mode_could_not_be_saved"
+  },
+  {
+    "label": "L6 存一份模式時拿「讀得出來的那幾份」整份覆寫（同版本、某一筆讀不出來的那一筆被順手刪掉，該次回報成功）",
+    "file": "app/services/lineup_presets.py",
+    "replace": "            \"presets\": _with_unreadable_back(\n                [p.to_dict() for p in others] + [preset.to_dict()], lost\n            ),",
+    "with": "            \"presets\": [p.to_dict() for p in others] + [preset.to_dict()],",
+    "test": "tests/test_a_mode_this_build_cannot_read_stays_on_disk.py::test_saving_a_mode_does_not_delete_the_one_this_build_cannot_read"
+  },
+  {
+    "label": "L7 有讀不出來的一筆時 delete() 照樣回 False（「沒有那個模式」是假話——它在檔案裡，只是這一版讀不出它的形狀）",
+    "file": "app/services/lineup_presets.py",
+    "replace": "            raise PresetEntryUnreadable(\n                f\"{self.path}: {len(lost)} unreadable preset entry/entries\"\n            )",
+    "with": "            pass",
+    "test": "tests/test_a_mode_this_build_cannot_read_stays_on_disk.py::test_deleting_does_not_claim_the_mode_was_never_there"
+  },
+  {
+    "label": "S1 陣容頁寫回硬碟時不帶讀不出來的那幾格（他綁一段對話，另一格在那一刻從 sessions.json 上被刪掉，畫面什麼都不會說）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "        self._lineup = Lineup(self._lineup.slots, self._unreadable)",
+    "with": "        self._lineup = Lineup(self._lineup.slots, ())",
+    "test": "tests/test_binding_a_conversation_keeps_the_seat_it_cannot_draw.py"
+  },
+  {
+    "label": "S2 換專案時沒有跟著換那幾格（B 專案的檔案裡多出一格他從來沒排過、而且這一版還畫不出來的位子）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "        self._unreadable = lineup.unreadable",
+    "with": "        self._unreadable = self._unreadable or lineup.unreadable",
+    "test": "tests/test_binding_a_conversation_keeps_the_seat_it_cannot_draw.py::test_switching_projects_does_not_carry_a_seat_into_the_wrong_file"
+  },
+  {
+    "label": "S3 讀檔時把讀不出來的那一格直接丟掉（原本的那個 bug：讀進來再存回去，每跑一次少一格）",
+    "file": "app/core/lineup.py",
+    "replace": "        return cls(tuple(slots), tuple(lost))",
+    "with": "        return cls(tuple(slots))",
+    "test": "tests/test_a_seat_this_build_cannot_read_is_not_erased.py"
+  },
+  {
+    "label": "S4 寫回檔案時不把那幾格接回去（留著它只在記憶體裡，硬碟上照樣少一格）",
+    "file": "app/core/lineup.py",
+    "replace": "        for lost in self.unreadable:\n            rows.insert(max(0, min(lost.index, len(rows))), lost.entry())",
+    "with": "        pass",
+    "test": "tests/test_a_seat_this_build_cannot_read_is_not_erased.py::test_a_seat_this_build_cannot_read_is_still_in_the_file_after_a_save"
+  },
+  {
+    "label": "S5 整份都讀不出來時被當成「這裡沒有陣容」（上層改用出廠兩人陣容並寫回去——他排的每一格在那一刻消失，畫面上是一份很正常的預設陣容）",
+    "file": "app/core/lineup.py",
+    "replace": "        return bool(self.slots or self.unreadable)",
+    "with": "        return bool(self.slots)",
+    "test": "tests/test_a_seat_this_build_cannot_read_is_not_erased.py::test_a_line_up_nobody_can_read_is_not_replaced_by_the_factory_pair"
+  },
+  {
+    "label": "S6 有一格讀不出來時照樣把驗簽章交給「最後一格」（實測會掉到做事的那一格，變成自己驗自己的鏈，而那是一次正常的完成）",
+    "file": "app/core/lineup.py",
+    "replace": "    if getattr(lineup, \"unreadable\", ()):\n        return \"\"\n    slots = list(lineup)",
+    "with": "    slots = list(lineup)",
+    "test": "tests/test_a_seat_this_build_cannot_read_is_not_erased.py::test_the_chain_is_not_certified_by_whoever_happens_to_be_last"
+  },
+  {
+    "label": "S7 有一格讀不出來時照樣挑「第一個不做事的節點」訂驗收標準（訂標準的權限換給一個他從來沒排成那個角色的人，畫面上看不出來）",
+    "file": "app/core/lineup.py",
+    "replace": "    if getattr(lineup, \"unreadable\", ()):\n        return \"\"\n    for slot in lineup:",
+    "with": "    for slot in lineup:",
+    "test": "tests/test_a_seat_this_build_cannot_read_is_not_erased.py::test_the_bar_is_not_set_by_a_seat_the_user_never_chose"
+  },
+  {
+    "label": "S8 匯入別台機器的專案時經過 Lineup 來回一趟（最可能遇到讀不出來那一格的路，而那一格會在匯入的當下被永久刪掉，畫面寫的是「匯入成功」）",
+    "file": "app/services/workspace_portability.py",
+    "replace": "        entries = payload.get(\"lineup\")\n        if isinstance(entries, list):",
+    "with": "        entries = [s.to_dict() for s in registry.load_lineup()]\n        payload[\"lineup\"] = entries\n        if isinstance(entries, list):",
+    "test": "tests/test_a_seat_this_build_cannot_read_is_not_erased.py::test_carrying_the_project_to_a_new_machine_keeps_the_seat_it_cannot_read"
+  }
+]

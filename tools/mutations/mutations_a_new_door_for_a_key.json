@@ -1,0 +1,51 @@
+[
+  {
+    "label": "W1 別的模組長出一扇收 key 的門（AICC 從「帶路的手」變成「保管的人」，而畫面上只是多了一格輸入框——而他說過這件事要先討論）",
+    "file": "app/core/lineup.py",
+    "replace": "CREDENTIAL_API_KEY = \"api_key\"",
+    "with": "CREDENTIAL_API_KEY = \"api_key\"\n\n\ndef save_api_key(provider: str, api_key: str) -> None:\n    raise NotImplementedError",
+    "test": "tests/test_no_new_door_opens_for_an_api_key.py::test_no_new_door_opens_for_an_api_key"
+  },
+  {
+    "label": "W2 掃描縮回 app/ 第一層（門都在 app/services/ 底下，所以縮掉之後這條檢查一句話都不會說）",
+    "file": "tests/test_no_new_door_opens_for_an_api_key.py",
+    "replace": "    return [p for p in sorted(APP.rglob(\"*.py\")) if \"__pycache__\" not in p.parts]",
+    "with": "    return [p for p in sorted(APP.glob(\"*.py\")) if \"__pycache__\" not in p.parts]",
+    "test": "tests/test_no_new_door_opens_for_an_api_key.py::test_the_scan_really_walks_the_whole_app"
+  },
+  {
+    "label": "W3 白名單上留一列指不到東西的放行（過期的放行＝替下一個人先開好一扇門，因為那個名字哪天被別人拿去用就直接是綠的）",
+    "file": "tests/test_no_new_door_opens_for_an_api_key.py",
+    "replace": "    \"app/services/line_notifier.py::clear_credentials\": (",
+    "with": "    \"app/services/line_notifier.py::clear_credential\": (",
+    "test": "tests/test_no_new_door_opens_for_an_api_key.py::test_every_excuse_still_points_at_something_real"
+  },
+  {
+    "label": "W4 放行的理由被清空（「這張表存在的全部意義是讓人停下來」，而一列沒有理由的放行讓人停不下來）",
+    "file": "tests/test_no_new_door_opens_for_an_api_key.py",
+    "replace": "        \"只回一個 True／False 給設定頁畫「已設定／未設定」，不碰內容本身\"",
+    "with": "        \"\"",
+    "test": "tests/test_no_new_door_opens_for_an_api_key.py::test_every_excuse_says_who_said_yes"
+  },
+  {
+    "label": "W5 設定物件多一個欄位（**這個程式碼庫最可能長出那扇門的形狀**——設定是 dataclass，加一格設定的自然寫法是加欄位不是加函式。2026-08-24 覆核實測：第一版掃到參數就停了，這一刀當時是綠的）",
+    "file": "app/core/lineup.py",
+    "replace": "    credential: str = \"\"",
+    "with": "    credential: str = \"\"\n    api_key: str = \"\"",
+    "test": "tests/test_no_new_door_opens_for_an_api_key.py::test_no_new_door_opens_for_an_api_key"
+  },
+  {
+    "label": "W6 把 key 掛到實例上（`self.access_token = ...`，沒有型別標註、沒有同名參數——一樣是一個收得下憑證的位置）",
+    "file": "app/services/ai_settings.py",
+    "replace": "            self.global_dir = Path.home() / \".aicontrolcenter\"",
+    "with": "            self.global_dir = Path.home() / \".aicontrolcenter\"\n            self.access_token = \"\"",
+    "test": "tests/test_no_new_door_opens_for_an_api_key.py::test_no_new_door_opens_for_an_api_key"
+  },
+  {
+    "label": "W7 掃描縮回「參數為止」（拿掉掃欄位那一段——W5／W6 那兩刀立刻變成綠的。接住它的是白名單上那三列欄位：它們指不到東西了）",
+    "file": "tests/test_no_new_door_opens_for_an_api_key.py",
+    "replace": "            if isinstance(node, ast.AnnAssign):\n                slot = _slot(node.target)\n                if slot and _smells(slot):",
+    "with": "            if isinstance(node, ast.AnnAssign):\n                slot = \"\"\n                if slot and _smells(slot):",
+    "test": "tests/test_no_new_door_opens_for_an_api_key.py::test_every_excuse_still_points_at_something_real"
+  }
+]

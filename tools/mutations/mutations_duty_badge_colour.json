@@ -1,0 +1,44 @@
+[
+  {
+    "label": "B1 職責又被上色（改成下拉之後換成 class 上色，同一個顏色在同一頁上講三件事，而唯一要緊的「會不會動我的檔案」消失在另外三個裡面）",
+    "file": "app/ui/web/lineup_v1.html",
+    "replace": "<select data-duty=\"${i}\" title=",
+    "with": "<select data-duty=\"${i}\" class=\"${s.can_write?'aqua':'grey'}\" title=",
+    "test": "tests/test_duty_badges_are_all_the_same_colour.py::test_the_duty_badge_is_never_aqua"
+  },
+  {
+    "label": "B2 「會寫檔案」那個標籤被拿掉（四種職責變成畫面上完全一樣，使用者再也看不出哪一格會動他的檔案）",
+    "file": "app/ui/web/lineup_v1.html",
+    "replace": "      ${s.writes_files?`<span class=\"bdg grey\" `",
+    "with": "      ${false?`<span class=\"bdg grey\" `",
+    "test": "tests/test_duty_badges_are_all_the_same_colour.py::test_the_writing_seat_gets_its_own_badge"
+  },
+  {
+    "label": "B3 那個標籤自己給了顏色（「零新增視覺語彙」失效——這一頁每個顏色都已經有主人了）",
+    "file": "app/ui/web/lineup_v1.html",
+    "replace": "      ${s.writes_files?`<span class=\"bdg grey\" `",
+    "with": "      ${s.can_write?`<span class=\"bdg rose\" `",
+    "test": "tests/test_duty_badges_are_all_the_same_colour.py::test_the_extra_badge_is_grey_too"
+  },
+  {
+    "label": "B4 改了設計檔忘記重建（畫面上完全看不出差別，而使用者拿到的是舊的那一版）",
+    "file": "design-pages/lineup_v1.html",
+    "replace": "<select data-duty=\"${i}\" title=",
+    "with": "<select data-duty=\"${i}\" class=\"violet\" title=",
+    "test": "tests/test_duty_badges_are_all_the_same_colour.py::test_the_built_page_matches_the_design_source"
+  },
+  {
+    "label": "B5 職責的畫法又改了而檢查沒跟上（2026-08-25 真的發生過一次：badge 變下拉，`${duty?` 抓不到任何東西，底下每一條都變成恆真的綠燈。2026-09-01 又一次：合併成一個下拉之後它一度寫成兩份，破壞其中一個另一個還在，這條就沒有牙齒了——那兩份已經合併回一份）",
+    "file": "app/ui/web/lineup_v1.html",
+    "replace": "select data-duty=\"${i}\"",
+    "with": "select data-zzz=\"${i}\"",
+    "test": "tests/test_duty_badges_are_all_the_same_colour.py::test_the_scan_finds_the_badge"
+  },
+  {
+    "label": "B6 那顆標籤又改回掛在 `can_write` 上（它會跟「不編輯專案檔案」那顆勾選框講相反的話——一個寫著「會寫檔案」，一個打著勾寫著「不要動」）",
+    "file": "app/ui/web/lineup_v1.html",
+    "replace": "      ${s.writes_files?`<span class=\"bdg grey\" `",
+    "with": "      ${s.can_write?`<span class=\"bdg grey\" `",
+    "test": "tests/test_duty_badges_are_all_the_same_colour.py::test_the_writing_seat_gets_its_own_badge"
+  }
+]

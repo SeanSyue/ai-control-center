@@ -1,0 +1,37 @@
+[
+  {
+    "label": "C1 套用模式又只問名字不問廠牌（模式把那一格從 Claude 換成 Codex，Claude 的對話 id 原封不動留在上面，一句話都沒有）",
+    "file": "app/services/lineup_presets.py",
+    "replace": "            session_id=session_for_new_provider(\n                current.for_role(slot.role), slot.provider\n            ),",
+    "with": "            session_id=current.session_for_role(slot.role),",
+    "test": "tests/test_a_conversation_id_never_moves_to_another_vendor.py::test_applying_a_mode_that_changes_the_vendor_leaves_the_conversation_behind"
+  },
+  {
+    "label": "C2 判準本身不再問廠牌（兩個入口一起停止擋人，而每一個的程式碼看起來都還在問）",
+    "file": "app/core/lineup.py",
+    "replace": "    return seated.session_id if seated.provider == provider.strip().lower() else \"\"",
+    "with": "    return seated.session_id",
+    "test": "tests/test_a_conversation_id_never_moves_to_another_vendor.py"
+  },
+  {
+    "label": "C3 擋成「一律清掉」：廠牌沒換的那幾格綁定也不見了（他每套用一次模式就要重挑一次對話，只會覺得這顆按鈕壞了）",
+    "file": "app/core/lineup.py",
+    "replace": "    return seated.session_id if seated.provider == provider.strip().lower() else \"\"",
+    "with": "    return \"\"",
+    "test": "tests/test_a_conversation_id_never_moves_to_another_vendor.py::test_applying_a_mode_keeps_the_conversation_when_the_vendor_is_the_same"
+  },
+  {
+    "label": "C4 換廠牌那顆下拉自己抄了一份（下拉照舊留著上一家的對話 id，而套用模式那一條是對的——兩份判準吵架的那天沒有東西會紅）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "        session_id = session_for_new_provider(current, provider)",
+    "with": "        session_id = current.session_id",
+    "test": "tests/test_a_conversation_id_never_moves_to_another_vendor.py::test_the_vendor_dropdown_and_the_mode_button_answer_this_the_same_way"
+  },
+  {
+    "label": "C5 問錯了誰：拿模式自己那一格去問「換之前是誰坐這裡」（答案永遠是空的，於是每一格的對話都被清掉）",
+    "file": "app/services/lineup_presets.py",
+    "replace": "                current.for_role(slot.role), slot.provider",
+    "with": "                slot, slot.provider",
+    "test": "tests/test_a_conversation_id_never_moves_to_another_vendor.py::test_applying_a_mode_keeps_the_conversation_when_the_vendor_is_the_same"
+  }
+]

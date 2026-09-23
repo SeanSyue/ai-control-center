@@ -1,0 +1,23 @@
+[
+  {
+    "label": "B1 有一個啟動點忘了帶「不要開視窗」（使用者螢幕上多閃一個黑框，沒有任何既有檢查看得到）",
+    "file": "app/adapters/cli_runner.py",
+    "replace": "                creationflags=NO_WINDOW,\n                **popen_kwargs,",
+    "with": "                **popen_kwargs,",
+    "test": "tests/test_no_black_windows_flash.py"
+  },
+  {
+    "label": "B2 旗標寫死成數字（在非 Windows 上會傳一個沒有意義的值進去）",
+    "file": "app/adapters/no_console.py",
+    "replace": "NO_WINDOW: int = getattr(subprocess, \"CREATE_NO_WINDOW\", 0)",
+    "with": "NO_WINDOW: int = 0x08000000",
+    "test": "tests/test_no_black_windows_flash.py"
+  },
+  {
+    "label": "B3 「正在找」的旗子沒有人讀（掃描中與找不到，畫面上長得一模一樣）",
+    "file": "app/ui/web/lineup_v1.html",
+    "replace": "      : (d.scanning\n          ? `<div class=\"none\">正在找本機對話⋯</div>`\n          : (q ? `<div class=\"none\">沒有對話比中「${q}」。</div>`\n               : `<div class=\"none\">沒有符合的對話。</div>`)));",
+    "with": "      : `<div class=\"none\">沒有符合的對話。</div>`);",
+    "test": "tests/test_conversation_search_reaches_python.py"
+  }
+]

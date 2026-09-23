@@ -1,0 +1,23 @@
+[
+  {
+    "label": "V1 守衛退回只看名字（外框三個 group，被讀到的那一個替另外兩個擋掉——這條守衛就是為了抓那種事才存在的）",
+    "file": "tests/test_no_field_is_pushed_into_the_void.py",
+    "replace": "    if isinstance(value, dict):\n        for key, nested in value.items():\n            path = f\"{prefix}.{key}\" if prefix else key\n            out[path] = key",
+    "with": "    if isinstance(value, dict):\n        for key, nested in value.items():\n            path = key\n            out[path] = key",
+    "test": "tests/test_no_field_is_pushed_into_the_void.py::test_two_fields_with_the_same_name_are_counted_separately"
+  },
+  {
+    "label": "V2 新推一個撞名而沒人讀的欄位（label 在頁面裡到處都是，純字串比對會說「有人讀了」——這正是三個 group 躲過去的方式）",
+    "file": "app/ui/main_window.py",
+    "replace": "                \"project\": {\n                    \"name\": self.project_path.name,",
+    "with": "                \"project\": {\n                    \"label\": \"沒有人讀這一個\",\n                    \"name\": self.project_path.name,",
+    "test": "tests/test_no_field_is_pushed_into_the_void.py::test_no_field_is_pushed_that_the_page_never_reads"
+  },
+  {
+    "label": "V3 第四個 group 進來而沒有人回頭指認（撞名那一組少一條，債務清單就開始說謊）",
+    "file": "app/ui/main_window.py",
+    "replace": "                \"project\": {\n                    \"name\": self.project_path.name,",
+    "with": "                \"project\": {\n                    \"group\": \"第四個\",\n                    \"name\": self.project_path.name,",
+    "test": "tests/test_no_field_is_pushed_into_the_void.py::test_the_debt_list_has_not_gone_stale"
+  }
+]

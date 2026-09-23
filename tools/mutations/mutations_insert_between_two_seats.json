@@ -1,0 +1,58 @@
+[
+  {
+    "label": "T1 收的那一端把位置丟掉（`self._add_slot()`——2026-08-27 之前整條路就是這樣：他按第二道縫的 ⊕，多出一格，只是出現在最後面，而他會以為自己按錯了那道縫）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            self._add_slot(arg)",
+    "with": "            self._add_slot()",
+    "test": "tests/test_a_seat_inserted_between_two_others_lands_there.py::test_a_seat_asked_for_the_middle_lands_in_the_middle"
+  },
+  {
+    "label": "T2 空字串與「0」被讀成同一件事（真假值判斷：`''` 假、`'0'` 真——「插在最前面」靜靜地變成「加在最後」，而畫面上都只是多一格）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "        if not raw:\n            return cls.APPEND_AT_END",
+    "with": "        if not raw or raw == \"0\":\n            return cls.APPEND_AT_END",
+    "test": "tests/test_a_seat_inserted_between_two_others_lands_there.py::test_the_end_and_the_front_are_not_the_same_button"
+  },
+  {
+    "label": "T3 位置永遠當成 0（每一道縫都插在最前面。`Lineup.with_node` 自己是夾的，所以一個永遠送 0 的實作在「插在最前面」那一條上是綠的）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "        return at\n\n    @staticmethod\n    def _fresh_slot_name",
+    "with": "        return 0\n\n    @staticmethod\n    def _fresh_slot_name",
+    "test": "tests/test_a_seat_inserted_between_two_others_lands_there.py::test_every_gap_is_a_different_place"
+  },
+  {
+    "label": "T4 不合法的位置跟著引擎一起夾（`-1` 變成最前面、`99` 變成最後——他按了第三道縫，東西插在最前面，而畫面上沒有一個字說發生過這件事）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "        if not (0 <= at <= seated):\n            raise LineupError(\n                t(\"lineup.insert_position_off_the_line\", value=at, seated=seated)\n            )",
+    "with": "        at = max(0, min(at, seated))",
+    "test": "tests/test_a_seat_inserted_between_two_others_lands_there.py::test_a_position_it_cannot_read_is_refused_out_loud"
+  },
+  {
+    "label": "T5 擋下來了，但一個字都沒說（安靜 return——按了沒反應跟插好了在畫面上長得一模一樣，而他接下來會去找那一格或者再按一次）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            self.reject(str(exc))\n            return\n        name = self._fresh_slot_name(self._lineup)",
+    "with": "            return\n        name = self._fresh_slot_name(self._lineup)",
+    "test": "tests/test_a_seat_inserted_between_two_others_lands_there.py::test_a_position_it_cannot_read_is_refused_out_loud"
+  },
+  {
+    "label": "T6 旗標根本沒推出去（頁面那顆 ⊕ 一顆都不會出現，而這條路今天真的插得進去——功能做完了，使用者按不到）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            \"supports_insert_at\": self._insert_at_reaches_the_engine(),\n",
+    "with": "",
+    "test": "tests/test_a_seat_inserted_between_two_others_lands_there.py::test_the_page_is_told_this_path_works"
+  },
+  {
+    "label": "T7 旗標寫死成 True（它會在這條路走不通的那天繼續說是——而那顆按鈕存在的唯一理由就是「不要畫一顆說謊的按鈕」）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            \"supports_insert_at\": self._insert_at_reaches_the_engine(),",
+    "with": "            \"supports_insert_at\": True,",
+    "test": "tests/test_a_seat_inserted_between_two_others_lands_there.py::test_the_flag_goes_dark_when_the_engine_stops_taking_a_position"
+  },
+  {
+    "label": "T8 頁面不問就自己畫那顆 ⊕（Python 收不下位置的那一天，它會加在最後面而按鈕上寫著「在這裡插一格」）",
+    "file": "app/ui/web/lineup_v1.html",
+    "replace": "const canInsert = !!lu.supports_insert_at;",
+    "with": "const canInsert = true;",
+    "test": "tests/test_lineup_page_is_told_the_rules.py::test_the_page_reads_what_python_sends"
+  }
+]

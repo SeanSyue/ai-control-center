@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-mode="night">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AICC — Shell</title>
+<link rel="stylesheet" href="aicc.css">
+<style>
+/* 這一頁只有外框，沒有內容 —— 它是常駐的 view，不參與分頁切換。
+   兩個 QWebEngineView 載同一份檔案：
+     shell.html?part=side   左側直條（側邊欄）
+     shell.html?part=top    上方橫條（執行控制列＋決策橫幅）
+   Qt widget 是矩形，L 形組不出來，所以拆成兩個。 */
+body{margin:0;overflow:hidden;background:var(--panel)}
+body[data-part="top"]{background:var(--panel)}
+</style>
+</head>
+<body>
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script src="shell.js"></script>
+<script>
+document.body.dataset.part =
+  new URLSearchParams(location.search).get('part') || 'side';
+
+/* 驗證腳本會把這個常數整包抓走再從 Python 端推回來，
+   所以它必須是頂層變數，不能只存在於「沒有 bridge」的分支裡。 */
+const DEMO = { mode:'night', shell:{ ...Shell.DEMO, active_page:'documents' } };
+
+let bridge = null;
+Shell.connect((k, a) => {
+  bridge ? bridge.on_action(k, a) : console.log('shell demo', k, a);
+});
+
+function render(state){
+  const d = typeof state === 'string' ? JSON.parse(state) : state;
+  document.documentElement.dataset.mode = d.mode || 'night';
+  Shell.render(d);
+}
+
+if (window.qt && qt.webChannelTransport) {
+  new QWebChannel(qt.webChannelTransport, ch => {
+    bridge = ch.objects.bridge;
+    bridge.stateChanged.connect(render);
+    bridge.ready();
+  });
+} else {
+  /* 單獨用瀏覽器檢視時：
+       shell.html            看側邊欄
+       shell.html?part=top   看執行控制列＋決策橫幅 */
+  render(DEMO);
+}
+</script>
+</body>
+</html>

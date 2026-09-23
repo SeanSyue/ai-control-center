@@ -1,0 +1,86 @@
+[
+  {
+    "label": "N1 那一道整個沒有牙齒（一輪一個檔案都沒改到，拍板照樣蓋同意章，畫面是薄荷色的「工作流程已完成」）",
+    "file": "app/core/steps/approval.py",
+    "replace": "    if deliverable.strip():\n        return None\n    if site.orchestrator.get_changed_files():\n        return None\n    return Stop(",
+    "with": "    if True:\n        return None\n    return Stop(",
+    "test": "tests/test_a_round_that_made_nothing_is_not_stamped_as_done.py"
+  },
+  {
+    "label": "N2 門那一側不再問它（規則還在，但沒有人叫它——2026-08-24 `deliverable` 漏傳就是這個形狀）",
+    "file": "app/core/steps/approval.py",
+    "replace": "    empty_handed = _nothing_was_produced(site, deliverable)\n    if empty_handed is not None:\n        return None, empty_handed",
+    "with": "    empty_handed = None",
+    "test": "tests/test_a_round_that_made_nothing_is_not_stamped_as_done.py::test_a_round_that_changed_no_files_is_not_called_completed"
+  },
+  {
+    "label": "N3 算出來了但不當一回事（`if False`：多跑一次、多蓋一個章，然後收成完成）",
+    "file": "app/core/steps/approval.py",
+    "replace": "    if empty_handed is not None:\n        return None, empty_handed",
+    "with": "    if False:\n        return None, empty_handed",
+    "test": "tests/test_a_round_that_made_nothing_is_not_stamped_as_done.py::test_no_approval_stamp_lands_on_the_empty_version"
+  },
+  {
+    "label": "N4 擋是擋了，但擋在派工之後（核准那一格還是被派去對著一段空白發表意見——多等一輪、多吃一次額度）",
+    "file": "app/core/steps/approval.py",
+    "replace": "    empty_handed = _nothing_was_produced(site, deliverable)\n    if empty_handed is not None:\n        return None, empty_handed\n\n    # 老闆 2026-08-24 拍板",
+    "with": "    # 老闆 2026-08-24 拍板",
+    "test": "tests/test_a_round_that_made_nothing_is_not_stamped_as_done.py::test_the_approval_seat_is_never_dispatched"
+  },
+  {
+    "label": "N5 只看 git diff，不問 git status（新檔案是 untracked，diff 是空的——一次「新增一支模組」的執行會被告知「一個檔案都沒有改到」）",
+    "file": "app/core/steps/approval.py",
+    "replace": "    if site.orchestrator.get_changed_files():\n        return None",
+    "with": "    if False:\n        return None",
+    "test": "tests/test_a_round_that_made_nothing_is_not_stamped_as_done.py::test_a_round_that_only_created_new_files_still_completes"
+  },
+  {
+    "label": "N6 空白不算空（`get_git_diff` 那一步的 .strip() 哪天不見了，一段只有換行的 diff 就被讀成「有產出」）",
+    "file": "app/core/steps/approval.py",
+    "replace": "    if deliverable.strip():\n        return None",
+    "with": "    if deliverable:\n        return None",
+    "test": "tests/test_a_round_that_made_nothing_is_not_stamped_as_done.py::test_a_diff_that_is_only_whitespace_counts_as_nothing"
+  },
+  {
+    "label": "N7 停下來了，但一個字都不說（畫面上是一列沒有說明的「要你處理」，他不知道該去看什麼）",
+    "file": "app/core/steps/approval.py",
+    "replace": "        note=t(\"approval.nothing_was_produced\"),",
+    "with": "        note=\"\",",
+    "test": "tests/test_a_round_that_made_nothing_is_not_stamped_as_done.py::test_it_tells_him_the_one_thing_he_can_actually_do"
+  },
+  {
+    "label": "N8 說成「還缺一個章」（叫使用者去補一個沒有人量過的章，而缺的是零個——真正缺的是產出）",
+    "file": "app/core/steps/approval.py",
+    "replace": "        note=t(\"approval.nothing_was_produced\"),",
+    "with": "        note=t(\"approval.missing_stamp_note\"),",
+    "test": "tests/test_a_round_that_made_nothing_is_not_stamped_as_done.py::test_the_screen_says_no_file_was_changed"
+  },
+  {
+    "label": "N9 收場碼改成 outcomes.py 認不得的字（`outcome_group` 是空字串，首頁上是一格沒有顏色也沒有標籤的東西）",
+    "file": "app/core/steps/approval.py",
+    "replace": "        status=\"NOTHING_TO_APPROVE\",",
+    "with": "        status=\"NOTHING_PRODUCED\",",
+    "test": "tests/test_a_round_that_made_nothing_is_not_stamped_as_done.py::test_the_ending_has_a_row_in_the_outcome_table"
+  },
+  {
+    "label": "N10 收場表那一列歸到「跑完了」（薄荷色、算進「今日完成 N 件」，而他不會再去看它）",
+    "file": "app/core/outcomes.py",
+    "replace": "        \"outcome.NOTHING_TO_APPROVE.label\",\n        \"partial\",\n        GROUP_DECIDE,",
+    "with": "        \"outcome.NOTHING_TO_APPROVE.label\",\n        \"done\",\n        GROUP_DONE,",
+    "test": "tests/test_a_round_that_made_nothing_is_not_stamped_as_done.py::test_it_is_not_painted_as_finished"
+  },
+  {
+    "label": "N11 收場表那一列歸到「再跑一次就好」（首頁給他一顆重跑按鈕，而同一份交辦內容再跑一次會再一次什麼都沒做出來）",
+    "file": "app/core/outcomes.py",
+    "replace": "        GROUP_DECIDE,\n        \"outcome.NOTHING_TO_APPROVE.stage\",",
+    "with": "        GROUP_RERUN,\n        \"outcome.NOTHING_TO_APPROVE.stage\",",
+    "test": "tests/test_a_round_that_made_nothing_is_not_stamped_as_done.py::test_it_tells_him_the_one_thing_he_can_actually_do"
+  },
+  {
+    "label": "N12 引擎講的那一句被畫面的預設句蓋掉（`detail_key` 拆掉：他看到的永遠是同一句罐頭，而引擎其實已經寫好了該去看什麼）",
+    "file": "app/core/outcomes.py",
+    "replace": "        \"outcome.NOTHING_TO_APPROVE.stage\",\n        detail_key=\"outcome_detail\",",
+    "with": "        \"outcome.NOTHING_TO_APPROVE.stage\",",
+    "test": "tests/test_a_round_that_made_nothing_is_not_stamped_as_done.py::test_it_tells_him_the_one_thing_he_can_actually_do"
+  }
+]

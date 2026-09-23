@@ -1,0 +1,58 @@
+[
+  {
+    "label": "F1 讀不懂複查回覆又變回「當成通過」（未經審查的 Codex 草稿整檔覆寫八份共同記憶，含 SECURITY_MODEL.md，而畫面收 COMPLETED）",
+    "file": "app/core/orchestrator_parsing.py",
+    "replace": "            \"summary\": t(\"parse.memory_no_json\"),\n            \"memory_update\": \"\",\n            \"question\": \"\",\n            \"parsed\": False,",
+    "with": "            \"summary\": t(\"parse.memory_no_json\"),\n            \"memory_update\": \"\",\n            \"question\": \"\",\n            \"parsed\": True,",
+    "test": "tests/test_the_four_that_would_poison_the_five_node_test.py::test_an_unreadable_memory_review_is_marked_unparsed"
+  },
+  {
+    "label": "F2 圍籬不剝（```json 包起來的正確回覆被判成讀不懂——而那是最常見的輸出形狀）",
+    "file": "app/core/orchestrator_parsing.py",
+    "replace": "        data = json.loads(_unfenced(output))\n    except (json.JSONDecodeError, TypeError):\n        return {\n            \"status\": \"PASS\",",
+    "with": "        data = json.loads(output)\n    except (json.JSONDecodeError, TypeError):\n        return {\n            \"status\": \"PASS\",",
+    "test": "tests/test_the_four_that_would_poison_the_five_node_test.py::test_a_fenced_json_reply_is_still_readable"
+  },
+  {
+    "label": "F3 機密檢查壞掉回空字串（＝自動放行。那一輪沒有人在看有沒有金鑰外洩，而畫面上完全正常）",
+    "file": "app/core/orchestrator_parsing.py",
+    "replace": "        return SECRET_CHECK_BROKE",
+    "with": "        return \"\"",
+    "test": "tests/test_the_four_that_would_poison_the_five_node_test.py::test_a_broken_secret_check_does_not_wave_it_through"
+  },
+  {
+    "label": "F4 掃到機密但標籤取不到也被吞成放行（一個已經驗出機密的結果被 except 吃掉——2026-08-24 之前 t() 在 try 裡面）",
+    "file": "app/core/orchestrator_parsing.py",
+    "replace": "        found_secret = SecurityScanner().scan_text(haystack).has_blocking_findings\n    except Exception:",
+    "with": "        found_secret = SecurityScanner().scan_text(haystack).has_blocking_findings\n        _ = t(GATE_VETO_SECRET_LABEL)\n    except Exception:",
+    "test": "tests/test_the_four_that_would_poison_the_five_node_test.py::test_a_secret_that_was_actually_found_is_never_swallowed"
+  },
+  {
+    "label": "F5 那句「檢查沒跑成功」改走 t()（壞掉的正好是 i18n 的時候，它會在報告故障的路上再掉進同一個洞）",
+    "file": "app/i18n.py",
+    "replace": "    \"memory.review_unreadable\": (",
+    "with": "    \"veto.secret_check_broke\": \"機密檢查沒有跑成功，所以這一輪沒有人在看有沒有金鑰或密碼外洩——請你自己確認一次再放行。\",\n    \"memory.review_unreadable\": (",
+    "test": "tests/test_the_four_that_would_poison_the_five_node_test.py::test_the_broken_message_does_not_go_through_translation"
+  },
+  {
+    "label": "F6 維護記憶失敗那一種收場被拿掉（掉回 else 變成 COMPLETED／PASS，薄荷色的「工作流程已完成」）",
+    "file": "app/core/outcomes.py",
+    "replace": "    \"MEMORY_ERROR\": _Row(",
+    "with": "    \"MEMORY_ERROR_DISABLED\": _Row(",
+    "test": "tests/test_the_four_that_would_poison_the_five_node_test.py::test_a_failed_memory_maintenance_is_not_a_completed_run"
+  },
+  {
+    "label": "F7 機密檢查擋過頭（正常的問題也被攔下來，使用者每一次都要多按一下，第三次就開始亂按）",
+    "file": "app/core/orchestrator_parsing.py",
+    "replace": "    if found_secret:\n        return t(GATE_VETO_SECRET_LABEL)\n    return \"\"",
+    "with": "    if found_secret or True:\n        return t(GATE_VETO_SECRET_LABEL)\n    return \"\"",
+    "test": "tests/test_the_four_that_would_poison_the_five_node_test.py::test_a_clean_question_still_goes_through"
+  },
+  {
+    "label": "F1b 「不是一個物件」那一支又變回當成通過（AI 回了一個 JSON 陣列，同樣是讀不懂）",
+    "file": "app/core/orchestrator_parsing.py",
+    "replace": "            \"summary\": t(\"parse.memory_not_object\"),\n            \"memory_update\": \"\",\n            \"question\": \"\",\n            \"parsed\": False,",
+    "with": "            \"summary\": t(\"parse.memory_not_object\"),\n            \"memory_update\": \"\",\n            \"question\": \"\",\n            \"parsed\": True,",
+    "test": "tests/test_the_four_that_would_poison_the_five_node_test.py::test_an_unreadable_memory_review_is_marked_unparsed"
+  }
+]

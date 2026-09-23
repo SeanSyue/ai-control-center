@@ -1,0 +1,37 @@
+[
+  {
+    "label": "N1 %APPDATA% 的重導被拿掉（回到 2026-08-16 的狀態：測試直接寫使用者的真實設定）",
+    "file": "tests/conftest.py",
+    "replace": "os.environ[\"APPDATA\"] = str(APPDATA_SANDBOX)",
+    "with": "pass  # redirect removed",
+    "test": "tests/test_your_real_config_stays_yours.py"
+  },
+  {
+    "label": "N2 沙箱蓋在真的 roaming 裡面（路徑檢查會通過，但寫進去的還是使用者的資料夾）",
+    "file": "tests/conftest.py",
+    "replace": "APPDATA_SANDBOX = Path(tempfile.mkdtemp(prefix=\"aicc-appdata-\"))",
+    "with": "APPDATA_SANDBOX = Path(REAL_APPDATA)",
+    "test": "tests/test_your_real_config_stays_yours.py"
+  },
+  {
+    "label": "N3 收工時比對真實檔案的那道守衛被停掉（剩下的檢查全都只在量替身）",
+    "file": "tests/conftest.py",
+    "replace": "def pytest_sessionfinish(session, exitstatus):",
+    "with": "def _disabled_sessionfinish(session, exitstatus):",
+    "test": "tests/test_your_real_config_stays_yours.py"
+  },
+  {
+    "label": "N4 有測試把真實設定資料夾寫死在字串裡（繞過重導，沙箱管不到）",
+    "file": "tests/test_cloud_sync.py",
+    "replace": "    appdata = tmp_path / \"appdata\"",
+    "with": "    appdata = Path(r\"C:/Users/example/AppData/Roaming/AIControlCenter\")",
+    "test": "tests/test_your_real_config_stays_yours.py"
+  },
+  {
+    "label": "N5 設定商店清單少一項（清單型檢查的典型失效：剩下的每一條都還會過）",
+    "file": "tests/test_your_real_config_stays_yours.py",
+    "replace": "    \"line_notifier\": lambda: LineNotifier().config_path,\n",
+    "with": "",
+    "test": "tests/test_your_real_config_stays_yours.py"
+  }
+]

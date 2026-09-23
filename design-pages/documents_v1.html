@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-mode="night">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AICC — 文件</title>
+<link rel="stylesheet" href="aicc.css">
+<style>
+.drop{position:relative;margin:16px 30px 0;border-radius:20px;overflow:hidden;flex:none;
+  background:var(--sky);border:1.5px dashed var(--line);transition:.2s;cursor:pointer}
+.drop:hover,.drop.over{border-color:var(--aqua);box-shadow:var(--glow)}
+.drop .in{position:relative;padding:22px 26px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.drop .ic{width:42px;height:42px;border-radius:14px;background:var(--grad-btn);display:grid;place-items:center;
+  box-shadow:var(--glow);flex:none}
+.drop .ic svg{width:20px;height:20px;color:#fff}
+.drop b{display:block;font-size:.95rem;margin-bottom:2px}
+.drop span{font-size:.78rem;color:var(--text-2)}
+.drop .note{margin-left:auto;font-size:.72rem;color:var(--text-3);text-align:right}
+
+.split{flex:1;min-height:0;display:grid;grid-template-columns:1.35fr 1fr;gap:16px;padding:16px 30px 22px}
+@media(max-width:1040px){.split{grid-template-columns:1fr}}
+.pane{display:flex;flex-direction:column;min-height:0;background:var(--surface);
+  border:1px solid var(--line-soft);border-radius:20px;overflow:hidden}
+.pane .hd{display:flex;align-items:center;gap:10px;padding:12px 16px 10px;background:var(--surface2);flex:none}
+.pane .hd b{font-size:.88rem}
+.pane .hd .n{margin-left:auto;font-size:.72rem;color:var(--text-3);font-weight:700}
+.tools{display:flex;flex-direction:column;gap:9px;padding:0 16px 12px;background:var(--surface2);
+  border-bottom:1px solid var(--line-soft);flex:none}
+.pane .body{overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:9px}
+.pane .none{padding:26px 16px;text-align:center;color:var(--text-3);font-size:.82rem}
+
+.doc{cursor:pointer;position:relative;padding-bottom:7px}
+.doc .hem{position:absolute;left:14px;right:14px;bottom:0;height:15px;border-radius:0 0 14px 14px;opacity:0;transition:.2s}
+.doc .b{position:relative;z-index:2;background:var(--surface2);border:1px solid var(--line-soft);
+  border-radius:14px;padding:11px 14px;transition:.18s;display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:center}
+.doc:hover .b{border-color:var(--line);transform:translateY(-1px)}
+.doc.sel .b{border-color:var(--aqua);box-shadow:var(--glow);background:var(--surface)}
+.doc.sel .hem{opacity:.8}
+.doc .ext{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:.6rem;
+  font-weight:800;letter-spacing:.03em;background:var(--surface);border:1px solid var(--line);color:var(--text-3)}
+.doc .ext.pdf{color:var(--rose);border-color:color-mix(in srgb,var(--rose) 50%,transparent)}
+.doc .ext.docx{color:var(--aqua);border-color:color-mix(in srgb,var(--aqua) 50%,transparent)}
+.doc .ext.xlsx{color:var(--mint);border-color:color-mix(in srgb,var(--mint) 50%,transparent)}
+.doc .ext.md{color:var(--violet-hi);border-color:color-mix(in srgb,var(--violet) 50%,transparent)}
+.doc .nm{min-width:0}
+.doc h4{font-size:.86rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:4px}
+.doc .meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.68rem;color:var(--text-3)}
+.doc .right{text-align:right;font-size:.68rem;color:var(--text-3);white-space:nowrap}
+
+.prev{padding:18px 22px;overflow-y:auto;flex:1;font-size:.84rem;line-height:1.9;color:var(--text-2)}
+.prev .ttl{color:var(--text);font-size:1rem;font-weight:800;margin-bottom:4px}
+.prev .sub{font-size:.72rem;color:var(--text-3);margin-bottom:16px}
+.prev .hit{background:var(--surface2);border-left:3px solid var(--aqua);border-radius:0 12px 12px 0;
+  padding:11px 14px;margin-bottom:10px;font-size:.8rem}
+.prev .hit .loc{font-size:.66rem;color:var(--text-3);margin-bottom:4px;font-weight:700}
+.prev mark{background:color-mix(in srgb,var(--aqua) 32%,transparent);color:inherit;border-radius:3px;padding:0 2px}
+.prevfoot{flex:none;border-top:1px solid var(--line-soft);background:var(--surface2);padding:12px 18px;
+  display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <div class="top">
+    <h1>文件</h1>
+    <div class="lead">把專案相關文件加進來，AI 需要時才會挑出相關片段，不會整份塞進 context。</div>
+    <!-- 專案層動作：對整個專案生效，跟目前選了哪一份無關。
+         八個攤平會變成一排看不懂的按鈕，所以按「這是哪一類」收成兩個選單。 -->
+    <div class="bar">
+      <div class="menu" id="m-import">
+        <button class="btn" data-menu="m-import">匯入</button>
+        <div class="items">
+          <button data-act="import_files">匯入檔案<small>可多選，開系統檔案對話框</small></button>
+          <button data-act="import_folder">匯入資料夾<small>整個資料夾一次加入</small></button>
+          <button data-act="import_transcript">匯入舊對話<small>ChatGPT／Claude 匯出的紀錄</small></button>
+        </div>
+      </div>
+      <div class="menu" id="m-index">
+        <button class="btn q" data-menu="m-index">索引維護</button>
+        <div class="items">
+          <button data-act="scan_project">掃描專案<small>重建整個專案索引，可能要一陣子</small></button>
+          <button data-act="detect_changes">偵測更新<small>檢查原始檔有沒有被改過</small></button>
+          <div class="sep"></div>
+          <button data-act="reindex_all" id="b-reindex-all">重新索引全部<small>重跑所有文件的解析</small></button>
+          <button data-act="rescan">重新掃描<small>只重讀清單，不重新解析</small></button>
+          <div class="sep"></div>
+          <button data-act="reparse_stale" id="b-reparse-stale">重新解析有變更的<small>只跑原檔改過的那幾份</small></button>
+          <button data-act="remove_dead" id="b-remove-dead">清掉找不到檔案的<small>原檔和副本都不在了的索引紀錄</small></button>
+        </div>
+      </div>
+      <span class="bar-sep"></span>
+      <div class="field grow sm ico-l">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+          <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+        <input id="q" placeholder="搜尋檔名或內容…" oninput="setF('q',this.value)">
+      </div>
+      <div class="chips" id="chips"></div>
+    </div>
+  </div>
+
+  <!-- 拖放區 -->
+  <div class="drop" id="drop" data-act="import_files">
+    <div class="sparks" id="sparks"></div>
+    <div class="in">
+      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+        stroke-linecap="round" stroke-linejoin="round"><path d="M12 17V5"/><path d="M6 11l6-6 6 6"/>
+        <path d="M4 19h16"/></svg></span>
+      <div><b>把檔案拖進來，或點一下選擇</b>
+        <span>支援 PDF、Word、Excel、Markdown、純文字</span></div>
+      <div class="note">檔案留在原處，AICC 只建索引<br>不複製、不上傳、移除也不刪原檔</div>
+    </div>
+  </div>
+
+  <div class="split">
+    <!-- 左：文件清單 -->
+    <div class="pane">
+      <div class="hd"><b>已加入的文件</b><span class="n" id="nDoc">—</span></div>
+      <div class="body" id="list"></div>
+    </div>
+
+    <!-- 右：預覽。「相關」是相對於某個任務而言的，所以這裡要有任務輸入。 -->
+    <div class="pane">
+      <div class="hd"><b>相關內容</b><span class="n" id="prevN"></span></div>
+      <div class="taskbar">
+        <div class="field">
+          <input id="task" placeholder="這次要做什麼？例如：修改資金合規管理合約的費率條款">
+        </div>
+        <button class="btn sm q" data-act="preview_relevant">預覽相關內容</button>
+        <button class="btn sm q" data-act="import_wizard">導入精靈</button>
+      </div>
+      <div class="prev" id="prev"></div>
+      <!-- 選取層動作：只對選取的那一份生效，所以放在「選取的那一份」的欄位裡 -->
+      <div class="prevfoot" id="prevfoot"></div>
+    </div>
+  </div>
+
+</div>
+
+<button class="modebtn" id="tg">☀ 切到白天</button>
+
+<!-- QWebChannel：嵌進 QWebEngineView 時由 Qt 從 qrc 供應。
+     用瀏覽器單獨開檔案時這行會 404，但無害——下面有 window.qt 守衛，
+     沒有 Qt 就直接走示範資料。不要改成 CDN，離線會壞。 -->
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script>
+/* ============================================================
+   render(data)
+   data = { mode, selected:id|null, docs:[{
+     id, name, ext, size, path,
+     status:"indexed"|"indexing"|"changed"|"failed", status_label,
+     pages, updated_rel, updated_abs,
+     hits:[{loc, text}]            // 已標好 <mark> 的相關片段
+   }] }
+   篩選與搜尋在前端做，不需要 Python 參與。
+   ============================================================ */
+const STAR='M12 0C13.2 8.2 15.8 10.8 24 12 15.8 13.2 13.2 15.8 12 24 10.8 15.8 8.2 13.2 0 12 8.2 10.8 10.8 8.2 12 0Z';
+
+const F={q:'',status:'all'};
+const ST={indexed:['mint','已索引'],indexing:['aqua','索引中'],changed:['gold','有變更'],failed:['rose','索引失敗']};
+let DATA=null;
+
+function sparkle(id,n){const t=document.getElementById(id);if(!t)return;let h='';
+  for(let i=0;i<n;i++){const x=(i*43.1)%96,y=(i*31.3)%84,s=5+((i*9)%10),d=(i*.37)%3.4;
+    const c=i%5===0?'var(--gold)':(i%7===0?'var(--violet-hi)':'var(--star)');
+    h+=`<svg class="spark" style="left:${x}%;top:${y}%;animation-delay:${d}s" width="${s}" height="${s}"
+        viewBox="0 0 24 24"><path d="${STAR}" fill="${c}"/></svg>`;}
+  t.innerHTML=h;}
+
+/* ---- 下拉選單 ---- */
+function closeMenus(except){
+  document.querySelectorAll('.menu.open').forEach(m=>{ if(m.id!==except) m.classList.remove('open'); });
+}
+/* ---- 破壞性動作：兩段式確認，不開對話框 ---- */
+let armed=null;
+function disarm(){
+  if(!armed) return;
+  armed.textContent=armed.dataset.label; armed.classList.remove('armed'); armed=null;
+}
+/* ---- 事件委派 ----
+   所有動作用 data-act / data-pick，不用 inline onclick。
+   inline handler 會把值放進「HTML 屬性裡的 JS 字串」——那是最危險的位置，
+   一個單引號就能跳出來。改成 data-* 之後那個位置根本不存在。 */
+document.addEventListener('click',e=>{
+  const mb=e.target.closest('[data-menu]');
+  if(mb){ const id=mb.dataset.menu; closeMenus(id);
+          document.getElementById(id).classList.toggle('open'); return; }
+  closeMenus();
+
+  const chip=e.target.closest('.chip[data-status]');
+  if(chip){ disarm(); setF('status',chip.dataset.status); return; }
+
+  const item=e.target.closest('.doc[data-pick]');
+  if(item){ disarm(); pick(item.dataset.pick); return; }
+
+  const btn=e.target.closest('[data-act]');
+  if(!btn || btn.disabled) { disarm(); return; }
+  const kind=btn.dataset.act;
+  if(btn.classList.contains('danger')){
+    if(armed!==btn){
+      disarm(); armed=btn; btn.dataset.label=btn.textContent;
+      btn.textContent='再按一次確認移除'; btn.classList.add('armed');
+      return;
+    }
+    disarm();
+  }
+  act(kind);
+});
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeMenus(); disarm(); } });
+
+function setF(k,v){F[k]=v;paint();}
+function chipsHTML(){
+  const c=(v,l)=>`<span class="chip ${F.status===v?'on':''}" data-status="${v}">${l}</span>`;
+  return c('all','全部')+c('indexed','已索引')+c('changed','有變更')+c('failed','失敗');
+}
+function passes(d){
+  if(F.status!=='all'&&d.status!==F.status) return false;
+  const q=F.q.trim().toLowerCase();
+  if(q && !(d.name+' '+d.path).toLowerCase().includes(q)) return false;
+  return true;
+}
+
+function docHTML(d,sel){
+  const [cls,fallback]=ST[d.status]||ST.indexed;
+  /* 顏色用 status（四種），字用 status_label。
+     兩者分開是因為 Python 分得比較細：missing 與 source_missing 都是紅的，
+     但一個是「索引遺失」、一個是「原檔不存在」，處理方式不一樣。解析失敗更是
+     ——status_label 帶的是 doc.error 本人，那句話是使用者唯一能知道「為什麼」
+     的地方。這一格原本只讀 ST，所以那句話算到一半就被丟掉了。
+     ST 的字留著當 fallback：頁面單獨預覽時的假資料沒有 status_label。 */
+  const full=d.status_label||fallback;
+  const label=full.length>18?full.slice(0,17)+'…':full;
+  return `<div class="doc${d.id===sel?' sel':''}" data-pick="${d.id}">
+    <div class="hem fabric fabric-aqua"></div>
+    <div class="b">
+      <span class="ext ${d.ext}">${d.ext.toUpperCase()}</span>
+      <div class="nm"><h4 title="${d.path}">${d.name}</h4>
+        <div class="meta"><span class="bdg ${cls}" title="${full}">${label}</span>
+          <span>${d.size}</span>${d.pages?`<span>· ${d.pages} 頁</span>`:''}</div></div>
+      <div class="right" title="${d.updated_abs}">${d.updated_rel}</div>
+    </div></div>`;
+}
+
+function paint(){
+  if(!DATA) return;
+  const shown=DATA.docs.filter(passes), sel=DATA.selected;
+  document.getElementById('chips').innerHTML=chipsHTML();
+  document.getElementById('list').innerHTML= shown.length
+    ? shown.map(d=>docHTML(d,sel)).join('')
+    : `<div class="none">沒有符合條件的文件。</div>`;
+  document.getElementById('nDoc').textContent=
+    shown.length===DATA.docs.length?`${DATA.docs.length} 份`:`顯示 ${shown.length} / ${DATA.docs.length}`;
+
+  const cur=DATA.docs.find(d=>d.id===sel);
+
+  /* 選取層動作：沒選東西時停用但仍然看得見，使用者才知道選了之後能做什麼。
+     刪除是破壞性的，走 .danger 的兩段式確認。 */
+  const dis=cur?'':' disabled';
+  document.getElementById('prevfoot').innerHTML=
+    `<span style="font-size:.7rem;color:var(--text-3);margin-right:auto">
+       ${cur?`對「${cur.name}」`:'選一份文件後可用'}</span>
+     <button class="btn sm q"${dis} data-act="open">用預設程式開啟</button>
+     <button class="btn sm q"${dis} data-act="reparse">重新解析</button>
+     <button class="btn sm q"${dis} data-act="show_artifacts">查看產生檔案</button>
+     <button class="btn sm danger"${dis} data-act="remove"
+             title="只從 AICC 的索引移除，不會動到你磁碟上的原始檔">從索引移除</button>`;
+
+  /* 一份文件都沒有的時候，「重新索引全部」沒有東西可以索引 */
+  const rb=document.getElementById('b-reindex-all');
+  if(rb) rb.disabled = DATA.docs.length===0;
+
+  /* 兩個批次動作帶著數量。數量是重點不是裝飾：這兩顆按鈕在「沒有東西可做」
+     的時候長得跟「有 7 筆等著處理」一模一樣的話，使用者要按下去才知道。
+     停用而不是隱藏——藏起來的功能等於不存在，而這兩件事使用者需要知道
+     AICC 做得到。 */
+  const B=DATA.batch||{stale:0,dead:0};
+  const cnt=(id,n,base)=>{const b=document.getElementById(id);
+    if(!b) return;
+    b.disabled=!n;
+    b.childNodes[0].nodeValue = n ? `${base} ${n} 份` : base;};
+  cnt('b-reparse-stale',B.stale,'重新解析有變更的');
+  cnt('b-remove-dead',B.dead,'清掉找不到檔案的');
+
+  const p=document.getElementById('prev');
+  if(!cur){ p.innerHTML=`<div style="color:var(--text-3)">選一份文件，這裡會顯示 AI 實際會讀到的片段。</div>`;
+            document.getElementById('prevN').textContent=''; return; }
+  document.getElementById('prevN').textContent=`${(cur.hits||[]).length} 段`;
+  /* 「為什麼是這些」只在答案是「沒有為什麼」的時候出現。每次都畫的那一行
+     會被讀成裝飾，然後在真的需要它的那一次沒有人看見。 */
+  p.innerHTML=`<div class="ttl">${cur.name}</div>
+    <div class="sub mono">${cur.path}</div>`+
+    (DATA.note?`<div style="font-size:.74rem;color:var(--text-2);background:var(--surface2);
+       border-left:3px solid var(--text-3);border-radius:0 12px 12px 0;
+       padding:9px 12px;margin:10px 0">${DATA.note}</div>`:'')+
+    ((cur.hits||[]).length
+      /* 用行內樣式而不是新的 class：<style> 區塊有雜湊守著（CSS 是設計端的），
+         而「證據長什麼樣」本來就該由設計端定。這裡先讓資料看得見，正式的
+         視覺處理已寫進交接單。weak = 沒有比對到關鍵字，左邊那條線改成灰的，
+         因為它跟其他幾段一樣藍的話，就等於宣稱它一樣有根據。 */
+      ? cur.hits.map(h=>`<div class="hit"${h.weak?' style="border-left-color:var(--text-3);opacity:.72"':''}>
+          <div class="loc">${h.loc}${h.why?`<span style="font-weight:600;margin-left:8px">${h.why}</span>`:''}</div>
+          ${h.text}</div>`).join('')
+      : `<div style="color:var(--text-3)">這份文件目前沒有被判定為相關的片段。搜尋關鍵字後會重新比對。</div>`);
+}
+
+function render(state){
+  const d=typeof state==='string'?JSON.parse(state):state;
+  DATA=d; document.documentElement.dataset.mode=d.mode||'night';
+  paint();
+}
+
+let bridge=null;
+function pick(id){ bridge?bridge.on_action('select',id):(DEMO.selected=id,render(DEMO)); }
+/* 需要任務文字的動作（預覽相關內容、導入精靈）帶任務字串，其餘帶選取的文件 id */
+const NEEDS_TASK=new Set(['preview_relevant','import_wizard']);
+function act(k){
+  const arg = NEEDS_TASK.has(k) ? (document.getElementById('task')?.value||'')
+                                : (DATA?.selected||'');
+  bridge ? bridge.on_action(k,arg) : console.log('demo',k,arg);
+}
+if(window.qt&&qt.webChannelTransport){
+  new QWebChannel(qt.webChannelTransport,ch=>{bridge=ch.objects.bridge;
+    bridge.stateChanged.connect(render);bridge.ready();});
+}
+const drop=document.getElementById('drop');
+['dragenter','dragover'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add('over')}));
+['dragleave','drop'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove('over')}));
+document.getElementById('tg').onclick=()=>{const h=document.documentElement;
+  h.dataset.mode=h.dataset.mode==='night'?'day':'night';
+  document.getElementById('tg').textContent=h.dataset.mode==='night'?'☀ 切到白天':'☾ 切到夜空';
+  if(bridge)bridge.on_action('mode',h.dataset.mode);};
+
+/* ---- 示範資料 ---- */
+const DEMO={mode:'night',selected:'d1',docs:[
+ {id:'d1',name:'示範委任合約_v4.docx',ext:'docx',size:'186 KB',
+  path:'…\\demo-docs\\demo-docs\\合約',status:'indexed',pages:14,
+  updated_rel:'3 天前',updated_abs:'2026-08-05 16:41',
+  hits:[{loc:'第 3 條 · 服務費用',text:'費率為委任資金總額之 <mark>6%</mark>，分兩期收取，首期於簽署時給付且<mark>不可退還</mark>。'},
+        {loc:'第 3 條之 2 · 優惠條件',text:'甲方須於本合約簽署後三個月內簽署 AUM 合約，並於其後三個月內完成入金達<mark>二百萬美元</mark>。'},
+        {loc:'第 11 條 · 終止',text:'雙方均得以書面通知終止本合約，費用依已履行部分結算。'}]},
+ {id:'d2',name:'2026-07-31 報價單.pdf',ext:'pdf',size:'421 KB',
+  path:'…\\demo-docs\\報價',status:'indexed',pages:3,
+  updated_rel:'1 週前',updated_abs:'2026-07-31 10:02',
+  hits:[{loc:'第 1 頁',text:'公司財務暨稅務籌劃　年費 <mark>NT$600,000</mark>'},
+        {loc:'第 2 頁',text:'有限公司設立　一次性 <mark>NT$15,000</mark>（含規費與簽證費）'}]},
+ {id:'d3',name:'開戶文件清單_新加坡.xlsx',ext:'xlsx',size:'38 KB',
+  path:'…\\demo-docs\\開戶',status:'changed',pages:null,
+  updated_rel:'6 小時前',updated_abs:'2026-08-07 19:30',
+  hits:[]},
+ {id:'d4',name:'ROADMAP.md',ext:'md',size:'12 KB',
+  path:'…\\AICC\\AIControlCenter',status:'indexed',pages:null,
+  updated_rel:'2 小時前',updated_abs:'2026-08-07 23:08',
+  hits:[{loc:'P4 · 多專案儀表板',text:'Stage 1 已上線：單一視窗內的<mark>真實多專案併發執行</mark>。'}]},
+ {id:'d5',name:'掃描檔_身分證影本.pdf',ext:'pdf',size:'2.1 MB',
+  path:'…\\demo-docs\\KYC',status:'failed',pages:2,
+  updated_rel:'4 天前',updated_abs:'2026-08-04 08:15',
+  hits:[]},
+]};
+sparkle('sparks',12);
+if(!(window.qt&&qt.webChannelTransport)) render(DEMO);
+</script>
+</body>
+</html>

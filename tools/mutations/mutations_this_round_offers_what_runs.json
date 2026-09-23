@@ -1,0 +1,23 @@
+[
+  {
+    "label": "S1 選項寫死四種（他在計畫序列裡選得到「拍板」，而引擎一次都不會派工給它——一個選了不會發生的選項）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "        jobs = Orchestrator.SEQUENCE_JOBS[self._workflow_mode()][\"jobs\"]",
+    "with": "        jobs = Orchestrator.SEQUENCE_JOBS[\"development\"][\"jobs\"]",
+    "test": "tests/test_this_round_only_offers_what_the_sequence_runs.py::test_the_planning_sequence_cannot_offer_approve"
+  },
+  {
+    "label": "S2 送代號不送人話（畫面拿到 work／review 自己去翻，那份對照表就是第二個答案）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "        return [{\"id\": duty, \"text\": t(job_key)} for duty, job_key in jobs.items()]",
+    "with": "        return [{\"id\": duty, \"text\": duty} for duty, job_key in jobs.items()]",
+    "test": "tests/test_this_round_only_offers_what_the_sequence_runs.py::test_every_option_says_what_that_round_does"
+  },
+  {
+    "label": "S3 選項整個不推（畫面只好自己寫一份，而序列換了它不會跟著換）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            \"duty_choices\": self._duty_choices(),",
+    "with": "",
+    "test": "tests/test_this_round_only_offers_what_the_sequence_runs.py"
+  }
+]

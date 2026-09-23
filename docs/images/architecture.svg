@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 930" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <title>AICC architecture (commit b132a4d, 2026-09-01)</title>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+    <style>
+      .h{font-size:20px;font-weight:700;fill:#0f172a}
+      .hy{font-size:20px;font-weight:700;fill:#6d28d9}
+      .box{fill:#f8fafc;stroke:#94a3b8;stroke-width:1.5}
+      .eng{fill:#ecfeff;stroke:#0e7490;stroke-width:1.5}
+      .keep{fill:#fffbeb;stroke:#b45309;stroke-width:1.5}
+      .you{fill:#f5f3ff;stroke:#6d28d9;stroke-width:1.8}
+      .ext{fill:#f1f5f9;stroke:#475569;stroke-width:1.5;stroke-dasharray:6 4}
+      .t{font-size:17px;font-weight:700;fill:#0f172a}
+      .s{font-size:13px;fill:#334155}
+      .n{font-size:12px;fill:#64748b;font-style:italic}
+      .al{font-size:12px;fill:#475569;font-style:italic}
+      .lg{font-size:12px;fill:#475569}
+      .ln{stroke:#475569;stroke-width:1.6;fill:none}
+    </style>
+  </defs>
+
+  <rect width="1200" height="930" fill="#ffffff"/>
+
+  <!-- headline -->
+  <text x="30" y="52" class="h">AICC routes the work between two AI tools and keeps the record.</text>
+  <text x="30" y="82" class="hy">The person makes the final call.</text>
+
+  <!-- the person, start -->
+  <rect x="840" y="26" width="330" height="74" rx="10" class="you"/>
+  <text x="860" y="56" class="t">You</text>
+  <text x="860" y="80" class="s">Give the task; decide how it is checked.</text>
+  <path d="M1005,100 L1005,140" class="ln" marker-end="url(#a)"/>
+  <text x="1015" y="125" class="al">uses</text>
+
+  <!-- row 1: what the user sees -->
+  <rect x="30" y="140" width="520" height="92" rx="10" class="box"/>
+  <text x="50" y="172" class="t">Web panels</text>
+  <text x="50" y="195" class="s">Send state to a page; pass the user's actions to the engine.</text>
+  <text x="50" y="214" class="s">Every field sent must be read by the page (pytest checks).</text>
+
+  <rect x="650" y="140" width="520" height="92" rx="10" class="box"/>
+  <text x="670" y="172" class="t">Screens</text>
+  <text x="670" y="195" class="s">Local HTML pages in QWebEngine.</text>
+  <text x="670" y="214" class="s">They draw what the engine sends. Nothing is computed here.</text>
+
+  <path d="M550,186 L650,186" class="ln" marker-end="url(#a)" marker-start="url(#a)"/>
+  <path d="M195,232 L195,282" class="ln" marker-end="url(#a)" marker-start="url(#a)"/>
+
+  <!-- row 2: engine -->
+  <rect x="30" y="282" width="330" height="110" rx="10" class="eng"/>
+  <text x="50" y="314" class="t">Main window</text>
+  <text x="50" y="337" class="s">One run session per project.</text>
+  <text x="50" y="356" class="s">On close, waits for every thread</text>
+  <text x="50" y="375" class="s">before the process exits.</text>
+
+  <rect x="435" y="282" width="330" height="110" rx="10" class="eng"/>
+  <text x="455" y="314" class="t">Workflow worker</text>
+  <text x="455" y="337" class="s">Background thread that runs one</text>
+  <text x="455" y="356" class="s">sequence: plan, build, review, then</text>
+  <text x="455" y="375" class="s">a last seat that checks every stamp.</text>
+
+  <rect x="840" y="282" width="330" height="110" rx="10" class="eng"/>
+  <text x="860" y="314" class="t">Orchestrator</text>
+  <text x="860" y="337" class="s">Sends each step to the seat</text>
+  <text x="860" y="356" class="s">whose duty fits it.</text>
+
+  <path d="M360,337 L435,337" class="ln" marker-end="url(#a)"/>
+  <text x="397" y="329" class="al" text-anchor="middle">starts</text>
+  <path d="M765,337 L840,337" class="ln" marker-end="url(#a)"/>
+  <text x="802" y="329" class="al" text-anchor="middle">calls</text>
+
+  <!-- row 3 -->
+  <rect x="30" y="432" width="330" height="125" rx="10" class="keep"/>
+  <text x="50" y="464" class="t">Stamps</text>
+  <text x="50" y="487" class="s">Each finished step leaves a stamp on</text>
+  <text x="50" y="506" class="s">the version that was checked. A change</text>
+  <text x="50" y="525" class="s">expires the stamps on that content.</text>
+  <text x="50" y="544" class="s">Outcomes include GATED.</text>
+
+  <rect x="435" y="432" width="330" height="92" rx="10" class="eng"/>
+  <text x="455" y="464" class="t">CLI runner</text>
+  <text x="455" y="487" class="s">Starts the official command-line tools</text>
+  <text x="455" y="506" class="s">as child processes; kills the whole tree.</text>
+
+  <rect x="840" y="432" width="330" height="92" rx="10" class="eng"/>
+  <text x="860" y="464" class="t">Line-up</text>
+  <text x="860" y="487" class="s">Seats: name, vendor, duty, who it follows.</text>
+  <text x="860" y="506" class="s">Only the "work" duty may write files.</text>
+
+  <path d="M520,392 L240,432" class="ln" marker-end="url(#a)"/>
+  <text x="392" y="404" class="al" text-anchor="middle">writes</text>
+  <path d="M900,392 L720,432" class="ln" marker-end="url(#a)"/>
+  <text x="822" y="404" class="al" text-anchor="middle">calls</text>
+  <path d="M1005,392 L1005,432" class="ln" marker-end="url(#a)"/>
+  <text x="1015" y="417" class="al">reads</text>
+
+  <!-- row 4 -->
+  <rect x="30" y="597" width="330" height="110" rx="10" class="you"/>
+  <text x="50" y="629" class="t">You make the final call</text>
+  <text x="50" y="652" class="s">Answer when a step stops to ask.</text>
+  <text x="50" y="671" class="s">Keep the result or not. AICC never</text>
+  <text x="50" y="690" class="s">commits; agents are told to ask first.</text>
+  <path d="M195,557 L195,597" class="ln" marker-end="url(#a)"/>
+  <text x="205" y="582" class="al">only when every stamp is current</text>
+
+  <rect x="435" y="597" width="155" height="70" rx="10" class="ext"/>
+  <text x="452" y="627" class="t">Claude Code</text>
+  <text x="452" y="649" class="s">user's own sign-in</text>
+  <rect x="610" y="597" width="155" height="70" rx="10" class="ext"/>
+  <text x="627" y="627" class="t">Codex</text>
+  <text x="627" y="649" class="s">user's own sign-in</text>
+  <path d="M512,524 L512,597" class="ln" marker-end="url(#a)"/>
+  <text x="520" y="565" class="al">starts</text>
+  <path d="M688,524 L688,597" class="ln" marker-end="url(#a)"/>
+  <text x="696" y="565" class="al">starts</text>
+  <text x="435" y="689" class="n">Each step runs read-only (plan mode / read-only</text>
+  <text x="435" y="706" class="n">sandbox) or with write access limited to the project.</text>
+
+  <rect x="840" y="597" width="330" height="110" rx="10" class="keep"/>
+  <text x="860" y="629" class="t">Project knowledge</text>
+  <text x="860" y="652" class="s">Eight plain-text files in the project,</text>
+  <text x="860" y="671" class="s">under their own version control.</text>
+  <text x="860" y="690" class="s">Read at the start of every task.</text>
+  <path d="M1170,337 L1186,337 L1186,652 L1172,652" class="ln" marker-end="url(#a)"/>
+  <text x="1180" y="582" class="al" text-anchor="end">reads</text>
+
+  <!-- row 5 -->
+  <rect x="30" y="752" width="330" height="125" rx="10" class="keep"/>
+  <text x="50" y="784" class="t">Decision log</text>
+  <text x="50" y="807" class="s">Every question raised during a run, and</text>
+  <text x="50" y="826" class="s">who answered it: you, or Codex.</text>
+  <text x="50" y="845" class="s">Hash-chained; exported with a verifier</text>
+  <text x="50" y="864" class="s">that detects a single edited entry.</text>
+  <path d="M195,707 L195,752" class="ln" marker-end="url(#a)"/>
+  <text x="205" y="734" class="al">answers</text>
+
+  <!-- legend -->
+  <rect x="435" y="790" width="14" height="14" rx="3" class="you"/>
+  <text x="457" y="802" class="lg">The person</text>
+  <rect x="565" y="790" width="14" height="14" rx="3" class="eng"/>
+  <text x="587" y="802" class="lg">Engine (Python)</text>
+  <rect x="715" y="790" width="14" height="14" rx="3" class="keep"/>
+  <text x="737" y="802" class="lg">Kept in the project</text>
+  <rect x="885" y="790" width="14" height="14" rx="3" class="ext"/>
+  <text x="907" y="802" class="lg">Vendor tools, not part of AICC</text>
+
+  <text x="1170" y="905" class="n" text-anchor="end">AICC · commit b132a4d (2026-09-01) · prompt assembly not shown</text>
+</svg>

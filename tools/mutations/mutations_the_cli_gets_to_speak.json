@@ -1,0 +1,44 @@
+[
+  {
+    "label": "U1 CLI 講的話又被我們自己編的那句蓋掉（撞到五小時上限，畫面說「暫時無法完成任務」）",
+    "file": "app/core/outcomes.py",
+    "replace": "        # 寫的是「Claude 暫時無法完成任務」——他看到的跟「壞掉了」一模一樣。\n        detail_key=\"claude_error\",",
+    "with": "        # 寫的是「Claude 暫時無法完成任務」——他看到的跟「壞掉了」一模一樣。",
+    "test": "tests/test_the_cli_gets_to_say_why_it_stopped.py::test_the_screen_shows_what_the_cli_actually_said"
+  },
+  {
+    "label": "U2 取的是開頭不是結尾（狀態列上是「Loading⋯」，而結論被擠掉）",
+    "file": "app/core/outcomes.py",
+    "replace": "    for line in reversed(lines):\n        if len(line) >= 4:",
+    "with": "    for line in lines:\n        if len(line) >= 4:",
+    "test": "tests/test_the_cli_gets_to_say_why_it_stopped.py::test_the_preamble_does_not_push_the_reason_off_the_line"
+  },
+  {
+    "label": "U3 一整段堆疊原樣塞進狀態列（一行擠成幾百字，旁邊的東西全部被推走）",
+    "file": "app/core/outcomes.py",
+    "replace": "            return line[-STAGE_MAX_CHARS:]",
+    "with": "            return line",
+    "test": "tests/test_the_cli_gets_to_say_why_it_stopped.py::test_a_very_long_last_line_is_trimmed"
+  },
+  {
+    "label": "U4 CLI 什麼都沒說的時候狀態列變成空的（讀起來像「還沒跑」，而它跑了而且失敗了）",
+    "file": "app/core/outcomes.py",
+    "replace": "        detail = _last_words(str(result.get(row.detail_key, \"\") or \"\"))\n        if detail:",
+    "with": "        detail = _last_words(str(result.get(row.detail_key, \"\") or \"\"))\n        if True:",
+    "test": "tests/test_the_cli_gets_to_say_why_it_stopped.py::test_saying_nothing_falls_back_to_our_own_sentence"
+  },
+  {
+    "label": "U5 只有一種收場讀得到 CLI 那句話，其餘照樣被蓋掉",
+    "file": "app/core/outcomes.py",
+    "replace": "        \"outcome.CODEX_ERROR.stage\",\n        detail_key=\"codex_log\",",
+    "with": "        \"outcome.CODEX_ERROR.stage\",",
+    "test": "tests/test_the_cli_gets_to_say_why_it_stopped.py::test_every_ending_that_can_only_be_explained_by_the_cli_reads_it"
+  },
+  {
+    "label": "U6 有人開始猜「撞到上限」那句話長什麼樣（沒有樣本就寫比對，猜錯會很有自信地說錯話）",
+    "file": "app/core/outcomes.py",
+    "replace": "STAGE_MAX_CHARS = 240",
+    "with": "STAGE_MAX_CHARS = 240\n_GUESS = \"usage limit reached\"",
+    "test": "tests/test_the_cli_gets_to_say_why_it_stopped.py::test_nobody_invented_a_pattern_for_a_message_we_have_never_seen"
+  }
+]

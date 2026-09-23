@@ -1,0 +1,79 @@
+[
+  {
+    "label": "M1 workflow_worker 開跑前的守衛關掉（沒宣告也照跑）",
+    "file": "app/core/steps/verification.py",
+    "replace": "    verification = site.orchestrator.verification()\n    if verification.command is not None:\n        return \"\"",
+    "with": "    verification = site.orchestrator.verification()\n    if True:\n        return \"\"",
+    "test": "tests/test_workflow_worker_runtime.py::test_a_project_that_never_declared_how_to_verify_stops_instead_of_red"
+  },
+  {
+    "label": "M2 run_tests 改回把「沒得驗」當成失敗的測試結果回傳（假紅燈）",
+    "file": "app/core/orchestrator.py",
+    "replace": "            raise VerificationNotDeclared(lookup.problem)",
+    "with": "            return CliResult(command=\"\", success=False, return_code=1, stdout=\"\", stderr=lookup.problem)",
+    "test": "tests/test_workflow_worker_runtime.py::test_a_declaration_that_vanishes_mid_run_still_is_not_a_red_light"
+  },
+  {
+    "label": "M3 忽略專案宣告，改回寫死的 python -m pytest -q",
+    "file": "app/services/project_verification.py",
+    "replace": "            argv=[executable, *declared[1:]],",
+    "with": "            argv=[\"python\", \"-m\", \"pytest\", \"-q\"],",
+    "test": "tests/test_workflow_worker_runtime.py::test_development_happy_path_completes_with_pass"
+  },
+  {
+    "label": "M4 忽略專案宣告的逾時，改回寫死的 120 秒",
+    "file": "app/core/orchestrator.py",
+    "replace": "            timeout_seconds=command.timeout_seconds,",
+    "with": "            timeout_seconds=120,",
+    "test": "tests/test_workflow_worker_runtime.py::test_development_happy_path_completes_with_pass"
+  },
+  {
+    "label": "M5 相對直譯器路徑改對行程 cwd 解析（不是專案根目錄）",
+    "file": "app/services/project_verification.py",
+    "replace": "    return CliRunner.resolve_tool(raw, base_dir=project_root)",
+    "with": "    return CliRunner.resolve_tool(raw)",
+    "test": "tests/test_project_verification.py::test_a_relative_interpreter_resolves_against_the_project_not_the_cwd"
+  },
+  {
+    "label": "M6 宣告的直譯器不存在時不擋，讓它往下走成一次失敗的呼叫",
+    "file": "app/services/project_verification.py",
+    "replace": "    if executable is None:",
+    "with": "    if False:",
+    "test": "tests/test_project_verification.py::test_a_declared_interpreter_that_is_not_there_is_not_a_red_light"
+  },
+  {
+    "label": "M7 不檢查 argv 形狀（字串命令也照收）",
+    "file": "app/services/project_verification.py",
+    "replace": "    if not isinstance(declared, list) or not all(",
+    "with": "    if False and not all(",
+    "test": "tests/test_project_verification.py::test_a_command_that_is_not_argv_is_refused_rather_than_split"
+  },
+  {
+    "label": "M8 沒宣告時自己猜一個預設值（舊 project.json 就這樣被猜掉）",
+    "file": "app/services/project_verification.py",
+    "replace": "    declared = raw.get(VERIFY_COMMAND_KEY)",
+    "with": "    declared = raw.get(VERIFY_COMMAND_KEY, [\"python\", \"-m\", \"pytest\", \"-q\"])",
+    "test": "tests/test_project_verification.py::test_a_project_json_written_before_this_field_existed_still_reads"
+  },
+  {
+    "label": "M9 逾時宣告壞掉時默默用預設值，而不是停下來",
+    "file": "app/services/project_verification.py",
+    "replace": "        return None, (\n            f\"{_SETTINGS_LOCATION} 的 {VERIFY_TIMEOUT_KEY} 格式不對：\"\n            \"必須是大於 0 的秒數。\"\n        )",
+    "with": "        return 120, \"\"",
+    "test": "tests/test_project_verification.py::test_a_broken_timeout_stops_the_run"
+  },
+  {
+    "label": "M10 沒得驗的結局在畫面上畫成失敗（紅的）",
+    "file": "app/core/outcomes.py",
+    "replace": "        \"outcome.VERIFY_NOT_CONFIGURED.label\",\n        \"partial\",",
+    "with": "        \"outcome.VERIFY_NOT_CONFIGURED.label\",\n        \"error\",",
+    "test": "tests/test_main_window_runtime.py::test_nothing_to_verify_with_is_not_painted_as_a_failure"
+  },
+  {
+    "label": "M11 run_tests 不再把「沒得驗」寫進時間軸",
+    "file": "app/core/orchestrator.py",
+    "replace": "            \"verification_not_declared\",",
+    "with": "            \"message\",",
+    "test": "tests/test_workflow_worker_runtime.py::test_a_declaration_that_vanishes_mid_run_still_is_not_a_red_light"
+  }
+]

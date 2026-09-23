@@ -1,0 +1,23 @@
+[
+  {
+    "label": "N-A 那一筆時間軸拿掉（一人表格跑完，整輪沒有一句話說過「這一輪沒有驗收標準」，收場照樣是綠色的工作流程已完成）",
+    "file": "app/core/steps/intake.py",
+    "replace": "        orchestrator.timeline.append(\n            orchestrator.run_id,\n            \"aicc\",\n            \"no_criteria_seat\",\n            t(\"outcome.CRITERIA_NO_OWNER.stage\"),\n        )\n        return \"\", None",
+    "with": "        return \"\", None",
+    "test": "tests/test_a_run_with_nobody_to_set_the_bar_says_so_out_loud.py::test_a_line_up_with_nobody_to_set_the_bar_leaves_a_trace"
+  },
+  {
+    "label": "N-B 留了一筆但沒有內容（時間軸上多一列空白——查得到「有事發生」，查不到發生了什麼）",
+    "file": "app/core/steps/intake.py",
+    "replace": "            t(\"outcome.CRITERIA_NO_OWNER.stage\"),",
+    "with": "            \"\",",
+    "test": "tests/test_a_run_with_nobody_to_set_the_bar_says_so_out_loud.py::test_a_line_up_with_nobody_to_set_the_bar_leaves_a_trace"
+  },
+  {
+    "label": "N-C 改成無條件留一筆（每一輪都印「這一輪沒有驗收標準」，包括真的訂了標準的那幾輪——一條每次都出現的警告等於沒有警告）",
+    "file": "app/core/steps/intake.py",
+    "replace": "    seat = criteria_seat(orchestrator.lineup)\n    if not seat:",
+    "with": "    seat = criteria_seat(orchestrator.lineup)\n    orchestrator.timeline.append(orchestrator.run_id, \"aicc\", \"no_criteria_seat\", t(\"outcome.CRITERIA_NO_OWNER.stage\"))\n    if not seat:",
+    "test": "tests/test_a_run_with_nobody_to_set_the_bar_says_so_out_loud.py::test_a_line_up_that_does_have_someone_to_set_the_bar_says_nothing"
+  }
+]

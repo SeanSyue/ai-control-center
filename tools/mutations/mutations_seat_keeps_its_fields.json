@@ -1,0 +1,37 @@
+[
+  {
+    "label": "G1 指派對話時逐個位置參數重建（`duty` 每次都掉，那一格從此不能寫檔案）",
+    "file": "app/core/lineup.py",
+    "replace": "                replace(slot, session_id=session_id)",
+    "with": "                AgentSlot(slot.role, slot.provider, session_id, slot.credential, slot.identity)",
+    "test": "tests/test_a_seat_does_not_quietly_lose_a_field.py"
+  },
+  {
+    "label": "G2 寫「你是⋯」時逐個位置參數重建（同上，寫一句身分那一格就不能寫檔案了）",
+    "file": "app/core/lineup.py",
+    "replace": "                replace(slot, identity=identity)",
+    "with": "                AgentSlot(slot.role, slot.provider, slot.session_id, slot.credential, identity)",
+    "test": "tests/test_a_seat_does_not_quietly_lose_a_field.py"
+  },
+  {
+    "label": "G3 清對話 id 時順手清掉別的（搬完機器之後那個專案再也做不出東西）",
+    "file": "app/core/lineup.py",
+    "replace": "            tuple(replace(slot, session_id=\"\") for slot in self.slots)",
+    "with": "            tuple(AgentSlot(slot.role, slot.provider, \"\", slot.credential, slot.identity) for slot in self.slots)",
+    "test": "tests/test_a_seat_does_not_quietly_lose_a_field.py"
+  },
+  {
+    "label": "G4 存成表格時不存職責（套用之後沒有任何一格能寫檔案，而畫面看不出為什麼）",
+    "file": "app/services/lineup_presets.py",
+    "replace": "                    \"duty\": slot.duty,",
+    "with": "",
+    "test": "tests/test_a_seat_does_not_quietly_lose_a_field.py"
+  },
+  {
+    "label": "G5 讀表格時不讀職責（同上，而且舊檔看起來完全正常）",
+    "file": "app/services/lineup_presets.py",
+    "replace": "                    duty=str(item.get(\"duty\", \"\")),",
+    "with": "",
+    "test": "tests/test_a_seat_does_not_quietly_lose_a_field.py"
+  }
+]

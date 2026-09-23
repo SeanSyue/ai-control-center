@@ -1,0 +1,58 @@
+[
+  {
+    "label": "C1 拍板檢查爆掉之後又回 None（呼叫端把它跟「不用擋」走同一條路，畫面回到薄荷色的「工作流程已完成」）",
+    "file": "app/core/run_stamps.py",
+    "replace": "            self._note_uncomputable(exc)\n            return UNCOMPUTABLE",
+    "with": "            self._note_uncomputable(exc)\n            return None",
+    "test": "tests/test_the_stamp_check_that_blew_up_does_not_say_it_finished.py"
+  },
+  {
+    "label": "C2 算不出來又被當成放行（同一支函式：少一個章會說缺誰的章，自己爆掉卻說完成）",
+    "file": "app/core/steps/approval.py",
+    "replace": "    if verdict is run_stamps.UNCOMPUTABLE:\n        return Undecidable(",
+    "with": "    if verdict is run_stamps.UNCOMPUTABLE:\n        return None\n    if False:\n        return Undecidable(",
+    "test": "tests/test_the_stamp_check_that_blew_up_does_not_say_it_finished.py"
+  },
+  {
+    "label": "C3 借的那把鑰匙改成 outcomes.py 認不得的字（首頁上是一格沒有顏色也沒有標籤的東西）",
+    "file": "app/core/run_stamps.py",
+    "replace": "UNCOMPUTABLE_SCREEN_KEY = \"READY\"",
+    "with": "UNCOMPUTABLE_SCREEN_KEY = \"UNCOMPUTABLE\"",
+    "test": "tests/test_the_stamp_check_that_blew_up_does_not_say_it_finished.py::test_the_ending_has_a_row_in_the_outcome_table"
+  },
+  {
+    "label": "C4 算不出來的時候畫面說「可以拍板」（最該提醒的那一刻，說的是最讓人放心的那一句）",
+    "file": "app/core/run_stamps.py",
+    "replace": "        return t(\"undecidable.READY.stage\")",
+    "with": "        return t(\"chain.decidable\")",
+    "test": "tests/test_the_stamp_check_that_blew_up_does_not_say_it_finished.py::test_the_screen_says_the_judgement_itself_could_not_be_computed"
+  },
+  {
+    "label": "C5 又接回「少一個章不是卡在那一關」（叫使用者去補一個沒有人量過的章，而缺的可能是零個）",
+    "file": "app/core/steps/approval.py",
+    "replace": "            note_key=\"\",",
+    "with": "            note_key=\"approval.missing_stamp_note\",",
+    "test": "tests/test_the_stamp_check_that_blew_up_does_not_say_it_finished.py::test_it_does_not_tell_him_to_go_find_a_missing_stamp"
+  },
+  {
+    "label": "C6 吞掉的例外不留痕跡（事後只剩一個沒有來由的 NOT_DECIDABLE，來修的人查不出它為什麼爆）",
+    "file": "app/core/run_stamps.py",
+    "replace": "            self._note_uncomputable(exc)",
+    "with": "            pass",
+    "test": "tests/test_the_stamp_check_that_blew_up_does_not_say_it_finished.py::test_the_exception_is_still_findable_afterwards"
+  },
+  {
+    "label": "C7 規則層回 None 的那條關口拆掉（今天走不到，但 is_undecidable 那條 `verdict is None` 放行還在，走到就是綠燈）",
+    "file": "app/core/run_stamps.py",
+    "replace": "        if verdict is None:\n            # 「沒算出判定」",
+    "with": "        if False:\n            # 「沒算出判定」",
+    "test": "tests/test_the_stamp_check_that_blew_up_does_not_say_it_finished.py::test_a_blank_from_the_rules_layer_is_not_a_pass"
+  },
+  {
+    "label": "C8 關口在那裡，但把 None 原樣傳出去（收了一半等於沒收：上游那條路就是放行）",
+    "file": "app/core/run_stamps.py",
+    "replace": "            self._note_uncomputable(\n                RuntimeError(t(\"stamp.no_verdict_at_all\"))\n            )\n            return UNCOMPUTABLE",
+    "with": "            return None",
+    "test": "tests/test_the_stamp_check_that_blew_up_does_not_say_it_finished.py::test_a_blank_from_the_rules_layer_is_not_a_pass"
+  }
+]

@@ -1,0 +1,44 @@
+[
+  {
+    "label": "G1 「沒有人做事」那個結局又丟 traceback（那句話早就寫好了，只是到不了——使用者看到的是一整坨紅字，不是「請到陣容頁改職責」）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "            \"claude_success\": (\n                claude_result.success if claude_result is not None else False\n            ),",
+    "with": "            \"claude_success\": claude_result.success,",
+    "test": "tests/test_a_line_with_nobody_doing_the_work_stops_and_says_so.py::test_it_stops_instead_of_blowing_up"
+  },
+  {
+    "label": "G1b 同一個病的第二個欄位（`claude_output`／`claude_error`）——只修一個的話 traceback 往後挪兩行，畫面一樣紅",
+    "file": "app/core/workflow_worker.py",
+    "replace": "            \"claude_output\": (\n                claude_result.stdout if claude_result is not None else \"\"\n            ),",
+    "with": "            \"claude_output\": claude_result.stdout,",
+    "test": "tests/test_a_line_with_nobody_doing_the_work_stops_and_says_so.py::test_it_stops_instead_of_blowing_up"
+  },
+  {
+    "label": "G2 沒有人做事卻收成「已完成」（一輪什麼都沒做的執行被記成做完了——這個專案最在意的那一種假訊號）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "            workflow_status=\"NO_WORKING_SEAT\",",
+    "with": "            workflow_status=\"COMPLETED\",",
+    "test": "tests/test_a_line_with_nobody_doing_the_work_stops_and_says_so.py::test_the_ending_is_the_one_that_was_written_for_this"
+  },
+  {
+    "label": "G3 挑一格代打（那一格會拿到寫入權限，而使用者從來沒有把它排成執行——他會得到一個他沒有授權的動作，而畫面上看起來一切正常）",
+    "file": "app/core/steps/building.py",
+    "replace": "        return Built(ending=\"NO_WORKING_SEAT\")",
+    "with": "        seats = [next(iter(orchestrator.lineup)).role]  # 破壞：挑第一格代打",
+    "test": "tests/test_a_line_with_nobody_doing_the_work_stops_and_says_so.py::test_it_does_not_pick_one_to_stand_in"
+  },
+  {
+    "label": "G4 那句話不再講回哪一頁改什麼（「執行失敗」四個字寫進紀錄等於沒寫）",
+    "file": "app/i18n.py",
+    "replace": "\"lineup.no_worker\": \"這個專案的陣容裡沒有任何一格的職責是「執行」，所以沒有人會產出東西。請到陣容頁把其中一格的職責改成執行。\"",
+    "with": "\"lineup.no_worker\": \"沒有人做事。\"",
+    "test": "tests/test_a_line_with_nobody_doing_the_work_stops_and_says_so.py::test_the_screen_says_which_way_out"
+  },
+  {
+    "label": "G5 擋過頭：有一格會寫檔案的線也被判成沒有人做事（一條什麼都拒絕的門，跟一個永遠說可以的門一樣沒用）",
+    "file": "app/core/steps/building.py",
+    "replace": "    if not seats:",
+    "with": "    if True:",
+    "test": "tests/test_a_line_with_nobody_doing_the_work_stops_and_says_so.py::test_a_line_that_does_have_a_worker_is_not_stopped"
+  }
+]

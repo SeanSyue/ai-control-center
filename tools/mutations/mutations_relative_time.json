@@ -1,0 +1,44 @@
+[
+  {
+    "label": "T1 「剛剛」的門檻從 90 秒鬆成 60（畫面上會多一次沒有資訊的跳動，而沒有任何既有測試看得到）",
+    "file": "app/services/relative_time.py",
+    "replace": "JUST_NOW_UNDER = 90",
+    "with": "JUST_NOW_UNDER = 60",
+    "test": "tests/test_how_long_ago_is_said_one_way.py::test_the_words_for_how_long_ago"
+  },
+  {
+    "label": "T2 等待計時器不夾負數（時鐘調過的那天畫面上出現「-9 分 40 秒」——divmod 對負數就是這樣）",
+    "file": "app/services/relative_time.py",
+    "replace": "    total = int(max(0.0, seconds))",
+    "with": "    total = int(seconds)",
+    "test": "tests/test_how_long_ago_is_said_one_way.py::test_a_time_in_the_future_never_shows_a_negative_number"
+  },
+  {
+    "label": "T3 花了多久進位成 1 分鐘（2 秒就答完的顯示成「1 分鐘」——那正好是「它到底有沒有在想」最在意的區間）",
+    "file": "app/services/relative_time.py",
+    "replace": "    if seconds < MINUTE:\n        return t(\"time.under_a_minute\")",
+    "with": "    if seconds < 1:\n        return t(\"time.under_a_minute\")",
+    "test": "tests/test_how_long_ago_is_said_one_way.py::test_a_two_second_answer_is_not_rounded_up_to_a_minute"
+  },
+  {
+    "label": "T4 「花了多久」誤用成「多久以前」（畫面上「等了 3 分鐘前」——一個字之差，句子壞掉）",
+    "file": "app/services/relative_time.py",
+    "replace": "        return t(\"time.minutes\", n=minutes)",
+    "with": "        return t(\"time.minutes_ago\", n=minutes)",
+    "test": "tests/test_how_long_ago_is_said_one_way.py::test_the_words_for_how_long_it_took"
+  },
+  {
+    "label": "T5 等待計時器的秒被省掉（數字每分鐘才動一次，使用者以為畫面當了）",
+    "file": "app/services/relative_time.py",
+    "replace": "    return t(\"time.minutes_seconds\", m=minutes, s=f\"{remainder:02d}\")",
+    "with": "    return t(\"time.minutes\", n=minutes)",
+    "test": "tests/test_how_long_ago_is_said_one_way.py::test_the_waiting_clock_keeps_its_seconds"
+  },
+  {
+    "label": "T6 某個面板又自己寫一份（第六份。它今天會是對的，然後在加英文的那天印出 1 minutes ago）",
+    "file": "app/ui/dashboard_web_panel.py",
+    "replace": "    return relative_time.describe_age(seconds)",
+    "with": "    return \"剛剛\" if seconds < 90 else f\"{int(seconds // 60)} 分鐘前\"",
+    "test": "tests/test_how_long_ago_is_said_one_way.py::test_nobody_else_spells_out_how_long_ago"
+  }
+]

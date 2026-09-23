@@ -1,0 +1,55 @@
+<svg width="680" height="350" viewBox="0 0 680 350" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>AI Control Center 架構圖</title>
+<desc>MainWindow 在 GUI 執行緒上管理 Dashboard，每個專案各自擁有獨立的 RunSession 狀態容器，各自驅動背景執行緒 WorkflowWorker，WorkflowWorker 透過 BoundSlot 把結果安全地傳回 MainWindow。</desc>
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="#73726c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+</defs>
+
+<style>
+  text { font-family: "Segoe UI", "Microsoft JhengHei", sans-serif; }
+  .th { font-size: 14px; font-weight: 500; fill: #1a1a1a; }
+  .ts { font-size: 12px; font-weight: 400; fill: #55534d; }
+  .box-blue { fill: #eaf1fb; stroke: #2b6cb0; }
+  .box-teal { fill: #e6f6f4; stroke: #10817a; }
+  .box-amber { fill: #fff6e6; stroke: #b8720a; }
+  .arr { stroke: #73726c; stroke-width: 1; fill: none; }
+</style>
+
+<g>
+  <rect x="170" y="20" width="340" height="56" rx="8" stroke-width="0.5" class="box-blue"/>
+  <text class="th" x="340" y="38" text-anchor="middle" dominant-baseline="central">MainWindow</text>
+  <text class="ts" x="340" y="56" text-anchor="middle" dominant-baseline="central">GUI thread, Dashboard</text>
+</g>
+
+<line x1="270" y1="76" x2="170" y2="136" class="arr" marker-end="url(#arrow)"/>
+<line x1="410" y1="76" x2="510" y2="136" class="arr" marker-end="url(#arrow)"/>
+
+<g>
+  <rect x="40" y="136" width="260" height="56" rx="8" stroke-width="0.5" class="box-teal"/>
+  <text class="th" x="170" y="154" text-anchor="middle" dominant-baseline="central">RunSession A</text>
+  <text class="ts" x="170" y="172" text-anchor="middle" dominant-baseline="central">Per-project state</text>
+</g>
+
+<g>
+  <rect x="380" y="136" width="260" height="56" rx="8" stroke-width="0.5" class="box-teal"/>
+  <text class="th" x="510" y="154" text-anchor="middle" dominant-baseline="central">RunSession B</text>
+  <text class="ts" x="510" y="172" text-anchor="middle" dominant-baseline="central">Per-project state</text>
+</g>
+
+<line x1="170" y1="192" x2="170" y2="252" class="arr" marker-end="url(#arrow)"/>
+<line x1="510" y1="192" x2="510" y2="252" class="arr" marker-end="url(#arrow)"/>
+
+<g>
+  <rect x="40" y="252" width="260" height="56" rx="8" stroke-width="0.5" class="box-amber"/>
+  <text class="th" x="170" y="270" text-anchor="middle" dominant-baseline="central">WorkflowWorker A</text>
+  <text class="ts" x="170" y="288" text-anchor="middle" dominant-baseline="central">&#8594; BoundSlot &#8594; MainWindow</text>
+</g>
+
+<g>
+  <rect x="380" y="252" width="260" height="56" rx="8" stroke-width="0.5" class="box-amber"/>
+  <text class="th" x="510" y="270" text-anchor="middle" dominant-baseline="central">WorkflowWorker B</text>
+  <text class="ts" x="510" y="288" text-anchor="middle" dominant-baseline="central">&#8594; BoundSlot &#8594; MainWindow</text>
+</g>
+</svg>

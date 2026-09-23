@@ -1,0 +1,37 @@
+[
+  {
+    "label": "W1 作者那個章沒有蓋（規則層每一條單元測試照樣全綠，因為沒有人叫它）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "            stamper.work_done(\n                deliverable=final_diff,",
+    "with": "            (lambda **kw: None)(\n                deliverable=final_diff,",
+    "test": "tests/test_the_run_actually_leaves_stamps.py"
+  },
+  {
+    "label": "W2 驗證那個章沒有蓋（跑過測試這件事在紀錄裡消失，而執行看起來完全正常）",
+    "file": "app/core/steps/verification.py",
+    "replace": "    site.stamper.verified(\n        deliverable=orchestrator.get_git_diff(),\n        status=result.status,\n        reason=result.reason,\n    )",
+    "with": "    pass",
+    "test": "tests/test_the_run_actually_leaves_stamps.py"
+  },
+  {
+    "label": "W3 審查那個章沒有蓋（「有人看過了」與「指令跑過了」剩下一個，而下游分不出來）",
+    "file": "app/core/steps/reviewing.py",
+    "replace": "        site.stamper.reviewed(",
+    "with": "        (lambda **kw: None)(",
+    "test": "tests/test_the_run_actually_leaves_stamps.py"
+  },
+  {
+    "label": "W4 章寫不進硬碟也不吭聲（append 變成 no-op——正是「記帳失敗不准弄死執行」最容易變成的樣子）",
+    "file": "app/services/approval_chain.py",
+    "replace": "        if not run_id:\n            return",
+    "with": "        if True:\n            return",
+    "test": "tests/test_the_run_actually_leaves_stamps.py"
+  },
+  {
+    "label": "W5 acceptance 從必要清單裡被拿掉（缺口被藏起來，鏈子看起來是完整的）",
+    "file": "app/core/run_stamps.py",
+    "replace": "    Required(ROLE_REVIEWER, SUBJECT_ACCEPTANCE, StampKind.REVIEW),\n",
+    "with": "",
+    "test": "tests/test_the_run_actually_leaves_stamps.py"
+  }
+]

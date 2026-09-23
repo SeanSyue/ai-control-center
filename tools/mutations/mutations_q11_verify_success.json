@@ -1,0 +1,114 @@
+[
+  {
+    "label": "N1 引擎自己決定「算不算過」：VerificationOutcome 改回讀 CliRunner 的 returncode == 0",
+    "file": "app/services/project_verification.py",
+    "replace": "    @property\n    def passed(self) -> bool:\n        return self.verdict.passed",
+    "with": "    @property\n    def passed(self) -> bool:\n        return self.result.success",
+    "test": "tests/test_workflow_worker_runtime.py::test_the_project_decides_what_passes_not_the_exit_code"
+  },
+  {
+    "label": "N2 宣告的 output_pattern 失去否決權（樣式不合也算過）",
+    "file": "app/services/project_verification.py",
+    "replace": "            met = re.search(self.output_pattern, output) is not None",
+    "with": "            met = True",
+    "test": "tests/test_workflow_worker_runtime.py::test_a_declared_pattern_that_does_not_match_is_still_a_failure"
+  },
+  {
+    "label": "N3 宣告的 exit_codes 失去效力（只認 0）",
+    "file": "app/services/project_verification.py",
+    "replace": "            met = return_code in self.exit_codes",
+    "with": "            met = return_code == 0",
+    "test": "tests/test_project_verification.py::test_exit_codes_declared_by_the_project_decide"
+  },
+  {
+    "label": "N4 沒宣告 verify_success 就偷偷退回「離開碼 0 才算過」",
+    "file": "app/services/project_verification.py",
+    "replace": "    if VERIFY_SUCCESS_KEY not in raw or raw.get(VERIFY_SUCCESS_KEY) is None:\n        return None, (",
+    "with": "    if VERIFY_SUCCESS_KEY not in raw or raw.get(VERIFY_SUCCESS_KEY) is None:\n        return SuccessRule((0,), None, True), \"\"\n    if False:\n        return None, (",
+    "test": "tests/test_project_verification.py::test_an_undeclared_success_rule_stops_the_run"
+  },
+  {
+    "label": "N5 兩個判準都宣告時，引擎自己替專案決定 match（不再要求說清楚）",
+    "file": "app/services/project_verification.py",
+    "replace": "    if match_value not in (MATCH_ALL, MATCH_ANY):",
+    "with": "    if match_value is not None and match_value not in (MATCH_ALL, MATCH_ANY):",
+    "test": "tests/test_project_verification.py::test_declaring_both_criteria_requires_saying_how_they_combine"
+  },
+  {
+    "label": "N6 拼錯的欄位被忽略（規則悄悄鬆掉一半，變成沒宣告的綠燈）",
+    "file": "app/services/project_verification.py",
+    "replace": "    if unknown:\n        return None, (",
+    "with": "    if False:\n        return None, (",
+    "test": "tests/test_project_verification.py::test_a_success_rule_that_cannot_be_trusted_stops_the_run"
+  },
+  {
+    "label": "N7 逾時又發明一個預設值（沒宣告就用 120 秒）",
+    "file": "app/services/project_verification.py",
+    "replace": "    if VERIFY_TIMEOUT_KEY not in raw or raw.get(VERIFY_TIMEOUT_KEY) is None:\n        return None, (",
+    "with": "    if VERIFY_TIMEOUT_KEY not in raw or raw.get(VERIFY_TIMEOUT_KEY) is None:\n        return 120, \"\"\n    if False:\n        return None, (",
+    "test": "tests/test_project_verification.py::test_an_undeclared_timeout_stops_the_run_instead_of_inventing_one"
+  },
+  {
+    "label": "N8 verify_timeout_seconds 寫 0.5 又被無聲截斷成 0（每次都立刻逾時）",
+    "file": "app/services/project_verification.py",
+    "replace": "    return math.ceil(value), \"\"",
+    "with": "    return int(value), \"\"",
+    "test": "tests/test_project_verification.py::test_half_a_second_rounds_up_instead_of_truncating_to_zero"
+  },
+  {
+    "label": "N9 逾時又跟「測試真的紅了」共用同一條路（派人去修一個沒壞的東西）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        if result.timed_out:\n            verdict = timed_out_verdict(command.timeout_seconds)",
+    "with": "        if False:\n            verdict = timed_out_verdict(command.timeout_seconds)",
+    "test": "tests/test_workflow_worker_runtime.py::test_a_verification_timeout_is_not_a_red_light"
+  },
+  {
+    "label": "N10 CliRunner 逾時後不再標記 timed_out（下游又分不出來）",
+    "file": "app/adapters/cli_runner.py",
+    "replace": "                    timed_out=True,",
+    "with": "                    timed_out=False,",
+    "test": "tests/test_cli_runner.py::test_run_times_out_and_kills_the_process"
+  },
+  {
+    "label": "N11 逾時被降級成一般失敗，照樣派 author 去修",
+    "file": "app/core/steps/verification.py",
+    "replace": "    if result.status == TESTS_TIMED_OUT:",
+    "with": "    if False:",
+    "test": "tests/test_workflow_worker_runtime.py::test_a_verification_timeout_is_not_a_red_light"
+  },
+  {
+    "label": "N12 tests_status 又從 bool 反推（逾時穿上「測試紅了」的衣服）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "                test_result.status\n                if test_result is not None\n                else TESTS_NOT_RUN",
+    "with": "                (\"PASSED\" if test_result.passed else \"FAILED\")\n                if test_result is not None\n                else TESTS_NOT_RUN",
+    "test": "tests/test_workflow_worker_runtime.py::test_a_verification_timeout_is_not_a_red_light"
+  },
+  {
+    "label": "N13 「沒宣告」的常見路徑又不留執行紀錄（run 資料夾只是停掉）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        if lookup.command is None:\n            self._record_verification_not_declared(lookup.problem)",
+    "with": "        if False:\n            self._record_verification_not_declared(lookup.problem)",
+    "test": "tests/test_workflow_worker_runtime.py::test_the_common_not_declared_path_also_leaves_a_reason_on_disk"
+  },
+  {
+    "label": "N14 理由只進 timeline 不進 run.json（inspect_run 先讀的那份沒有）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        self.timeline.update_run(\n            self.run_id,\n            extra={\"verification_problem\": problem},\n        )",
+    "with": "        pass",
+    "test": "tests/test_workflow_worker_runtime.py::test_the_common_not_declared_path_also_leaves_a_reason_on_disk"
+  },
+  {
+    "label": "N15 逾時在畫面上又被畫成「執行失敗」（紅燈說程式壞了）",
+    "file": "app/core/outcomes.py",
+    "replace": "        \"outcome.VERIFY_TIMED_OUT.label\",\n        \"partial\",",
+    "with": "        \"outcome.VERIFY_TIMED_OUT.label\",\n        \"error\",",
+    "test": "tests/test_main_window_runtime.py::test_a_verification_timeout_is_not_painted_as_a_failure"
+  },
+  {
+    "label": "N18 測試用的假專案不再宣告 verify_success（守衛必須真的擋下來）",
+    "file": "tests/fakes.py",
+    "replace": "    payload[\"verify_success\"] = dict(\n        success if success is not None else VERIFY_SUCCESS\n    )",
+    "with": "    pass",
+    "test": "tests/test_workflow_worker_runtime.py::test_development_happy_path_completes_with_pass"
+  }
+]

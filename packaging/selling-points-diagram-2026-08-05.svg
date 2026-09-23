@@ -1,0 +1,94 @@
+<svg width="1200" height="999" viewBox="0 0 680 566" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>AI Control Center 賣點對照圖</title>
+<desc>以前後對比呈現五個實際好處：三個案子同時跑不用排隊、不會被彈窗打斷、另一個 AI 先幫你抓錯、換視窗不用重講背景、最敏感的案子想匯出也匯不出。</desc>
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="#a8a69e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+</defs>
+<style>
+  text { font-family: "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", "Segoe UI", sans-serif; }
+  .kicker { font-size: 12px; fill: #8a8880; }
+  .headline { font-size: 27px; font-weight: 600; fill: #16160f; }
+  .subhead { font-size: 14px; fill: #55534d; }
+  .colhead { font-size: 12px; fill: #8a8880; }
+  .colhead-on { font-size: 12px; fill: #2b6cb0; }
+  .before { font-size: 14px; fill: #6b6961; }
+  .after { font-size: 14px; font-weight: 600; fill: #1a4d80; }
+  .proof { font-size: 12px; fill: #6b6961; }
+  .foot { font-size: 12px; fill: #8a8880; }
+  .box-before { fill: #f4f4f2; stroke: #dedcd5; }
+  .box-after { fill: #eaf1fb; stroke: #2b6cb0; }
+  .rule { stroke: #e2e0d9; stroke-width: 1; }
+  .arr { stroke: #a8a69e; stroke-width: 1.5; fill: none; }
+</style>
+
+<rect x="0" y="0" width="680" height="566" fill="#ffffff"/>
+
+<text class="kicker" x="40" y="30">AI Control Center｜Windows 桌面軟體，全程在自己電腦上執行</text>
+<text class="headline" x="40" y="70">以前我等 AI，現在 AI 等我</text>
+<text class="subhead" x="40" y="98">兩個 AI 分工做事，只在該你決定時才停下來</text>
+
+<line x1="40" y1="120" x2="640" y2="120" class="rule"/>
+
+<text class="colhead" x="40" y="146">以前</text>
+<text class="colhead-on" x="352" y="146">現在</text>
+
+<g>
+  <rect x="40" y="160" width="250" height="52" rx="8" stroke-width="0.5" class="box-before"/>
+  <text class="before" x="56" y="186" dominant-baseline="central">開三個視窗，輪流盯進度</text>
+</g>
+<line x1="300" y1="186" x2="342" y2="186" class="arr" marker-end="url(#arrow)"/>
+<g>
+  <rect x="352" y="160" width="288" height="52" rx="8" stroke-width="0.5" class="box-after"/>
+  <text class="after" x="368" y="179" dominant-baseline="central">三個案子同時跑，不用排隊等</text>
+  <text class="proof" x="368" y="197" dominant-baseline="central">真並行執行，不是排隊輪流</text>
+</g>
+
+<g>
+  <rect x="40" y="226" width="250" height="52" rx="8" stroke-width="0.5" class="box-before"/>
+  <text class="before" x="56" y="252" dominant-baseline="central">做到一半被彈窗打斷</text>
+</g>
+<line x1="300" y1="252" x2="342" y2="252" class="arr" marker-end="url(#arrow)"/>
+<g>
+  <rect x="352" y="226" width="288" height="52" rx="8" stroke-width="0.5" class="box-after"/>
+  <text class="after" x="368" y="245" dominant-baseline="central">它等你，不打斷你手上的事</text>
+  <text class="proof" x="368" y="263" dominant-baseline="central">該你決定時才停，不主動跳視窗</text>
+</g>
+
+<g>
+  <rect x="40" y="292" width="250" height="52" rx="8" stroke-width="0.5" class="box-before"/>
+  <text class="before" x="56" y="318" dominant-baseline="central">AI 寫完沒人複查</text>
+</g>
+<line x1="300" y1="318" x2="342" y2="318" class="arr" marker-end="url(#arrow)"/>
+<g>
+  <rect x="352" y="292" width="288" height="52" rx="8" stroke-width="0.5" class="box-after"/>
+  <text class="after" x="368" y="311" dominant-baseline="central">另一個 AI 先幫你抓錯</text>
+  <text class="proof" x="368" y="329" dominant-baseline="central">一個 AI 實作，另一個 AI 審查</text>
+</g>
+
+<g>
+  <rect x="40" y="358" width="250" height="52" rx="8" stroke-width="0.5" class="box-before"/>
+  <text class="before" x="56" y="384" dominant-baseline="central">換個視窗，背景重講一次</text>
+</g>
+<line x1="300" y1="384" x2="342" y2="384" class="arr" marker-end="url(#arrow)"/>
+<g>
+  <rect x="352" y="358" width="288" height="52" rx="8" stroke-width="0.5" class="box-after"/>
+  <text class="after" x="368" y="377" dominant-baseline="central">接續上次進度，不用重新交代</text>
+  <text class="proof" x="368" y="395" dominant-baseline="central">專案記憶存在自己電腦裡</text>
+</g>
+
+<g>
+  <rect x="40" y="424" width="250" height="52" rx="8" stroke-width="0.5" class="box-before"/>
+  <text class="before" x="56" y="450" dominant-baseline="central">客戶資料怕手滑外流</text>
+</g>
+<line x1="300" y1="450" x2="342" y2="450" class="arr" marker-end="url(#arrow)"/>
+<g>
+  <rect x="352" y="424" width="288" height="52" rx="8" stroke-width="0.5" class="box-after"/>
+  <text class="after" x="368" y="443" dominant-baseline="central">最敏感的案子，想匯出也匯不出</text>
+  <text class="proof" x="368" y="461" dominant-baseline="central">分級鎖住匯出與雲端同步</text>
+</g>
+
+<line x1="40" y1="508" x2="640" y2="508" class="rule"/>
+<text class="foot" x="40" y="532">前提：需自行安裝並登入 Claude Code 與 Codex CLI，AICC 只負責協調這兩個工具</text>
+</svg>

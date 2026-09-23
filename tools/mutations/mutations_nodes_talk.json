@@ -1,0 +1,72 @@
+[
+  {
+    "label": "D1 討論整條路不接（三處「有問題向 NODE2 討論」在引擎裡不存在，每一格只能自己猜）",
+    "file": "app/core/steps/consulting.py",
+    "replace": "        request = parse_consult_request(result.stdout, seats=seats)",
+    "with": "        request = {\"asking\": False, \"who\": \"\", \"question\": \"\", \"problem\": \"\"}",
+    "test": "tests/test_nodes_can_talk_to_each_other.py"
+  },
+  {
+    "label": "D2 討論的答案沒有回到提問那一格（它問了、別人答了，而它從頭到尾沒看到——一次付了錢的獨白）",
+    "file": "app/core/steps/consulting.py",
+    "replace": "        talk.append(\n            (request[\"who\"], request[\"question\"], answer.stdout.strip())\n        )",
+    "with": "        talk.append((request[\"who\"], request[\"question\"], \"\"))",
+    "test": "tests/test_nodes_can_talk_to_each_other.py"
+  },
+  {
+    "label": "D3 指名不存在的名字被引擎自己挑一個（變回「問上一關」，那是被否決的形狀）",
+    "file": "app/core/orchestrator_parsing.py",
+    "replace": "    matched = _seat_named(who, seats) if seats else who\n    if seats and not matched:\n        return {\n            \"asking\": True,",
+    "with": "    matched = who\n    if False:\n        return {\n            \"asking\": True,",
+    "test": "tests/test_nodes_can_talk_to_each_other.py"
+  },
+  {
+    "label": "D3b 名字比對又變回大小寫敏感（座位名存檔是小寫的，而模型回的是使用者打的那個寫法——他取名 NODE2，模型指對了，畫面卻說它指了一個不存在的人）",
+    "file": "app/core/orchestrator_parsing.py",
+    "replace": "        if seat.strip().lower() == target:",
+    "with": "        if seat == who:",
+    "test": "tests/test_nodes_can_talk_to_each_other.py"
+  },
+  {
+    "label": "D4 一格可以指名跟自己討論（答案一定跟它已經想的一樣，而要付兩次錢）",
+    "file": "app/core/steps/consulting.py",
+    "replace": "    if request[\"who\"] == role:",
+    "with": "    if False:",
+    "test": "tests/test_nodes_can_talk_to_each_other.py"
+  },
+  {
+    "label": "D5 同一個問題問到天荒地老（兩格來回燒錢，而且永遠不會有結論）",
+    "file": "app/core/steps/consulting.py",
+    "replace": "    if len(asked) >= STUCK_AFTER_REPEATS - 1 and asked[-1] == key:",
+    "with": "    if False:",
+    "test": "tests/test_nodes_can_talk_to_each_other.py"
+  },
+  {
+    "label": "D6 討論次數設上限（最後一輪它會為了結束而假裝問清楚了）",
+    "file": "app/core/steps/consulting.py",
+    "replace": "    if len(asked) >= STUCK_AFTER_REPEATS - 1 and asked[-1] == key:",
+    "with": "    if len(asked) >= 2:",
+    "test": "tests/test_nodes_can_talk_to_each_other.py"
+  },
+  {
+    "label": "D7 名冊沒給（它只能編一個名字，然後那一輪就浪費掉了）",
+    "file": "app/core/prompt_builder.py",
+    "replace": "    others = tuple(seat for seat in seats if seat != me)",
+    "with": "    others = ()",
+    "test": "tests/test_nodes_can_talk_to_each_other.py"
+  },
+  {
+    "label": "D8 名冊裡把它自己也列進去（它會問自己，而只有一格的線上還會被叫去找不存在的人）",
+    "file": "app/core/prompt_builder.py",
+    "replace": "    others = tuple(seat for seat in seats if seat != me)",
+    "with": "    others = tuple(seats)",
+    "test": "tests/test_nodes_can_talk_to_each_other.py"
+  },
+  {
+    "label": "D9 被諮詢的那一格拿到寫入權限（一次討論變成兩個人同時在改同一批檔案）",
+    "file": "app/core/orchestrator.py",
+    "replace": "            event_type=\"consult\",\n            read_only=True,",
+    "with": "            event_type=\"consult\",\n            read_only=False,",
+    "test": "tests/test_nodes_can_talk_to_each_other.py"
+  }
+]

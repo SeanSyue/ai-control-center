@@ -1,0 +1,44 @@
+[
+  {
+    "label": "U1 只有一種異議（任何一句「順帶一提」都會讓整件事重跑一輪）",
+    "file": "app/core/steps/reviewing.py",
+    "replace": "        if status == \"FIX\" and not data[\"blocking_issues\"]:",
+    "with": "        if False:",
+    "test": "tests/test_an_objection_says_how_much_it_matters.py"
+  },
+  {
+    "label": "U2 供參考的意見被丟掉（不擋變成聽過就算了，而畫面會顯示一次乾乾淨淨的通過）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "                result[\"advisory_notes\"] = notes",
+    "with": "                result[\"advisory_notes\"] = []",
+    "test": "tests/test_an_objection_says_how_much_it_matters.py"
+  },
+  {
+    "label": "U3 沒標級的當成供參考（「忘記標級」跟「這件事不重要」變成同一件事）",
+    "file": "app/core/orchestrator_parsing.py",
+    "replace": "        return {\"level\": level or MUST_FIX, \"what\": what or str(raw)}",
+    "with": "        return {\"level\": level or FOR_INFO, \"what\": what or str(raw)}",
+    "test": "tests/test_an_objection_says_how_much_it_matters.py"
+  },
+  {
+    "label": "U4 舊格式的純文字意見被當成供參考（那些是還沒有等級的年代寫的，全部靜靜地不再擋）",
+    "file": "app/core/orchestrator_parsing.py",
+    "replace": "    return {\"level\": MUST_FIX, \"what\": str(raw)}",
+    "with": "    return {\"level\": FOR_INFO, \"what\": str(raw)}",
+    "test": "tests/test_an_objection_says_how_much_it_matters.py"
+  },
+  {
+    "label": "U5 提示詞沒說沒標級會怎樣（「請標明等級」是叮嚀，它不會標）",
+    "file": "app/core/prompt_builder.py",
+    "replace": "**沒有標級的意見會被當成須處理**",
+    "with": "請盡量標明等級",
+    "test": "tests/test_an_objection_says_how_much_it_matters.py"
+  },
+  {
+    "label": "U6 有須處理級的也不退回去（兩級變成一個讓事情比較容易通過的裝置）",
+    "file": "app/core/steps/reviewing.py",
+    "replace": "        if status == \"FIX\" and not data[\"blocking_issues\"]:",
+    "with": "        if status == \"FIX\":",
+    "test": "tests/test_an_objection_says_how_much_it_matters.py"
+  }
+]

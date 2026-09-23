@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-mode="night">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AICC — 設定</title>
+<link rel="stylesheet" href="aicc.css">
+<style>
+.wrap{flex:1;min-height:0;display:grid;grid-template-columns:186px 1fr;gap:0}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}.toc{display:none}}
+.toc{border-right:1px solid var(--line-soft);padding:20px 12px;background:var(--panel)}
+.toc a{display:block;padding:9px 14px;border-radius:11px;color:var(--text-3);font-size:.83rem;
+  font-weight:700;text-decoration:none;margin-bottom:3px;transition:.16s}
+.toc a:hover{background:var(--surface2);color:var(--text-2)}
+.toc a.on{background:var(--grad-btn);color:#fff;box-shadow:var(--glow)}
+
+/* 底部不留 padding：儲存列是最後一個子元素，它自己佔的高度就是內容的結尾。
+   留 padding 的話捲到底時列子會被那段空白往上推。 */
+.body{overflow-y:auto;padding:24px 30px 0}
+.grp{margin-bottom:36px;scroll-margin-top:20px}
+.grp>.card{overflow:hidden}
+.rowset{display:flex;flex-direction:column}
+.r{display:grid;grid-template-columns:1fr 300px;gap:22px;align-items:center;
+  padding:16px 20px;border-top:1px solid var(--line-soft)}
+.r:first-child{border-top:0}
+@media(max-width:760px){.r{grid-template-columns:1fr;gap:10px}}
+.r .lb b{display:block;font-size:.88rem;font-weight:700}
+.r .lb span{display:block;font-size:.75rem;color:var(--text-3);margin-top:2px}
+.r .ctl{display:flex;justify-content:flex-end;align-items:center;gap:10px}
+@media(max-width:760px){.r .ctl{justify-content:flex-start}}
+
+/* 段落級選擇 */
+.seg{display:flex;gap:0;background:var(--surface2);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.seg span{padding:7px 14px;font-size:.76rem;font-weight:700;color:var(--text-3);cursor:pointer;transition:.16s;white-space:nowrap}
+.seg span:hover{color:var(--text-2)}
+.seg span.on{background:var(--grad-btn);color:#fff}
+
+/* 併發槽位 */
+.slots{display:flex;gap:6px;width:150px}
+.slot{flex:1;height:9px;border-radius:5px;background:var(--line);cursor:pointer;transition:.16s}
+.slot.f{background:var(--grad-btn);box-shadow:var(--glow)}
+
+/* 敏感度 */
+.prof{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:16px 20px}
+@media(max-width:760px){.prof{grid-template-columns:1fr}}
+.pf{border:1px solid var(--line);border-radius:14px;padding:14px;cursor:pointer;transition:.18s;background:var(--surface2)}
+.pf:hover{border-color:var(--text-3)}
+.pf.on{border-color:var(--aqua);box-shadow:var(--glow);background:var(--surface)}
+.pf.on.kyc{border-color:var(--gold);box-shadow:var(--glow-gold)}
+.pf b{display:block;font-size:.86rem;margin-bottom:5px}
+.pf span{font-size:.72rem;color:var(--text-3);line-height:1.6;display:block}
+
+.warn{display:flex;gap:11px;align-items:flex-start;margin:0 20px 18px;padding:12px 15px;border-radius:13px;
+  background:color-mix(in srgb,var(--gold) 10%,transparent);border:1px solid color-mix(in srgb,var(--gold) 40%,transparent);
+  font-size:.78rem;color:var(--text-2)}
+.warn .k{width:7px;height:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold);margin-top:7px;flex:none}
+.mask{font-family:"SF Mono",Consolas,monospace;letter-spacing:.1em;color:var(--text-3);font-size:.8rem}
+
+/* 可調整的八類 ↔ 不可關閉的四項地板，中間要有看得出來的界線 */
+.floor-head{padding:13px 20px 9px;font-size:.7rem;font-weight:800;letter-spacing:.1em;
+  color:var(--text-3);background:var(--surface2);
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line-soft)}
+
+/* 只有左右負邊距（讓列子滿版），不可以有負的下邊距。
+   下邊距是負的會讓這個元素不佔流中高度，於是內容滑到它底下 ——
+   而它同時是 sticky，所以那條列子會浮在內容中間，把幾行字切掉一半。
+   被切掉的偏偏是 Decision Gate 的觸發條件，也就是最需要看清楚的那幾行。 */
+.foot{position:sticky;bottom:0;background:var(--panel);border-top:1px solid var(--line-soft);
+  padding:14px 30px;display:flex;gap:12px;align-items:center;margin:0 -30px}
+.foot .st{margin-left:auto;font-size:.76rem;color:var(--text-3)}
+
+/* 驗收標準。整段用既有元件拼，不新增顏色 token。 */
+.qa-box{padding:0 20px 18px}
+.qa-note{font-size:.78rem;color:var(--text-2);line-height:1.7;
+  background:var(--surface2);border-radius:12px;padding:11px 14px;margin-bottom:12px}
+/* 引擎那句話原樣顯示。玫瑰色——它講的是「這一條現在不成立」，那是真的壞了。 */
+.qa-problem{font-size:.78rem;color:var(--rose);line-height:1.7;
+  border-left:2px solid var(--rose);padding:4px 0 4px 11px;margin-bottom:8px}
+.qa-dim{border:1px solid var(--line-soft);border-radius:14px;padding:13px 15px;margin-bottom:12px;
+  background:var(--surface2)}
+.qa-hd{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+.qa-name{flex:1;font-family:inherit;font-size:.86rem;font-weight:700;padding:7px 11px;
+  border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--text)}
+.qa-ex{display:flex;gap:9px;align-items:center;margin-bottom:7px}
+/* 反例排在正例前面：手冊說反例才是有用的那一半
+   ——「不准用破折號連接兩個短句」比「避免 AI 味」有用一百倍。 */
+.qa-ex.no>span{color:var(--rose)} .qa-ex.ok>span{color:var(--mint)}
+.qa-ex input{flex:1;font-family:inherit;font-size:.79rem;padding:6px 10px;border-radius:9px;
+  border:1px solid var(--line);background:var(--surface);color:var(--text)}
+.qa-ex input:focus,.qa-name:focus{outline:none;border-color:var(--aqua)}
+.qa-acts{display:flex;gap:10px;align-items:center}
+.qa-acts .spacer{margin-left:auto}
+.r.qa{border-top:1px solid var(--line-soft)}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <div class="top">
+    <h1>設定</h1>
+    <div class="lead">這些設定會影響 Claude 與 Codex 實際被呼叫的方式，以及什麼情況下會停下來問你。</div>
+  </div>
+
+  <div class="wrap">
+    <nav class="toc" id="toc"></nav>
+    <div class="body" id="body"></div>
+  </div>
+
+</div>
+
+<button class="modebtn" id="tg">☀ 切到白天</button>
+
+<!-- QWebChannel：嵌進 QWebEngineView 時由 Qt 從 qrc 供應。
+     用瀏覽器單獨開檔案時這行會 404，但無害——下面有 window.qt 守衛，
+     沒有 Qt 就直接走示範資料。不要改成 CDN，離線會壞。 -->
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script>
+/* ============================================================
+   render(data) / 每次變更呼叫 bridge.on_action('set:<key>', value)
+   ============================================================ */
+
+/* 實際狀態：只有 Python 真的推過來的 key 才會存在。
+   關鍵：不要在這裡放預設值。{...S, ...d} 的合併會讓「沒推」變成
+   「顯示頁面自己編的值」，而使用者無法分辨那是不是真的設定。
+   沒推的 key → 該控制項整列不顯示，並記進 MISSING 供 console 檢查。 */
+let S = { mode:'night', saved_at:null };
+let MISSING = [];
+let HAS_BRIDGE = false;
+
+/* 我剛送出去的變更。下一次 Python 推回來時比對。
+   不一致代表兩邊的真相不同，而畫面永遠照推回來的畫 ——
+   於是使用者會看到自己剛關掉的開關又彈回去。
+   那比「按了沒反應」更糟：它是一個記下了你的選擇、卻顯示另一個值的控制項，
+   按下儲存會存進一個你在畫面上看不到的設定。 */
+let PENDING = {};
+
+function checkEcho(){
+  const bad=[];
+  for(const k in PENDING)
+    if(JSON.stringify(S[k]) !== JSON.stringify(PENDING[k])) bad.push(k);
+  if(bad.length)
+    console.warn('[settings] 推回來的值跟剛才送出的不一致：' + bad.join(', ')
+      + ' —— 畫面會顯示推回來的那個，使用者的操作看起來像被還原了');
+  PENDING={};                       // 一次性比對，避免舊的變更一直誤報
+  return bad;
+}
+
+/* 單獨用瀏覽器開檔案檢視設計時才套用；有 bridge 時完全不碰 */
+const DEMO_S = {
+  claude_model:'claude-opus-5', codex_model:'gpt-5-codex',
+  effort:'high', planning_rounds:2, verbosity:'medium',
+  permission:'ask', concurrency:3, profile:'client', long_task:true,
+  drive_sync:false, line_notify:true, line_token_set:true,
+  saved_at:'剛剛',
+  verify_command:'pytest -q', verify_success_rule:'', verify_timeout:'',
+  /* 示範資料刻意排一份**還沒有人過目**、而且**有一條缺反例**的標準
+     ——那兩種狀態各自都有專門的畫面，而沒有樣本的狀態任何檢查都驗不到。 */
+  acceptance:{
+    approval_state:'never_looked_at', still_learning:true, runs_so_far:1,
+    problems:['「語氣」只有 1 個案例。手冊第 2 步：只給一個，產出會全部長成那一個樣子。'],
+    dimensions:[
+      {name:'開頭有沒有勾子', examples:[
+        {i:0,good:false,text:'開頭那句是「在這個快速變遷的時代⋯」'},
+        {i:1,good:true, text:'開頭直接給一個具體的場景或數字'}]},
+      {name:'語氣', examples:[
+        {i:0,good:false,text:'不准用破折號連接兩個短句'}]},
+    ],
+  },
+  gate_on:['direction','delete','schema','permission','security','external','install','paid'],
+  /* label 與 note 由 Python 推過來，這裡的字只是示範用；實際以推來的為準 */
+  gate_options:[
+    {key:'direction', label:'產品方向改變',  note:'要偏離原本說好的做法時'},
+    {key:'delete',    label:'刪除檔案',      note:'移除檔案或資料夾'},
+    {key:'schema',    label:'資料結構改變',  note:'動到 schema、資料庫欄位或對外介面'},
+    {key:'permission',label:'權限變更',      note:'改存取權或設定檔權限'},
+    {key:'security',  label:'安全相關改動',  note:'動到驗證、加密、金鑰處理'},
+    {key:'external',  label:'對外連線',      note:'呼叫外部服務或把資料送出去'},
+    {key:'install',   label:'安裝相依套件',  note:'新增套件或修改 requirements'},
+    {key:'paid',      label:'可能產生費用',  note:'呼叫付費 API、建立雲端資源'},
+  ],
+  /* 同上：實際以 Python 推來的為準。條數也是——這裡寫死四筆只是為了讓
+     單獨用瀏覽器開的時候看得到版面。 */
+  gate_floor:[
+    {label:'專案外資料',                   note:'要動到專案資料夾以外的檔案時'},
+    {label:'機密資訊',                     note:'偵測到金鑰、密碼、Token 時'},
+    {label:'Git commit/push/reset/rebase', note:'改寫歷史：commit / push / reset / rebase'},
+    {label:'目前資料不足以判斷',           note:'AI 自己也不確定該不該做的時候'},
+  ],
+};
+
+/* Decision Gate 與長任務模式在 2026-08-08 加回來 —— 後端做完了（ROADMAP P3）。
+   當初移除是因為那時沒有任何東西在讀那些值，現在有了。 */
+const SECTIONS=[
+  ['ai','AI 模型'],['run','執行與併發'],['gate','Decision Gate'],
+  ['sec','安全與敏感度'],['done','怎麼算做完了'],['io','通知與同步'],
+];
+
+/* 不可關閉的地板由 Python 推（`gate_floor`），這裡不留自己的一份。
+
+   這一頁原本硬寫了四筆。它跟 Python 那份**當時內容一致**，所以看起來沒問題
+   ——但「Git 歷史改寫」與「資料不足以判斷」兩行的字面已經跟 prompt 裡的
+   `Git commit/push/reset/rebase`、`目前資料不足以判斷` 不一樣了，而且沒有
+   任何東西會發現。真正的風險是**條數**：地板多一條或少一條，這一頁會照樣
+   說「下面四項」，於是畫面向使用者承諾一件引擎不再做的事。
+
+   這幾項不是「預設開啟」，是「沒有開關」，所以畫成事實陳述不是開關 ——
+   畫成開關使用者會去按，按不動就會以為壞了。 */
+
+function seg(key,opts){
+  return `<div class="seg">${opts.map(([v,l])=>
+    `<span class="${S[key]===v?'on':''}" data-set="${key}" data-val="${v}">${l}</span>`).join('')}</div>`;
+}
+function sw(key){ return `<div class="sw ${S[key]?'on':''}" data-toggle="${key}"></div>`; }
+
+/* 事件委派 —— 任何 ${} 都不進 inline handler。
+   理由不是「這些值不可信」（它們是頁面內部常數），而是那個判斷會出錯：
+   今天是常數，明天有人把它接到推送資料上，而改的人不會記得這條規則。 */
+document.addEventListener('click',e=>{
+  const g=e.target.closest('[data-gate]');
+  if(g){ toggleGate(g.dataset.gate); return; }
+  const s=e.target.closest('[data-set]');
+  if(s){ set(s.dataset.set, s.dataset.val); return; }
+  const t=e.target.closest('[data-toggle]');
+  if(t){ set(t.dataset.toggle, !S[t.dataset.toggle]); return; }
+  const b=e.target.closest('[data-act]');
+  if(b && !b.disabled) act(b.dataset.act);
+});
+function row(label,note,ctl){
+  return `<div class="r"><div class="lb"><b>${label}</b><span>${note}</span></div><div class="ctl">${ctl}</div></div>`;
+}
+
+/* ---- 只畫真的收到值的東西 ---------------------------------------- */
+function has(key){ return S[key] !== undefined && S[key] !== null; }
+
+/* 沒收到值就不畫這一列，並記進 MISSING —— 絕不用預設值頂替 */
+/* 這條序列會讀的那個回合數，只畫那一個。
+   workflow_mode 沒推到才算 MISSING —— 那才是「Python 忘了推」。 */
+function roundsRowForSequence(){
+  if(!has('workflow_mode')){ MISSING.push('workflow_mode'); return ''; }
+  if(S.workflow_mode==='planning')
+    return rowIf('planning_rounds','討論回合',
+      '動手前來回討論幾輪；1 最快，3 適合牽動很多檔案的改動',()=>
+      seg('planning_rounds',[[1,'1'],[2,'2'],[3,'3']]));
+  return rowIf('max_fix_attempts','自動 FIX',
+    '驗證沒過的時候自己重試幾次；0 就是不重試，直接把結果交給你看',()=>
+    seg('max_fix_attempts',[[0,'0'],[1,'1'],[2,'2']]));
+}
+
+function rowIf(key,label,note,ctlFn){
+  if(!has(key)){ MISSING.push(key); return ''; }
+  return row(label,note,ctlFn());
+}
+
+/* ============================================================
+   怎麼算做完了 —— 兩條路，**各自獨立，不是二選一**
+   ============================================================
+   老闆 2026-08-24 拍板：引擎那句是「**兩種都沒有**的專案不准開始跑」，
+   **沒說不能都有**。畫成 radio 是畫面替引擎多加了一條引擎沒有的限制
+   ——同【max_slots 回 0 被讀成「最多 0 格」】的病：畫面自己編一個
+   引擎沒有的事實。這個 repo 自己就是兩個都有的例子（它有 pytest，
+   也有一份文案標準）。
+
+   ⛔ 這一段**不准有的東西**（`DECISIONS` 明訂，不是還沒做）：
+      **AI 不准代寫那份驗收標準。** 手冊第 2 步整段講的是
+      「你皺眉的具體理由」是這整件事唯一的資訊來源；AI 猜出來的維度
+      本質上是它自己的偏好。**「幫我想幾個維度」那顆按鈕也算**
+      ——那是同一件事換個包裝。 */
+
+function esc(s){ return String(s==null?'':s)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+
+/* 三種身分不准合成一句「未核准」：「我改了一個字」跟「我從來沒看過」
+   要的下一步完全不一樣。 */
+const APPROVAL={
+  never_looked_at:{cls:'gold', label:'還沒有人過目',
+    body:'這份標準還沒有人看過，所以**它現在不算數**。看一遍下面那幾個維度，再按「這份可以」。'},
+  changed_since:{cls:'gold', label:'改過了，要再看一次',
+    body:'你核准過，但之後有人改了內容，所以核准自動失效了——**核准綁在那一版內容上，不是綁在專案上**。'},
+  approved:{cls:'mint', label:'已核准', body:''},
+};
+
+function acceptanceHTML(){
+  const a=S.acceptance;
+  if(a===undefined||a===null){ MISSING.push('acceptance'); return ''; }
+  const st=APPROVAL[a.approval_state]||APPROVAL.never_looked_at;
+  const dims=a.dimensions||[];
+
+  /* 引擎那句話**原樣顯示**，不要重寫成「格式錯誤」。
+     它講的是哪一條缺什麼，而那正是使用者要動手改的地方。 */
+  const problems=(a.problems||[]).map(p=>
+    `<div class="qa-problem">${esc(p)}</div>`).join('');
+
+  const body=dims.map((d,i)=>{
+    const good=(d.examples||[]).filter(e=>e.good);
+    const bad =(d.examples||[]).filter(e=>!e.good);
+    const ex=(list,ok)=>list.map((e,j)=>
+      `<div class="qa-ex ${ok?'ok':'no'}"><span>${ok?'✔':'✘'}</span>
+         <input value="${esc(e.text)}" data-ex="${i}:${e.i}"
+           placeholder="${ok?'這樣是對的：':'不准這樣：'}"></div>`).join('');
+    return `<div class="qa-dim">
+      <div class="qa-hd">
+        <input class="qa-name" value="${esc(d.name)}" data-dim="${i}"
+          placeholder="這個維度在看什麼，例如「開頭有沒有勾子」">
+        <button class="btn q sm" data-qa="drop-dim:${i}" title="拿掉這個維度">移除</button>
+      </div>
+      ${ex(bad,false)}${ex(good,true)}
+      <button class="btn q sm" data-qa="add-ex:${i}">＋ 再加一個案例</button>
+    </div>`;
+  }).join('');
+
+  return section('done','05 — DONE','怎麼算做完了',
+    '兩條路各自獨立，**兩個至少要有一個**（也可以都有）。兩個都空的專案不准開始跑。',[
+    rowIf('verify_command','跑一個指令',
+      '有測試的專案用這個。引擎不會猜，也不會替你填一個預設值。',()=>
+      `<div class="field" style="width:300px"><input value="${esc(S.verify_command)}"
+        placeholder="例如：pytest -q"
+        onchange="set('verify_command',this.value)"></div>`),
+    rowIf('verify_success_rule','跑完什麼樣子算過了',
+      '出廠是空的，必須你自己選——引擎不准內建判準。',()=>
+      `<div class="field" style="width:300px"><input value="${esc(S.verify_success_rule)}"
+        placeholder="留空＝跑完沒有報錯就算過"
+        onchange="set('verify_success_rule',this.value)"></div>`),
+    rowIf('verify_timeout','最多等它多久',
+      '出廠是空的，必須你自己填——逾時不准發明預設值。',()=>
+      `<div class="field" style="width:120px"><input value="${esc(S.verify_timeout)}"
+        placeholder="分鐘" onchange="set('verify_timeout',this.value)"></div>`),
+    `<div class="r qa"><div class="lb">
+       <b>一份驗收標準</b>
+       <span>沒有測試的工作用這個——剪片、寫文件、做簡報。機器什麼都不跑，判斷在複查那一格。</span>
+     </div><div class="ctl"><span class="bdg ${st.cls}">${st.label}</span></div></div>
+     <div class="qa-box">
+       ${st.body?`<div class="qa-note">${st.body.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')}</div>`:''}
+       ${a.still_learning?`<div class="qa-note">這份標準還在前三次（已經用它跑過 ${a.runs_so_far||0} 次），
+         <b>AICC 的判斷請你自己看一眼對不對</b>。這句話跑滿三次會自己消失。</div>`:''}
+       ${problems}
+       ${body||`<div class="qa-note">還沒有任何維度。按下面那顆會給你一份起點——
+         <b>不是空白表格</b>，因為空表格對沒做過的人沒有任何提示。</div>`}
+       <div class="qa-acts">
+         ${dims.length?`<button class="btn q sm" data-qa="add-dim">＋ 再加一個維度</button>`
+                      :`<button class="btn q sm" data-qa="starter">給我一份起點</button>`}
+         <span class="spacer"></span>
+         ${/* 編輯與核准是**兩個動作，不能合併**：他編完存檔，那份標準會自己
+              掉回「還沒過目」——那是對的，而畫面要說得出來。
+              這顆按鈕是 `approve()` 唯一的呼叫端。 */''}
+         <button class="btn sm" data-qa="approve"
+           ${(a.problems||[]).length||!dims.length?'disabled':''}
+           title="${(a.problems||[]).length?'先把上面那幾句話講的地方補齊':'我看過這幾個維度，可以用它來判斷'}"
+           >這份可以</button>
+       </div>
+     </div>`,
+  ]);
+}
+
+/* 純陳述，不是開關 —— 用於「事實上一定會發生、無法關閉」的行為 */
+function fact(label,note,value){
+  return `<div class="r"><div class="lb"><b>${label}</b><span>${note}</span></div>
+    <div class="ctl"><span class="bdg mint">${value}</span></div></div>`;
+}
+
+/* 整段沒有任何一列時，連標題一起隱藏 */
+function section(id,num,title,desc,rows,after){
+  const body=rows.filter(Boolean).join('');
+  if(!body) return '';
+  return `<div class="grp" id="s-${id}">
+    <div class="sec"><span class="num">${num}</span><h2>${title}</h2><p>${desc}</p></div>
+    <div class="card"><div class="rowset">${body}</div>${after||''}</div>
+  </div>`;
+}
+
+/* Decision Gate：可調整的八類在上，不可關閉的地板在下，中間有明確分隔。
+   兩者長得不一樣是刻意的 —— 開關代表「你可以改」，事實陳述代表「這件事就是這樣」。
+   把地板也畫成（永遠開著的）開關，使用者會去按它，按不動就會以為壞了。 */
+function gateSection(){
+  if(!has('gate_on') || !has('gate_options') || !has('gate_floor')){
+    MISSING.push('gate_on / gate_options / gate_floor'); return ''; }
+  const on=new Set(S.gate_on);
+  const rows=S.gate_options.map(o=>
+    row(o.label, o.note||'', `<div class="sw ${on.has(o.key)?'on':''}" data-gate="${o.key}"></div>`)
+  ).join('');
+  const floors=S.gate_floor.map(f=>fact(f.label, f.note||'', '一律詢問')).join('');
+  return `<div class="grp" id="s-gate">
+    <div class="sec"><span class="num">03 — DECISION GATE</span><h2>什麼情況會停下來問你</h2>
+      <p>勾選的類別發生時，該專案會暫停並在儀表板亮起金色，其餘專案照常執行。</p></div>
+    <div class="card">
+      <div class="rowset">${rows}</div>
+      <div class="floor-head">下面 ${S.gate_floor.length} 項一律詢問，沒有開關</div>
+      <div class="rowset">${floors}</div>
+    </div>
+  </div>`;
+}
+
+function bodyHTML(){
+  MISSING = [];
+  return `
+  ${section('ai','01 — MODELS','AI 模型',
+    '兩邊各自獨立設定。規劃交給推理強的，執行交給快的，通常比兩邊都用最大的省。',[
+    rowIf('claude_model','Claude 模型','負責規劃、判斷與寫程式',()=>
+      `<div class="field" style="width:220px"><select onchange="set('claude_model',this.value)">
+        <option ${S.claude_model==='claude-opus-5'?'selected':''}>claude-opus-5</option>
+        <option ${S.claude_model==='claude-sonnet-5'?'selected':''}>claude-sonnet-5</option>
+        <option ${S.claude_model==='claude-haiku-4-5'?'selected':''}>claude-haiku-4-5</option>
+      </select></div>`),
+    rowIf('codex_model','Codex 模型','負責測試、驗證與交叉檢查',()=>
+      `<div class="field" style="width:220px"><select onchange="set('codex_model',this.value)">
+        <option ${S.codex_model==='gpt-5-codex'?'selected':''}>gpt-5-codex</option>
+        <option ${S.codex_model==='gpt-5'?'selected':''}>gpt-5</option>
+      </select></div>`),
+    rowIf('effort','推理強度','越高越慢也越貴，複雜重構才需要 high',()=>
+      seg('effort',[['low','低'],['medium','中'],['high','高']])),
+    /* 這兩個回合數**各自只有一條序列讀得到**，所以只畫這一條會讀的那一個。
+       2026-08-27 之前這裡無條件畫規劃那一列：出廠序列換成開發之後，
+       他看到的是一個沒有任何選項被選中（出廠值 0 不在 1/2/3 裡）、
+       而且這條序列從頭到尾不會讀的欄位，同時看不到真正會生效的那一個。
+       **不走 rowIf 的隱藏路**：那條會記進 MISSING，而 MISSING 的意思是
+       「Python 忘了推」——不適用跟忘了推是兩件事，混在一起等於報一個假警報。 */
+    roundsRowForSequence(),
+    rowIf('verbosity','回覆詳細度','影響它跟你解釋多少，不影響程式碼品質',()=>
+      seg('verbosity',[['low','精簡'],['medium','適中'],['high','詳細']])),
+  ])}
+
+  ${section('run','02 — EXECUTION','執行與併發',
+    '同時能跑幾個專案。超過上限的會排進佇列，有空位自動遞補。',[
+    rowIf('concurrency','同時執行上限',`目前設 ${S.concurrency} 個。設太高會互搶 CPU，反而每個都變慢`,()=>
+      `<div class="slots">${[1,2,3,4,5].map(i=>
+        `<span class="slot ${i<=S.concurrency?'f':''}" data-set="concurrency" data-val="${i}"></span>`).join('')}</div>
+       <b style="font-size:1.05rem;min-width:18px;text-align:right">${S.concurrency}</b>`),
+    rowIf('long_task','長任務模式','允許單一任務跑超過 30 分鐘而不中斷',()=>sw('long_task')),
+    rowIf('permission','權限模式','AI 要動檔案或執行指令時的預設行為',()=>
+      seg('permission',[['ask','每次問'],['edits','可改檔'],['auto','全自動']])),
+  ], S.permission==='auto'?`<div class="warn" style="margin-top:16px"><span class="k"></span>
+      <div><b>全自動模式會略過大部分確認。</b>建議只在你完全信任的個人專案使用；客戶或 KYC 專案請維持「每次問」。</div></div>`:'')}
+
+  ${gateSection()}
+
+  <div class="grp" id="s-sec">
+    <div class="sec"><span class="num">04 — SECURITY</span><h2>安全與敏感度</h2>
+      <p>專案敏感度會連動匯出與同步的嚴格程度。</p></div>
+    <div class="card">
+      ${has('profile')?`<div class="prof">
+        <!-- 2026-08-16：這三句原本描述的是程式不做的事。「客戶專案：雲端同步需
+             逐次確認」在程式裡不存在（main_window.py 的註解自己寫著 client 刻意
+             不設閘），而「匯出前強制掃描金鑰」對三個等級都成立、不是客戶專屬。
+             這一格是使用者挑等級的唯一依據，寫錯等於他挑錯。現在每一句都對應
+             一個真的行為。 -->
+        ${[['personal','個人專案','同步與匯出都會帶走 .aicc 白名單內的全部內容，含每次執行的逐字紀錄。','' ],
+           ['client','客戶專案','逐字 prompt 與輸出（.aicc/runs）不離開這台機器。其餘照常同步與匯出。',''],
+           ['sensitive_kyc','KYC／高敏感','完全不同步、不匯出、LINE 不帶問題原文。Decision Gate 最嚴格。','kyc'],
+          ].map(([k,t,d,extra])=>
+          `<div class="pf ${extra} ${S.profile===k?'on':''}" data-set="profile" data-val="${k}">
+            <b>${t}</b><span>${d}</span></div>`).join('')}
+      </div>`:''}
+      <div class="rowset"${has('profile')?' style="border-top:1px solid var(--line-soft)"':''}>
+        ${fact('匯出前掃描金鑰',
+               '打包 workspace 前一律檢查是否夾帶 token、密碼、私鑰。這不是可關閉的選項',
+               '一律執行')}
+      </div>
+      ${S.profile==='sensitive_kyc'?`<div class="warn"><span class="k"></span>
+        <div><b>此模式下雲端同步一律關閉。</b>「受控同步目的地」的例外規則尚未實作，目前沒有可用的白名單。</div></div>`:''}
+    </div>
+  </div>
+
+  ${acceptanceHTML()}
+  ${section('io','05 — NOTIFY & SYNC','通知與同步',
+    '任務跑很久時，讓它主動通知你，而不是你一直回來看。',[
+    /* 「LINE 通知」本來是一顆開關。而 LINE 那一側**沒有「開／關」這個東西可以存**
+       ——`LineNotifier` 只有憑證，有 token 就會發、沒有就不會發。引擎那一側的
+       `_apply` 因此從來沒有它的分支：按下去亮起來、什麼都沒存、下一次 push_state
+       把舊值推回來時它自己彈回去。
+
+       改成事實陳述，理由跟底下那三條地板同一條：**畫成開關使用者會去按，
+       按不動就會以為壞了。**真正的控制項是下一列（設定／更換 Token）。 */
+    rowIf('line_notify','LINE 通知','任務完成、失敗、或有 Decision Gate 時推播',
+      ()=>`<span class="bdg ${S.line_notify?'mint':'grey'}">${S.line_notify?'會推播':'不會推播'}</span>`),
+    rowIf('line_token_set','LINE Token', S.line_token_set
+        ? '已設定。存在系統設定檔，不會進 Git，也不會被打包進 workspace 匯出'
+        : '尚未設定',
+      ()=> S.line_token_set
+        ? `<span class="mask">••••••••••••••••</span><button class="btn sm q" onclick="act('line_token')">更換</button>`
+        : `<button class="btn sm" onclick="act('line_token')">設定 Token</button>`),
+    rowIf('drive_sync','Google Drive 同步','把共享記憶與文件索引同步到雲端資料夾',()=>sw('drive_sync')),
+  ])}
+
+  ${/* 這裡本來有「儲存變更」與「還原」兩顆。拿掉了，不是灰掉——
+        老闆 2026-08-24 否決了折衷版：「**一顆對一半控制項灰掉的按鈕，
+        本身就是那個問題的第二個版本。**他還是要先看那顆按鈕是不是灰的，
+        才知道剛才那一下有沒有生效。」
+
+        而且查下去比原本以為的更糟：**同一頁上本來就有兩種存檔模型**
+        ——`concurrency` 與敏感度那兩格一直是按了就存，其餘的排隊等按鈕。
+        所以那顆按鈕不是「因為精靈卡才開始說謊」，**它一直在對那兩格說謊**。
+
+        後端 2026-08-24 改成 `_apply` 當場寫進檔案、`_pending`／`_dirty`
+        整組拿掉，所以現在只有一種模型：**按下去就存了**。
+        而**一個要靠一句話解釋的規則，就是還沒收斂的規則**——所以這裡連
+        「這一頁按下去就存了」那句說明都不寫。
+
+        「剛剛存好了」還是要有（`saved_at` 後端還在推），但用一行不搶眼的字，
+        **不用彈出提示**——他會連改五個設定。 */''}
+  <div class="foot">
+    <span class="st">${S.saved_at?`已儲存 · ${S.saved_at}`:''}</span>
+  </div>`;
+}
+
+function paint(){
+  document.getElementById('body').innerHTML=bodyHTML();
+  /* 目錄只列真的畫出來的區段 —— 區段被隱藏時不該留一個點不到的連結 */
+  const present=SECTIONS.filter(([k])=>document.getElementById('s-'+k));
+  document.getElementById('toc').innerHTML=present.map(([k,l],i)=>
+    `<a href="#s-${k}" class="${i===0?'on':''}" onclick="markToc(this)">${l}</a>`).join('');
+  if(MISSING.length)
+    console.warn('[settings] 這些 key 沒有從 Python 收到值，對應控制項已隱藏：', MISSING.join(', '));
+}
+function markToc(el){ document.querySelectorAll('.toc a').forEach(a=>a.classList.remove('on')); el.classList.add('on'); }
+
+function set(k,v){
+  S[k]=(v==='true')?true:(v==='false')?false:(typeof v==='string'&&/^\d+$/.test(v))?+v:v;
+  PENDING[k]=S[k]; paint();
+  if(bridge) bridge.on_action('set:'+k, String(v));
+}
+
+/* gate_on 是陣列，不是單一值，所以不能走 set()。照約定用逗號串接送出。 */
+function toggleGate(k){
+  const s=new Set(S.gate_on||[]);
+  s.has(k) ? s.delete(k) : s.add(k);
+  S.gate_on=[...s]; PENDING.gate_on=S.gate_on; paint();
+  if(bridge) bridge.on_action('set:gate_on', S.gate_on.join(','));
+}
+let bridge=null;
+/* 驗收標準的動作。**每一顆都是一個明著按的動作**——
+   「這份可以」是 `approve()` 唯一的呼叫端，而那句話只有畫面做得到。 */
+document.addEventListener('click',e=>{
+  const q=e.target.closest('[data-qa]'); if(!q) return;
+  const [kind,arg]=q.dataset.qa.split(':');
+  if(kind==='starter')  return act('acceptance_starter');
+  if(kind==='add-dim')  return act('acceptance_add_dimension');
+  if(kind==='drop-dim') return act('acceptance_drop_dimension', arg);
+  if(kind==='add-ex')   return act('acceptance_add_example', arg);
+  if(kind==='approve')  return act('acceptance_approve');
+});
+/* 改字：change 在離開輸入框時才發，打字中途不會每個字送一次。 */
+document.addEventListener('change',e=>{
+  const d=e.target.closest('[data-dim]');
+  if(d) return act('acceptance_set_dimension', d.dataset.dim+':'+d.value);
+  const x=e.target.closest('[data-ex]');
+  if(x) return act('acceptance_set_example', x.dataset.ex+':'+x.value);
+});
+
+function act(k,a){
+  /* `save`／`revert` 那兩顆已經拿掉了（見 bodyHTML 的註解）。後端照樣
+     收得下這兩個動作（舊版頁面送過來不會壞），但畫面不再送。 */
+  if(k==='save'){S.saved_at='剛剛';paint();}
+  if(k==='revert') PENDING={};      // 還原本來就會推回不同的值，那不是不一致
+  bridge?bridge.on_action(k,a===undefined?'':String(a)):console.log('demo',k,a);
+}
+function render(state){
+  const d=typeof state==='string'?JSON.parse(state):state;
+  S={...S,...d}; document.documentElement.dataset.mode=S.mode||'night';
+  checkEcho();
+  paint();
+}
+if(window.qt&&qt.webChannelTransport){
+  new QWebChannel(qt.webChannelTransport,ch=>{bridge=ch.objects.bridge; HAS_BRIDGE=true;
+    bridge.stateChanged.connect(render);bridge.ready();});
+} else {
+  /* 只有用瀏覽器單獨檢視設計時才套示範值。
+     有 bridge 時完全不套 —— 沒收到的值就是沒收到，不編。 */
+  S={...S,...DEMO_S};
+}
+document.getElementById('tg').onclick=()=>{const h=document.documentElement;
+  h.dataset.mode=h.dataset.mode==='night'?'day':'night';
+  document.getElementById('tg').textContent=h.dataset.mode==='night'?'☀ 切到白天':'☾ 切到夜空';
+  if(bridge)bridge.on_action('mode',h.dataset.mode);};
+
+paint();
+</script>
+</body>
+</html>

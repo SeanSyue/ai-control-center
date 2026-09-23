@@ -1,0 +1,37 @@
+[
+  {
+    "label": "D1 回合數那一列變回無條件畫規劃（2026-08-27 之前的樣子——出廠序列不讀它，而他看到一列沒有任何選項被選中的按鈕）",
+    "file": "app/ui/web/settings_v1.html",
+    "replace": "    roundsRowForSequence(),",
+    "with": "    rowIf('planning_rounds','規劃回合數','x',()=>seg('planning_rounds',[[1,'1'],[2,'2'],[3,'3']])),",
+    "test": "tests/test_the_settings_page_only_draws_the_dial_that_turns.py::test_the_page_picks_the_row_instead_of_always_drawing_planning"
+  },
+  {
+    "label": "D2 它不看序列了（兩條路都畫規劃那一列——切到開發序列的人一樣按不到會生效的那顆）",
+    "file": "app/ui/web/settings_v1.html",
+    "replace": "  if(S.workflow_mode==='planning')",
+    "with": "  if(true)",
+    "test": "tests/test_the_settings_page_only_draws_the_dial_that_turns.py::test_the_page_picks_the_row_instead_of_always_drawing_planning"
+  },
+  {
+    "label": "D3 引擎不推 workflow_mode 了（畫面挑不動，整列消失，而上面那條照樣綠——那就是一條看不到自己前提的檢查）",
+    "file": "app/ui/settings_web_panel.py",
+    "replace": "            \"workflow_mode\": settings.workflow_mode,",
+    "with": "",
+    "test": "tests/test_the_settings_page_only_draws_the_dial_that_turns.py::test_the_engine_pushes_what_the_page_needs_to_decide"
+  },
+  {
+    "label": "D4 出廠序列讀的那個回合數，出廠值掉出畫面畫得出來的選項（他看到一列全空的按鈕）",
+    "file": "app/services/ai_settings.py",
+    "replace": "    max_fix_attempts: int = 1",
+    "with": "    max_fix_attempts: int = 7",
+    "test": "tests/test_the_settings_page_only_draws_the_dial_that_turns.py::test_the_factory_machine_sees_the_dial_that_actually_turns"
+  },
+  {
+    "label": "D5 設計原始檔沒跟上（下一次 build_pages.py 會把這個修正洗掉，而畫面上看不出差別）",
+    "file": "design-pages/settings_v1.html",
+    "replace": "function roundsRowForSequence(){",
+    "with": "function roundsRowForSequenceXX(){",
+    "test": "tests/test_the_settings_page_only_draws_the_dial_that_turns.py::test_the_built_page_matches_the_design_source"
+  }
+]

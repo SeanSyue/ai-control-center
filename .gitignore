@@ -1,0 +1,52 @@
+# Python / test cache
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Secrets and local-only configuration
+.env
+.env.*
+*.local.json
+*.secret.*
+
+# AI Control Center runtime data
+logs/
+runtime/
+.tmp.driveupload/
+_update_backup/
+*.db
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# AICC's own business/product knowledge - kept on disk (orchestrator.py and
+# cloud_sync.py still read these paths normally), but never version-controlled
+# so a future GitHub push (public or private) can never carry pricing,
+# roadmap strategy, or product-review content in its history going forward.
+.aicc/knowledge/
+
+# Demo/sandbox runtime data
+sandbox/.aicc/
+sandbox/**/.aicc/
+sandbox/**/.pytest_cache/
+sandbox/**/__pycache__/
+sandbox/demo_project2/
+sandbox/demo_project3/
+
+# Build artifacts
+dist/
+build/
+packaging/Output/
+*.zip
+*.aicc-workspace
+
+# Worktrees Claude Code 自己開的，不是專案內容。
+# 這條與 .aicc/ 的規則原本住在 .git/info/exclude —— 那是本機檔案，
+# 所以「哪些東西不進版本控制」這件事本身也沒有版本。搬過來。
+.claude/worktrees/
+
+# AICC's own runtime state for this repository (the config in .aicc/project.json is tracked)
+.aicc/runs/
+.aicc/runtime/
+.aicc/imported-context/

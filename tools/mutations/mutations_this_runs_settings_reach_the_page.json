@@ -1,0 +1,58 @@
+[
+  {
+    "label": "R1 可選項不推了（畫面只好自己寫一份清單，而引擎哪天多一個模型，畫面會繼續提供舊的那幾個——這一頁已經為同型壞過兩次）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "                options=[\n                    {\"id\": value, \"text\": label}\n                    for value, label in opts.labelled(key)\n                ],",
+    "with": "                options=[],",
+    "test": "tests/test_this_runs_settings_reach_the_page.py::test_the_page_gets_the_values_and_the_choices"
+  },
+  {
+    "label": "R2 摘要在這裡重拼一次（引擎哪天多一個欄位，那句話會少講一件事，而它看起來完全正常）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            \"summary\": summary_line(settings),",
+    "with": "            \"summary\": f\"本次：{settings.workflow_mode}\",",
+    "test": "tests/test_this_runs_settings_reach_the_page.py::test_the_summary_line_is_not_rebuilt_on_the_page"
+  },
+  {
+    "label": "R3 任務塞進設定那一包（畫面只能把「每次都要打的字」跟「偶爾調一次的東西」放在一起——那正是它今天在原生面板裡的問題）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            \"task\": self._task_entry(),",
+    "with": "",
+    "test": "tests/test_this_runs_settings_reach_the_page.py::test_the_task_is_pushed_apart_from_the_settings"
+  },
+  {
+    "label": "R4 認不得的值靜靜吞掉（他改了一個東西然後什麼都沒發生，而畫面上那一格看起來已經改好了）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            if raw not in allowed:\n                self.reject(",
+    "with": "            if raw not in allowed:\n                return\n            if False:\n                self.reject(",
+    "test": "tests/test_this_runs_settings_reach_the_page.py::test_a_choice_the_engine_does_not_know_is_refused_out_loud"
+  },
+  {
+    "label": "R5 超出範圍就夾住不擋（他調到 9，東西變成 2，而畫面上一個字都不會說）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            if not lo <= number <= hi:",
+    "with": "            number = max(lo, min(number, hi))\n            if False:",
+    "test": "tests/test_this_runs_settings_reach_the_page.py::test_a_number_outside_the_range_is_refused"
+  },
+  {
+    "label": "R6 空的任務照樣寫進硬碟（AI 拿到一份沒有題目的考卷，而那一輪跑出來的東西沒有人驗得了）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "        body = text.strip()\n        if not body:\n            self.reject(t(\"task.empty.web\"))",
+    "with": "        body = text.strip()\n        if False:\n            self.reject(t(\"task.empty.web\"))",
+    "test": "tests/test_this_runs_settings_reach_the_page.py::test_an_empty_task_does_not_reach_the_disk"
+  },
+  {
+    "label": "R7 展開狀態自己開一個鍵（他在原生那邊收起來、切到網頁又是開的——同一個設定的第二個答案，而兩個都「對」）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "                    \"ai_settings_panel/expanded\", False, type=bool",
+    "with": "                    \"lineup_web/run_settings_open\", False, type=bool",
+    "test": "tests/test_this_runs_settings_reach_the_page.py::test_the_expanded_state_shares_one_key_with_the_native_panel"
+  },
+  {
+    "label": "R8 宣告的選項跟原生面板漂開（畫面提供一個引擎不認得的選擇，他選了它，送回來沒有人接）",
+    "file": "app/services/run_settings_options.py",
+    "replace": "        (\"haiku\", \"ai.model.haiku\"),",
+    "with": "        (\"haiku\", \"ai.effort.max\"),",
+    "test": "tests/test_the_web_and_the_native_panel_offer_the_same_choices.py"
+  }
+]

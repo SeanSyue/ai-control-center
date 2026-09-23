@@ -1,0 +1,72 @@
+[
+  {
+    "label": "R1 執行端的駁回被當成一般產出（做不到的標準原封不動再做一次，然後再退一次，每一輪都付錢）",
+    "file": "app/core/steps/building.py",
+    "replace": "        objection = parse_criteria_rejection(result.stdout)",
+    "with": "        objection = \"\"",
+    "test": "tests/test_the_bar_can_be_sent_back.py"
+  },
+  {
+    "label": "R2 需求確認派給別的節點（重訂標準的變成不是當初訂它的那一格，而畫面上看起來一樣是「有人在確認需求」）",
+    "file": "app/core/steps/intake.py",
+    "replace": "    seat = criteria_seat(orchestrator.lineup)\n    if not seat:",
+    "with": "    _free = [s.role for s in orchestrator.lineup if s.duty != 'work']\n    seat = _free[-1] if _free else ''\n    if not seat:",
+    "test": "tests/test_the_bar_can_be_sent_back.py"
+  },
+  {
+    "label": "R3 舊標準沒有作廢（訂標準的那一格重跑，但續跑那條路會把舊的原封不動拿回來）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "        orchestrator.clear_acceptance_criteria()",
+    "with": "        pass",
+    "test": "tests/test_the_bar_can_be_sent_back.py"
+  },
+  {
+    "label": "R4 退回的理由沒有帶給訂標準的那一格（它只能猜，猜錯要再退一次）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "        orchestrator.record_criteria_objection(rejected_by, objection)",
+    "with": "        pass",
+    "test": "tests/test_the_bar_can_be_sent_back.py"
+  },
+  {
+    "label": "R5 談不攏的判準改成數次數（第二次退回就被判卡住，而那一次可能正是流程在收斂）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "        if seen and seen[-1] == key:",
+    "with": "        if seen:",
+    "test": "tests/test_the_bar_can_be_sent_back.py"
+  },
+  {
+    "label": "R6 同一條意見退到天荒地老（談不攏的時候不停，兩邊來回燒錢而且永遠不會有結論）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "            return self._criteria_deadlock_result(",
+    "with": "            return None and self._criteria_deadlock_result(",
+    "test": "tests/test_the_bar_can_be_sent_back.py"
+  },
+  {
+    "label": "R7 沒有理由的駁回也算駁回（訂標準的那一格拿到一句「做不到」，只能猜）",
+    "file": "app/core/orchestrator_parsing.py",
+    "replace": "    return text[hit.end():].strip()",
+    "with": "    return text[hit.end():].strip() or \"（沒有說明理由）\"",
+    "test": "tests/test_the_bar_can_be_sent_back.py"
+  },
+  {
+    "label": "R8 照舊標準擬的做法沒有作廢（執行那一格同時拿到新標準與舊做法，兩份互相矛盾）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "        orchestrator.clear_work_plans()",
+    "with": "        pass",
+    "test": "tests/test_the_bar_can_be_sent_back.py"
+  },
+  {
+    "label": "R9 擬做法那一格不能提異議（它只能硬擬一份做不到的做法，等執行那一格撞牆之後才退回去——多走一整輪，而且那一輪的產出沒有人要）",
+    "file": "app/core/steps/planning.py",
+    "replace": "        objection = parse_criteria_rejection(result.stdout)\n        if objection and criteria.strip():",
+    "with": "        objection = \"\"\n        if False:",
+    "test": "tests/test_the_bar_can_be_sent_back.py"
+  },
+  {
+    "label": "R10 擬做法的意見直接改掉那份標準（那條標準是使用者點頭的，而它連試都還沒試）",
+    "file": "app/core/steps/planning.py",
+    "replace": "            return \"\", rejects_the_criteria(slot.role, objection)",
+    "with": "            orchestrator.save_project_brief(\"它自己改的標準\")\n            return \"\", rejects_the_criteria(slot.role, objection)",
+    "test": "tests/test_the_bar_can_be_sent_back.py"
+  }
+]

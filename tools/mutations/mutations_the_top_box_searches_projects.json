@@ -1,0 +1,30 @@
+[
+  {
+    "label": "P1 專案清單整個不推（他要找專案的時候只剩那個同時搜對話的框，而打進去的字會比中哪一種，畫面上看不出來）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            \"projects\": self._projects_entry(),",
+    "with": "",
+    "test": "tests/test_the_top_box_searches_projects_not_conversations.py::test_the_page_is_given_a_project_list_of_its_own"
+  },
+  {
+    "label": "P2 比不到就回全部（一個「查不到就給你全部」的搜尋框，跟一個壞掉的搜尋框長得一模一樣，而他會以為那些就是比中的）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            if needle and needle not in name.casefold() and needle not in path.casefold():\n                continue",
+    "with": "            if False:\n                continue",
+    "test": "tests/test_the_top_box_searches_projects_not_conversations.py::test_a_query_that_matches_nothing_returns_nothing"
+  },
+  {
+    "label": "P3 兩個框共用一個字（他在上面打「AICC」，下面那兩欄的對話也被濾掉，而畫面上看不出是誰濾的）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "            self._project_query = str(arg)",
+    "with": "            self._project_query = str(arg)\n            self._query = str(arg)",
+    "test": "tests/test_the_top_box_searches_projects_not_conversations.py::test_the_two_boxes_do_not_share_one_word"
+  },
+  {
+    "label": "P4 哪一個是他打開的那個改成拿名字比（同名的資料夾是存在的，而畫面會把另一個標成「你正在這裡」）",
+    "file": "app/ui/lineup_web_panel.py",
+    "replace": "                \"current\": bool(self._project and Path(path) == self._project),",
+    "with": "                \"current\": True,",
+    "test": "tests/test_the_top_box_searches_projects_not_conversations.py::test_it_says_which_one_he_has_open"
+  }
+]

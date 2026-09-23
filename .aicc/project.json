@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "name": "ai-control-center",
+  "sensitivity": "personal",
+  "verify_command": [
+    ".venv\\Scripts\\python.exe",
+    "-m",
+    "pytest",
+    "-q"
+  ],
+  "verify_timeout_seconds": 900,
+  "verify_success_note": "Zero failures and zero skips, and the exit code must be 0. The suite used to crash on exit while reporting every test as passed; that was fixed on 2026-08-26, so a non-zero exit code now means something is really wrong. The optional (0:02:05) suffix appears once a run passes 60 seconds.",
+  "verify_success": {
+    "output_pattern": "(?m)^\\d+ passed(, \\d+ warnings?)? in [\\d.]+s( \\(\\d+:\\d{2}:\\d{2}\\))?\\s*$"
+  }
+}

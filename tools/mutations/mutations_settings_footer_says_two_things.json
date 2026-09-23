@@ -1,0 +1,37 @@
+[
+  {
+    "label": "R1 還沒存過時把「尚未變更」塞進時間戳欄位（畫面上：每次重開 App 都寫著「已儲存 · 尚未變更」——FG26 本身）",
+    "file": "app/ui/settings_web_panel.py",
+    "replace": "            \"saved_at\": (\n                self._saved_at.strftime(\"%H:%M\") if self._saved_at else None\n            ),",
+    "with": "            \"saved_at\": (\n                self._saved_at.strftime(\"%H:%M\")\n                if self._saved_at\n                else t(\"settings.never_changed\")\n            ),",
+    "test": "tests/test_the_settings_footer_does_not_say_two_opposite_things.py"
+  },
+  {
+    "label": "R2 改成空字串而不是 None（修錯方向：頁面的 `S.saved_at?` 守衛剛好也擋得住空字串，所以這一刀看起來像修好了）",
+    "file": "app/ui/settings_web_panel.py",
+    "replace": "            \"saved_at\": (\n                self._saved_at.strftime(\"%H:%M\") if self._saved_at else None\n            ),",
+    "with": "            \"saved_at\": (\n                self._saved_at.strftime(\"%H:%M\") if self._saved_at else \"\"\n            ),",
+    "test": "tests/test_the_settings_footer_does_not_say_two_opposite_things.py::test_a_settings_page_that_was_never_saved_pushes_no_time_at_all"
+  },
+  {
+    "label": "R3 底部那一行變回「有未儲存的變更」那個模板（這一頁按下去就存了，那句話今天永遠是假的）",
+    "file": "app/ui/web/settings_v1.html",
+    "replace": "    <span class=\"st\">${S.saved_at?`已儲存 · ${S.saved_at}`:''}</span>",
+    "with": "    <span class=\"st\">${S.dirty?'有未儲存的變更':(S.saved_at?`已儲存 · ${S.saved_at}`:'')}</span>",
+    "test": "tests/test_the_settings_footer_does_not_say_two_opposite_things.py::test_the_footer_prints_nothing_when_there_is_no_time"
+  },
+  {
+    "label": "R4 「儲存變更」那顆按鈕長回來（它對一半的控制項說謊：那幾格早就寫進檔案了）",
+    "file": "app/ui/web/settings_v1.html",
+    "replace": "    <span class=\"st\">${S.saved_at?`已儲存 · ${S.saved_at}`:''}</span>",
+    "with": "    <button class=\"btn\" onclick=\"act('save')\">儲存變更</button>\n    <span class=\"st\">${S.saved_at?`已儲存 · ${S.saved_at}`:''}</span>",
+    "test": "tests/test_the_settings_footer_does_not_say_two_opposite_things.py::test_the_footer_prints_nothing_when_there_is_no_time"
+  },
+  {
+    "label": "R5 存完不記時間（底部那一行從此永遠不出現，他按了沒有任何回饋）",
+    "file": "app/ui/settings_web_panel.py",
+    "replace": "        if changed and self.store is not None:\n            self.store.save_project(settings)\n        self._saved_at = datetime.now()",
+    "with": "        if changed and self.store is not None:\n            self.store.save_project(settings)",
+    "test": "tests/test_the_settings_footer_does_not_say_two_opposite_things.py::test_the_time_it_pushes_is_a_time_and_not_a_sentence"
+  }
+]

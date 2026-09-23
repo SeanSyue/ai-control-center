@@ -1,0 +1,114 @@
+[
+  {
+    "label": "S1 退回一個陣容裡沒有的名字（2026-08-26 之前的樣子：畫面說「陣容裡沒有 reviewer 這一格，請重新編組」，而他的五格一點問題都沒有——那句話把他送去改名字）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        seat = self.required_seat_with_duty(DUTY_REVIEW)\n        knowledge_context = self._knowledge_context_for_round(",
+    "with": "        seat = self.seat_with_duty(DUTY_REVIEW, fallback=ROLE_REVIEWER)\n        knowledge_context = self._knowledge_context_for_round(",
+    "test": "tests/test_a_planning_run_with_nobody_to_review_says_which_duty_is_missing.py::test_it_stops_instead_of_sending_him_to_fix_a_seat_name"
+  },
+  {
+    "label": "S2 挑一格代打（第一格會拿到「複查」那一步的工作——訂驗收標準、讀整份產出——而使用者把它排成的是「擬做法」）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        seat = self.seat_with_duty(duty)\n        if not seat:",
+    "with": "        seat = self.seat_with_duty(duty) or next(iter(self.lineup)).role\n        if not seat:",
+    "test": "tests/test_a_planning_run_with_nobody_to_review_says_which_duty_is_missing.py::test_it_does_not_pick_one_to_stand_in"
+  },
+  {
+    "label": "S3 擋過頭：連排了複查的陣容也被判成沒有人複查（一條什麼都拒絕的門，跟一個永遠說可以的門一樣沒用）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        seat = self.seat_with_duty(duty)\n        if not seat:",
+    "with": "        seat = self.seat_with_duty(duty)\n        if True:",
+    "test": "tests/test_a_planning_run_with_nobody_to_review_says_which_duty_is_missing.py::test_a_line_with_a_reviewing_seat_is_not_stopped"
+  },
+  {
+    "label": "S4 審計畫那一步也退回一個出廠名字（只修第一步的話，討論回合設 1 的人會在第二步拿到「陣容裡沒有 author 這一格」——traceback 往後挪一步，畫面一樣紅）",
+    "file": "app/core/orchestrator.py",
+    "replace": "        seat = self.required_seat_with_duty(DUTY_WORK)\n        knowledge_context = self._knowledge_context_for_round(",
+    "with": "        seat = self.seat_with_duty(DUTY_WORK, fallback=ROLE_AUTHOR)\n        knowledge_context = self._knowledge_context_for_round(",
+    "test": "tests/test_a_planning_run_with_nobody_to_review_says_which_duty_is_missing.py::test_it_picks_the_sentence_for_the_duty_that_is_missing"
+  },
+  {
+    "label": "S5 收成「計畫完成」（一輪一次派工都沒發生的執行被記成計畫做完了——這個專案最在意的那一種假訊號）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "            workflow_status=\"NO_SEAT_FOR_DUTY\",",
+    "with": "            workflow_status=\"PLANNING_COMPLETED\",",
+    "test": "tests/test_a_planning_run_with_nobody_to_review_says_which_duty_is_missing.py::test_the_ending_is_the_one_that_was_written_for_this"
+  },
+  {
+    "label": "S6 收場碼改成 outcomes.py 認不得的字（`outcome_group` 是空字串，首頁上是一格沒有顏色也沒有標籤的東西）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "            workflow_status=\"NO_SEAT_FOR_DUTY\",",
+    "with": "            workflow_status=\"NO_SEAT_FOR_THIS_DUTY\",",
+    "test": "tests/test_a_planning_run_with_nobody_to_review_says_which_duty_is_missing.py::test_the_ending_has_a_row_in_the_outcome_table"
+  },
+  {
+    "label": "S7 收場表那一列歸到「跑完了」（薄荷色、算進「今日完成 N 件」，而他不會再去看它）",
+    "file": "app/core/outcomes.py",
+    "replace": "        \"outcome.NO_SEAT_FOR_DUTY.label\",\n        \"partial\",\n        GROUP_SETTING,",
+    "with": "        \"outcome.NO_SEAT_FOR_DUTY.label\",\n        \"done\",\n        GROUP_DONE,",
+    "test": "tests/test_a_planning_run_with_nobody_to_review_says_which_duty_is_missing.py::test_the_ending_has_a_row_in_the_outcome_table"
+  },
+  {
+    "label": "S8 引擎講的那一句被畫面的罐頭句子蓋掉（`detail_key` 拆掉：他看到的永遠是「這條序列要派工的那一種職責，陣容裡一格都沒有」，而引擎其實已經寫好了缺哪一種、他的五格叫什麼、兩條出路是什麼）",
+    "file": "app/core/outcomes.py",
+    "replace": "        \"outcome.NO_SEAT_FOR_DUTY.stage\",\n        detail_key=\"verification_problem\",",
+    "with": "        \"outcome.NO_SEAT_FOR_DUTY.stage\",",
+    "test": "tests/test_a_planning_run_with_nobody_to_review_says_which_duty_is_missing.py::test_it_says_the_duty_is_missing_not_a_seat_he_never_had"
+  },
+  {
+    "label": "S9 挑錯那一句（缺執行的人拿到缺複查那一句：叫他去換序列，而換過去照樣沒有人做事。四句話都還是好好的，錯的是選擇那一行）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "    DUTY_WORK: \"lineup.no_seat_with_duty.work\",",
+    "with": "    DUTY_WORK: \"lineup.no_seat_with_duty.review\",",
+    "test": "tests/test_a_planning_run_with_nobody_to_review_says_which_duty_is_missing.py::test_it_picks_the_sentence_for_the_duty_that_is_missing"
+  },
+  {
+    "label": "S10 例外帶回來的職責被無視，一律當成缺複查（同一個病的第二個入口：這一次錯的不是那張表，是讀那張表的那一行）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "                missing.duty,",
+    "with": "                DUTY_REVIEW,",
+    "test": "tests/test_a_planning_run_with_nobody_to_review_says_which_duty_is_missing.py::test_it_picks_the_sentence_for_the_duty_that_is_missing"
+  },
+  {
+    "label": "S11 那句話裡的序列名字指到另一條（他跑的是計畫序列，而畫面叫他「把序列換成計畫序列」——他已經在那條上了）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "        sequence=t(\"sequence.planning\" if planning else \"sequence.development\"),",
+    "with": "        sequence=t(\"sequence.development\" if planning else \"sequence.planning\"),",
+    "test": "tests/test_a_planning_run_with_nobody_to_review_says_which_duty_is_missing.py::test_the_sentence_calls_the_sequence_by_its_one_name"
+  },
+  {
+    "label": "S12 那句話不再講回哪一頁改什麼（「請重新編組」——他不知道要編什麼，2026-08-26 那次他看到的就是這一句）",
+    "file": "app/i18n.py",
+    "replace": "        \"兩條路：到陣容頁把其中一格的職責改成「複查」，\"",
+    "with": "        \"請重新編組。\"",
+    "test": "tests/test_a_planning_run_with_nobody_to_review_says_which_duty_is_missing.py::test_it_says_the_duty_is_missing_not_a_seat_he_never_had"
+  },
+  {
+    "label": "S12b 那句話不再念出他排的那幾格（講不出名字的說明等於沒有說明——他要對照的正是「我排的這五格裡哪一格該改」）",
+    "file": "app/i18n.py",
+    "replace": "        \"這份陣容的 {count} 格（{seats}）裡一格都不是，所以一次派工都沒有發生\"",
+    "with": "        \"這份陣容裡一格都不是，所以一次派工都沒有發生\"",
+    "test": "tests/test_a_planning_run_with_nobody_to_review_says_which_duty_is_missing.py::test_it_says_the_duty_is_missing_not_a_seat_he_never_had"
+  },
+  {
+    "label": "S13 設定面板的下拉又自己存一份名字（同一件事兩個名字回來了：面板一個字、陣容頁徽章另一個字，而他要在那兩個畫面之間對照）",
+    "file": "app/ui/ai_settings_panel.py",
+    "replace": "        self.workflow_combo.addItem(t(\"sequence.planning\"), \"planning\")",
+    "with": "        self.workflow_combo.addItem(t(\"job.write_plan\"), \"planning\")",
+    "test": "tests/test_a_planning_run_with_nobody_to_review_says_which_duty_is_missing.py::test_both_screens_call_the_sequence_by_the_same_name"
+  },
+  {
+    "label": "S14 退休的那個名字回來了（第三個畫面會撿它去用，而這一輪做的統一就白做了）",
+    "file": "app/i18n.py",
+    "replace": "    \"sequence.planning\": \"計畫序列\",",
+    "with": "    \"sequence.planning\": \"計畫發想\",",
+    "test": "tests/test_a_planning_run_with_nobody_to_review_says_which_duty_is_missing.py::test_the_retired_name_did_not_come_back"
+  },
+  {
+    "label": "S15 討論回合 0 卻多跑一輪計畫審查（這一條守的是換掉 `assert len(calls) == 1` 之後那兩行還有牙齒——它們守的是這支測試名字說的那件事）",
+    "file": "app/core/workflow_worker.py",
+    "replace": "        for round_number in range(1, rounds + 1):",
+    "with": "        for round_number in range(1, rounds + 2):",
+    "test": "tests/test_workflow_worker_runtime.py::test_planning_mode_single_round_completes"
+  }
+]

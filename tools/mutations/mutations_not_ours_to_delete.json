@@ -1,0 +1,44 @@
+[
+  {
+    "label": "P1 那道門放行使用者的真實 Roaming（2026-08-21 就是這一刀，而它刪掉的東西裡有 DPAPI 主金鑰——四天後才以「Edge 要重新登入」的樣子出現）",
+    "file": "app/services/not_ours.py",
+    "replace": "    for root in protected_roots():\n        if path == root:",
+    "with": "    for root in []:\n        if path == root:",
+    "test": "tests/test_a_folder_that_is_not_ours_is_never_deleted.py::test_the_users_real_folders_are_refused"
+  },
+  {
+    "label": "P2 `%APPDATA%` 沒有被重導的時候也當成自己的地盤（那正是 2026-08-21 的形狀：路徑看起來完全合法，錯的是 %APPDATA% 本身被指到了真的地方）",
+    "file": "app/services/not_ours.py",
+    "replace": "    if not (temp_root in sandbox.parents or sandbox == temp_root):\n        return False",
+    "with": "    if False:\n        return False",
+    "test": "tests/test_a_folder_that_is_not_ours_is_never_deleted.py::test_a_real_appdata_is_refused_even_though_the_app_writes_there"
+  },
+  {
+    "label": "P3 拒絕的時候安靜地不做，不丟例外（一個指錯地方的呼叫看起來會像成功——這個專案最在意的那個病）",
+    "file": "app/services/not_ours.py",
+    "replace": "    reason = why_it_is_not_ours(target)\n    if reason:\n        raise NotOursToDelete(reason)\n    path = Path(target)",
+    "with": "    reason = why_it_is_not_ours(target)\n    if reason:\n        return\n    path = Path(target)",
+    "test": "tests/test_a_folder_that_is_not_ours_is_never_deleted.py::test_refusing_is_loud_not_silent"
+  },
+  {
+    "label": "P4 那道門擋過頭（連自己 mkdtemp 造的暫存都刪不掉，於是下一個人會把整道門關掉）",
+    "file": "app/services/not_ours.py",
+    "replace": "    if temp_root in path.parents:\n        return True",
+    "with": "    if False:\n        return True",
+    "test": "tests/test_a_folder_that_is_not_ours_is_never_deleted.py::test_our_own_temp_sandbox_is_still_removable"
+  },
+  {
+    "label": "P5 有人繞過那道門直接刪（2026-08-21 那個裸的 atexit.register(shutil.rmtree, ...) 就是這樣進來的）",
+    "file": "app/services/session_scanner.py",
+    "replace": "                not_ours.remove_tree(temp_dir)",
+    "with": "                shutil.rmtree(temp_dir, ignore_errors=True)",
+    "test": "tests/test_nothing_deletes_outside_its_own_sandbox.py::test_every_delete_goes_through_the_one_door"
+  },
+  {
+    "label": "P6 放行清單開始說謊（某一筆指的那個呼叫已經不在了，而清單還留著——一張說謊的放行清單比沒有清單更花時間）",
+    "file": "tools/negative_control.py",
+    "replace": "            compiled.unlink()",
+    "with": "            pass  # compiled.unlink()",
+    "test": "tests/test_nothing_deletes_outside_its_own_sandbox.py::test_the_allow_list_has_not_gone_stale"
+  }
+]
