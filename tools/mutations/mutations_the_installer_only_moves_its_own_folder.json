@@ -1,0 +1,37 @@
+[
+  {
+    "label": "N1 判斷「是不是 AICC 的資料夾」改成只看資料夾存不存在（任何資料夾都被當成自己的）",
+    "file": "packaging/AI Control Center.iss",
+    "replace": "Result := FileExists(AddBackslash(Dir) + '{#MyAppExeName}');",
+    "with": "Result := DirExists(Dir);",
+    "test": "tests/test_the_installer_only_moves_its_own_folder.py::test_ownership_is_proven_by_the_products_own_executable"
+  },
+  {
+    "label": "N2 選資料夾那一頁不再擋（選到一個裝滿別的東西的資料夾也能按下一步）",
+    "file": "packaging/AI Control Center.iss",
+    "replace": "NotOursAndNotEmpty(WizardDirValue())",
+    "with": "False",
+    "test": "tests/test_the_installer_only_moves_its_own_folder.py::test_the_folder_page_refuses_a_foreign_folder"
+  },
+  {
+    "label": "N3 安裝那一刻不再擋（無聲安裝跳過選資料夾那一頁，直接進來）",
+    "file": "packaging/AI Control Center.iss",
+    "replace": "if NotOursAndNotEmpty(ExpandConstant('{app}')) then",
+    "with": "if False then",
+    "test": "tests/test_the_installer_only_moves_its_own_folder.py::test_a_silent_install_is_stopped_too"
+  },
+  {
+    "label": "N4 安裝資料夾只要存在就改名（2026-09-25 之前的樣子：裝完整棵刪掉，不管是誰的）",
+    "file": "packaging/AI Control Center.iss",
+    "replace": "if IsAiccInstall(ExpandConstant('{app}')) then",
+    "with": "if DirExists(ExpandConstant('{app}')) then",
+    "test": "tests/test_the_installer_only_moves_its_own_folder.py::test_the_old_folder_is_only_renamed_when_it_is_an_aicc_install"
+  },
+  {
+    "label": "N5 已經存在的 .previous 不問是誰的就整棵刪掉",
+    "file": "packaging/AI Control Center.iss",
+    "replace": "if not IsAiccInstall(BackupDir) then",
+    "with": "if False then",
+    "test": "tests/test_the_installer_only_moves_its_own_folder.py::test_a_leftover_backup_is_only_deleted_when_it_is_ours"
+  }
+]

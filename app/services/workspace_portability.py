@@ -374,6 +374,14 @@ class WorkspacePortabilityService:
                     manifest.get("project_name") or archive_path.stem
                 )
                 target = destination_dir / self._safe_name(project_name)
+                # 名字洗過了，但**判準是結果，不是名字**：解析之後必須剛好是
+                # 選定資料夾的下一層。一個已經存在、指到別處的連結資料夾，
+                # 名字完全正常，resolve() 之後才看得出它跑出去了。
+                if target.resolve().parent != destination_dir:
+                    return WorkspaceImportResult(
+                        success=False,
+                        errors=[t("import.outside_destination", path=target.resolve())],
+                    )
                 target.mkdir(parents=True, exist_ok=True)
 
                 root = target.resolve()
@@ -653,11 +661,30 @@ class WorkspacePortabilityService:
     def _should_skip(self, relative: str) -> bool:
         return bool(self.skip_reason(relative))
 
-    @staticmethod
-    def _safe_name(raw: str) -> str:
+    # Windows 的保留裝置名稱。拿它當資料夾名稱，寫進去的東西不會變成檔案。
+    _RESERVED_NAMES = frozenset(
+        {"CON", "PRN", "AUX", "NUL"}
+        | {f"COM{i}" for i in range(1, 10)}
+        | {f"LPT{i}" for i in range(1, 10)}
+    )
+
+    @classmethod
+    def _safe_name(cls, raw: str) -> str:
+        """壓縮檔自己報的專案名稱 → 一個只會是**一層**、而且是普通資料夾的名字。
+
+        2026-09-25 之前這裡只拿掉 `<>:"/\\|?*`，於是 `..` 原封不動留下來，
+        專案根目錄變成選定資料夾的**上一層**（外部審查 A10）。
+
+        結尾的點與空白要拿掉：Windows 建資料夾時本來就會把它們吃掉，
+        所以 `...` 跟 `..` 是同一件事。保留裝置名稱（`CON`、`nul.txt`
+        ⋯⋯）一律換成預設名字。
+        """
         cleaned = "".join(
             character
-            for character in raw.strip()
-            if character not in '<>:"/\\|?*'
-        )
-        return cleaned or "imported-project"
+            for character in raw
+            if character not in '<>:"/\\|?*' and ord(character) >= 32
+        ).strip().rstrip(". ")
+        stem = cleaned.split(".", 1)[0].strip().upper()
+        if not cleaned or stem in cls._RESERVED_NAMES:
+            return "imported-project"
+        return cleaned

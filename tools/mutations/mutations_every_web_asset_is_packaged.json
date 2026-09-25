@@ -1,0 +1,9 @@
+[
+  {
+    "label": "P1 打包又漏掉 .js（shell.js 沒進安裝版：側邊欄與上方列是空的，而原始碼跑起來一切正常）",
+    "file": "packaging/AI Control Center.spec",
+    "replace": "*.js', 'app/ui/web'),",
+    "with": "*.jsx', 'app/ui/web'),",
+    "test": "tests/test_packaging.py::test_every_kind_of_web_asset_is_packaged"
+  }
+]

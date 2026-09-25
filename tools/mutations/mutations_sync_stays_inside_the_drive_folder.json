@@ -1,0 +1,23 @@
+[
+  {
+    "label": "S1 不再檢查 project_id 是不是 UUID（被改過的 metadata 決定這台電腦要在雲端哪一格寫東西）",
+    "file": "app/services/cloud_sync.py",
+    "replace": "            canonical = str(uuid.UUID(project_id))",
+    "with": "            canonical = project_id",
+    "test": "tests/test_sync_cannot_write_outside_the_drive_folder.py::test_a_tidy_looking_id_that_is_not_a_uuid_is_still_refused"
+  },
+  {
+    "label": "S2 拿掉「解析後必須剛好在 projects 下一層」（格式正確、但那一格是指到別處的連結資料夾）",
+    "file": "app/services/cloud_sync.py",
+    "replace": "        return candidate if candidate.parent == projects else None",
+    "with": "        return candidate",
+    "test": "tests/test_sync_cannot_write_outside_the_drive_folder.py::test_a_same_named_junction_cannot_lead_the_sync_elsewhere"
+  },
+  {
+    "label": "S3 同步又把 project_id 直接接在路徑後面（2026-09-25 之前的樣子：絕對路徑讓同步寫到資料夾外面，還回報成功）",
+    "file": "app/services/cloud_sync.py",
+    "replace": "            cloud_project = self._cloud_project_dir(root, project_id)\n            if cloud_project is None:",
+    "with": "            cloud_project = root / self.APP_FOLDER_NAME / \"projects\" / project_id\n            if False:",
+    "test": "tests/test_sync_cannot_write_outside_the_drive_folder.py::test_an_absolute_project_id_does_not_send_the_sync_elsewhere"
+  }
+]

@@ -1,0 +1,23 @@
+[
+  {
+    "label": "I1 拿掉「必須剛好是下一層」那道檢查（名字正常、但同名連結資料夾指到別處時，匯入會跟著寫出去）",
+    "file": "app/services/workspace_portability.py",
+    "replace": "if target.resolve().parent != destination_dir:",
+    "with": "if False:",
+    "test": "tests/test_an_import_cannot_climb_out_of_its_folder.py::test_a_same_named_junction_cannot_lead_the_import_elsewhere"
+  },
+  {
+    "label": "I2 專案名稱不再去掉結尾的點（`..` 原封不動留下來——2026-09-25 之前的樣子）",
+    "file": "app/services/workspace_portability.py",
+    "replace": ".strip().rstrip(\". \")",
+    "with": ".strip()",
+    "test": "tests/test_an_import_cannot_climb_out_of_its_folder.py::test_the_project_folder_is_always_a_direct_child_of_the_chosen_folder"
+  },
+  {
+    "label": "I3 不再擋 Windows 保留裝置名稱（專案叫 CON 或 nul.txt，寫進去的東西不會變成檔案）",
+    "file": "app/services/workspace_portability.py",
+    "replace": "if not cleaned or stem in cls._RESERVED_NAMES:",
+    "with": "if not cleaned:",
+    "test": "tests/test_an_import_cannot_climb_out_of_its_folder.py::test_the_project_folder_is_always_a_direct_child_of_the_chosen_folder"
+  }
+]

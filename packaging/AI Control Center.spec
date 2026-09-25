@@ -17,6 +17,10 @@ a = Analysis(
     # is where this puts them.
     datas=[('..\\app\\ui\\web\\*.html', 'app/ui/web'),
            ('..\\app\\ui\\web\\*.css', 'app/ui/web'),
+           # shell.js drives the sidebar and top bar. It was missing until
+           # 2026-09-25 (external review A13): the frozen build's shell was
+           # blank while every source-tree check passed.
+           ('..\\app\\ui\\web\\*.js', 'app/ui/web'),
            # The window/dialog icon. The exe's own icon comes from EXE(icon=)
            # below; this copy is what QApplication.setWindowIcon reads at
            # runtime, and without it every window falls back to Qt's default.

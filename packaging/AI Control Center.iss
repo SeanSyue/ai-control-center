@@ -183,18 +183,94 @@ begin
            mbInformation, MB_OK);
 end;
 
+{ ---------------------------------------------------------------------------
+  Only ever move or delete a directory that is provably an AICC install.
+
+  Until 2026-09-25 the rename-aside above ran on whatever directory the user
+  picked, as long as it existed: pick an existing folder by mistake and it was
+  renamed to <folder>.previous and deleted once setup finished, and an existing
+  <folder>.previous was deleted before that (external review A12).
+
+  The proof of ownership is the product's own executable. Every earlier build
+  put it there, so upgrades still work; an unrelated folder does not have it.
+  --------------------------------------------------------------------------- }
+
+function IsAiccInstall(Dir: String): Boolean;
+begin
+  Result := FileExists(AddBackslash(Dir) + '{#MyAppExeName}');
+end;
+
+function DirIsEmpty(Dir: String): Boolean;
+var
+  Found: TFindRec;
+begin
+  Result := True;
+  if FindFirst(AddBackslash(Dir) + '*', Found) then
+  begin
+    try
+      repeat
+        if (Found.Name <> '.') and (Found.Name <> '..') then
+        begin
+          Result := False;
+          Exit;
+        end;
+      until not FindNext(Found);
+    finally
+      FindClose(Found);
+    end;
+  end;
+end;
+
+function NotOursAndNotEmpty(Dir: String): Boolean;
+begin
+  Result := DirExists(Dir) and (not IsAiccInstall(Dir)) and (not DirIsEmpty(Dir));
+end;
+
+function NextButtonClick(CurPageID: Integer): Boolean;
+begin
+  Result := True;
+  { Refuse on the page where the folder is chosen, so the user can pick
+    another one instead of being stopped half-way through. }
+  { WizardDirValue, not the app constant: on this page the constant may not
+    hold the new choice yet. }
+  if (CurPageID = wpSelectDir) and NotOursAndNotEmpty(WizardDirValue()) then
+  begin
+    MsgBox('這個資料夾裡已經有別的東西，而且不是 {#MyAppName} 的安裝：' + #13#10 +
+           WizardDirValue() + #13#10 + #13#10 +
+           '為了不動到你的檔案，請選一個空的資料夾，或新的資料夾名稱。',
+           mbError, MB_OK);
+    Result := False;
+  end;
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssInstall then
   begin
     BackupMade := False;
     BackupDir := ExpandConstant('{app}') + '.previous';
-    if DirExists(ExpandConstant('{app}')) then
+    { Checked again here: a silent install never shows the folder page. }
+    if NotOursAndNotEmpty(ExpandConstant('{app}')) then
+    begin
+      SuppressibleMsgBox('安裝資料夾裡已經有別的東西，而且不是 {#MyAppName} 的安裝，已停止：' + #13#10 +
+                         ExpandConstant('{app}'), mbError, MB_OK, IDOK);
+      Abort();
+    end;
+    if IsAiccInstall(ExpandConstant('{app}')) then
     begin
       { A backup left over from an interrupted earlier run would block the
-        rename, so clear it first. }
+        rename. Clear it only if it is itself an AICC install. }
       if DirExists(BackupDir) then
+      begin
+        if not IsAiccInstall(BackupDir) then
+        begin
+          SuppressibleMsgBox('已經有一個叫 ' + BackupDir + ' 的資料夾，而且不是 {#MyAppName} 的備份。' + #13#10 +
+                             '為了不動到它，安裝已停止。請先把它改名或移走。',
+                             mbError, MB_OK, IDOK);
+          Abort();
+        end;
         DelTree(BackupDir, True, True, True);
+      end;
       BackupMade := RenameFile(ExpandConstant('{app}'), BackupDir);
       if not BackupMade then
         { Almost always because the app is still running and holding a file

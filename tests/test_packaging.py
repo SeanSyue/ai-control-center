@@ -135,3 +135,22 @@ def test_the_web_pages_are_still_listed_as_data() -> None:
 
     assert "app/ui/web" in spec
     assert "*.html" in spec and "*.css" in spec
+
+
+def test_every_kind_of_web_asset_is_packaged() -> None:
+    """網頁資料夾裡的**每一種**檔案都要有一條 datas 把它帶進打包。
+
+    上面那條只問 `.html` 和 `.css`，於是 `shell.js` 漏掉了（外部審查 A13）：
+    原始碼跑起來一切正常，打包出來的版本側邊欄與上方列是空的。
+    比「一種一種列出來」更好的問法是：資料夾裡實際有哪幾種，就要有哪幾條。
+    """
+    spec = SPEC.read_text(encoding="utf-8")
+    web = Path(__file__).resolve().parents[1] / "app" / "ui" / "web"
+    kinds = {
+        p.suffix
+        for p in web.iterdir()
+        if p.is_file() and p.suffix not in {".py", ".pyc"}
+    }
+
+    missing = sorted(k for k in kinds if f"*{k}', 'app/ui/web')" not in spec)
+    assert not missing, f"這幾種網頁檔案沒有被打包：{missing}"

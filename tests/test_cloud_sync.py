@@ -187,7 +187,9 @@ def test_link_cloud_project_does_not_leak_or_bypass_local_sensitivity(
     monkeypatch,
 ) -> None:
     service, drive = configured_sync(tmp_path, monkeypatch)
-    cloud_project_id = "cloud-proj-kyc"
+    # 真正的 project_id 一律是 `str(uuid.uuid4())`；2026-09-25 起同步只收這種格式
+    # （外部審查 A11），所以這裡用固定的 UUID，不用隨手取的名字。
+    cloud_project_id = "6f1c2a10-0000-4000-8000-00000000a001"
     _write_cloud_project_metadata(drive, cloud_project_id)
 
     local_project = tmp_path / "local-project"
@@ -216,7 +218,9 @@ def test_link_cloud_project_adopts_cloud_project_id_for_non_sensitive_project(
     monkeypatch,
 ) -> None:
     service, drive = configured_sync(tmp_path, monkeypatch)
-    cloud_project_id = "cloud-proj-normal"
+    # 真正的 project_id 一律是 `str(uuid.uuid4())`；2026-09-25 起同步只收這種格式
+    # （外部審查 A11），所以這裡用固定的 UUID，不用隨手取的名字。
+    cloud_project_id = "6f1c2a10-0000-4000-8000-00000000a002"
     _write_cloud_project_metadata(drive, cloud_project_id)
 
     local_project = tmp_path / "local-project-2"

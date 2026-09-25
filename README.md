@@ -1,140 +1,110 @@
 # AI Control Center (AICC)
 
-A Windows desktop app that runs **Claude Code** and **Codex** as a team on one project — one writes, another reviews — and stops for a person only when a real decision is needed.
+**A Windows desktop workspace for coordinating Claude Code and Codex: assign work, carry context forward, check results, and return unresolved decisions to a person.**
 
-AICC does not call model APIs and never handles your credentials. It drives the official command-line tools with the sign-in you already have.
+[繁體中文](README.zh-TW.md) · [Architecture and design ownership](docs/ARCHITECTURE.md) · [Documentation map](docs/README.md) · [Security and known issues](SECURITY.md)
+
+> **Portfolio snapshot; no scheduled maintenance.** The author reports successful end-to-end runs in a configured personal environment. Private project outputs and conversations are not included. This is a working prototype with known defects, not a production or security certification. Start from source; the packaged build has unresolved issues.
 
 ![The line-up page](docs/images/lineup.png)
 
-*All screenshots on this page use demo data.*
+*Screenshots use demo data.*
 
-> **Status: being refined.** It runs, it is covered by 2,219 tests, and it has not yet completed a full run end to end. Read [Limitations](#limitations) before you try it.
+## The problem I set out to solve
 
----
+Using two coding agents often makes the person their message courier: copy the plan, explain the same context again, forward a review, then remember which version was actually checked. AICC puts that coordination into an explicit workflow and records the relationship between work, verification, review and human decisions.
 
-## Why it exists
+It brings existing Claude/Codex conversations, project documents, shared memory, a role line-up and execution records into one desktop application. It invokes the official vendor CLIs under the user's own sign-in. Prompts can be sent to the vendors through those CLIs; “local-first” does not mean all processing stays on the machine.
 
-Two AI agents on one project — one to write, one to check — and the person ends up carrying everything between them: copying output, deciding who goes next, remembering what was agreed three days ago. Checks get skipped because nothing records whether they ran.
+## My role and use of AI
 
-AICC takes over that routing and keeps a record of who approved which version.
+I independently defined the product, overall architecture, workflow rules and module boundaries, and built the project with AI assistance. I used discussions with AI to examine alternatives, generate and revise code, investigate failures, and develop verification approaches. Final scope and design decisions remained mine.
 
----
+Prompt, Context, Harness, Loop and Graph Engineering describe the concepts I applied to this implementation; I am not claiming to have invented those concepts. This repository presents the resulting code, design choices and limitations, rather than claiming every line was written manually or that AI review replaces external assurance.
 
-## How it keeps unreliable output in check
+## Design choices to inspect
 
-An LLM can answer the same prompt two different ways, and it does not raise its hand when it is wrong. AICC adds a safeguard at each of five layers.
-
-| Layer | What AICC does |
+| Concern | Implementation and reason |
 |---|---|
-| **Prompt** | Each duty (plan, work, review, approve) has its own instructions and output format. Limits are written into every task: change only the files needed, no commits, no installs. When a step meets something it should not decide, it must stop and ask in a format the engine parses. |
-| **Context** | Project memory is plain-text files in the project. The security rules and the list of questions the agents may not decide are sent word for word with every task; the rest are chosen by duty. A full-text index with Chinese word segmentation picks the relevant passages and records why. Memory is never truncated — if a security rule would arrive cut off, the run stops. |
-| **Harness** | The official CLIs run as child processes under your own sign-in. Permissions are set per step: review steps are read-only (Claude plan mode, Codex read-only sandbox); the writing step can write only inside the project. Force-pushing, dropping a table or carrying a secret stops the run for a person even if the reviewing agent said continue. |
-| **Loop** | Build, run the project's declared test command, fix automatically if it fails (up to two attempts), then review. When the attempts run out the run stops for a person instead of passing. Approval has no "after N rounds it counts as agreed" rule. |
-| **Graph** | The line-up is a node graph: each seat has a name, a vendor, a duty and the seat it follows, and it can branch. The seat that does not do the work writes "what counts as done" before anything is built. The last seat reads every stamp; a run is complete only when every stamp sits on the current version. |
+| Prompt and context | Duty-specific instructions, layered rules and project-document retrieval keep the task and relevant constraints together. Required security rules are intended to be carried without silent truncation. |
+| Execution harness | Vendor CLI process management is separated from workflow logic. Permission arguments are passed to those tools; AICC itself is not an operating-system sandbox. |
+| Fix loop | Declared project verification drives a bounded automatic repair loop (up to two attempts). Exhaustion returns control to a person instead of manufacturing a pass. |
+| Roles and graph | Seats carry provider, duty and identity. The `parent` relation describes the displayed structure; execution order and duty rules drive the workflow. It is not a general-purpose visual DAG scheduler. |
+| Version-bound evidence | Machine evidence, review reasons and approval are different records. Stamps refer to content versions so changed work does not inherit an unrelated approval. |
 
-![Architecture](docs/images/architecture.svg)
+See [architecture](docs/ARCHITECTURE.md) for the module map, entry points and tradeoffs. The orchestrator and main window remain substantial modules; this is an incremental separation of responsibilities, not a claim of perfect decoupling.
 
----
+## What is available
 
-## Evidence, not "the agent said so"
+- Pair local Claude/Codex conversations with a project and configure a role line-up.
+- Coordinate planning, work, declared verification, review, approval and questions for the user.
+- Index project documents and maintain plain-text project memory.
+- Inspect run outcomes, decision records and a multi-project dashboard.
+- Optional LINE notifications and folder-based synchronization through a configured Google Drive client. These have their own data boundaries and known issues; see [SECURITY.md](SECURITY.md).
 
-Each finished step leaves a **stamp** on the version it checked.
+## Run from source
 
-- A **machine stamp** cannot be created without evidence: the command, its output, and how it was judged.
-- A **review stamp** must say why the reviewer agrees, and cannot carry a pass/fail result — agreeing is not a measurement.
-- **GATED** is its own outcome for work with no test to run. Not a pass, not a failure: a person looks.
-- Change the content and the stamps on it expire. Only the stamps that depend on that content expire.
+Prerequisites: Windows 10/11, Python 3.14, Git if the workflow uses Git, and both vendor CLIs installed and signed in through their official tools. The accounts must be eligible for the selected models and have available usage. AICC does not supply accounts or bypass provider limits. The interface is Traditional Chinese.
 
-Every question a run stopped to ask is appended to a hash-chained decision log, together with who answered it — you, or the AI. The log exports with a standalone verifier that detects an edited or removed entry. It does not prove the log is honest: anyone who can edit the file can recompute the whole chain, and the verifier says so itself.
-
-![Decision log](docs/images/decision-log.png)
-
----
-
-## Requirements
-
-- Windows 10/11
-- Python 3.14
-- [Claude Code](https://claude.com/claude-code) CLI, signed in
-- Codex CLI, signed in
-- Your own subscriptions for both. AICC never asks for an API key, and no function in it can accept one.
-
-## Install and run
+Download or clone this repository, open PowerShell in its root, then run:
 
 ```powershell
-git clone <this repository>
-cd ai-control-center
 py -3.14 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe -m app.main
 ```
 
-`start.bat` does the last step for you.
+After setup, `start.bat` starts the application using that environment. The committed `app/ui/web/` pages are included; building an installer is not a prerequisite for running from source.
 
-**The interface is in Traditional Chinese.** The translation layer is not built yet.
+For an initial trial, use a disposable project containing non-sensitive data, pair the intended vendor sessions, configure the roles, and declare the project's verification command. With no usable verification, a run must not be described as machine-verified. The author's private project memory is not required to install AICC; each project supplies its own context. LINE and Drive setup are optional and can remain disabled.
 
-## Verify it yourself
+The author reports successful configured runs. That experience does not establish that every fresh Windows machine, CLI version or task will behave identically.
 
-```powershell
-.\.venv\Scripts\python.exe -m pytest tests/ -q          # 2,219 tests, 0 skipped, exit code 0
-.\.venv\Scripts\python.exe tools\negative_control.py --all   # 111 recipes
-.\.venv\Scripts\python.exe tools\verify_web_pages.py    # every page in a real browser engine
-```
+## Verification status
 
-Measured 2026-09-23 on a clean clone of this repository, with the virtual environment created as above.
+The source contains automated tests, mutation recipes and a real QWebEngine page checker. Verification results below refer to the reviewed code snapshot `15c1324`, not to a promise that every run is green.
 
-**Negative control** is the check this project cares most about: it breaks one line of the product on purpose, runs the test that should catch it, requires the test to turn red, then restores the file from a copy and checks the restore. A green test is not evidence until you have seen it red.
+| Check | Recorded result |
+|---|---|
+| Author's functional use | Successful end-to-end runs reported; private outputs are deliberately not published. |
+| Review of the original tests | 2,219 cases included in per-file execution; latest aggregate 2,200 passed, 19 failed, 0 skipped. 18 failing cases received narrower supplemental checks for environment/fixture constraints; those are not original-suite passes. One guard-boundary failure remains. The single-process run crashed in Qt. |
+| Mutation checks | All 853 items across 111 recipe files executed: 846 red, 7 green, 0 broken. 25 red results had an already-failing baseline and are not valid mutation kills. |
+| Source UI | 10/10 loading scenarios passed at each of two window sizes. |
+| Packaging | PyInstaller and Inno compilation succeeded; the frozen UI passed 8/10 scenarios because `shell.js` was omitted (fixed in the spec afterwards; the frozen build was not rebuilt). A full install/upgrade/cancel cycle was not independently completed. |
 
-![Negative control](docs/images/negative-control.svg)
+After the review, four defects were fixed — import and sync path containment, installer folder ownership, and the missing packaged `shell.js`. Each fix has new tests and negative-control recipes, run in the maintainer's environment; the reviewer has not re-run them. Details in [CHANGELOG.md](CHANGELOG.md).
 
----
-
-## Limitations
-
-Measured 2026-09-22.
-
-1. **Windows only.**
-2. **You need both CLIs installed and signed in.** AICC drives them; it does not replace them.
-3. **The interface is Traditional Chinese only.**
-4. **No full run has completed end to end yet.** 7 recorded runs, none finished.
-5. **When an agent hits its usage limit, the run stops and waits for you.** It does not resume by itself.
-6. **Duties are fixed** — plan, work, review, approve. You cannot define your own yet.
-7. **The installer is older than the code.** Last packaged 2026-08-08; run from source for now.
-8. **Local only.** No cloud sync, no multi-machine setup.
-9. **Agent safety rules are enforced through instructions and each tool's permission mode**, not by blocking individual commands.
-10. **The decision log detects an edited entry, not a rewritten chain.**
-
----
-
-## Repository layout
-
-```
-app/            the engine: core logic, services, UI panels, built web pages
-design-pages/   the HTML the app renders; app/ui/web is built from here
-tests/          2,219 tests
-tools/          negative control, page verification, indexing, memory budget
-docs/           design notes and the decision history (Traditional Chinese)
-packaging/      Inno Setup installer script
-```
-
-`app/ui/web/` is generated. Change `design-pages/` and rebuild:
+For development, the existing commands are:
 
 ```powershell
-.\.venv\Scripts\python.exe app\ui\web\build_pages.py
+.\.venv\Scripts\python.exe -m pytest tests/ -q
+.\.venv\Scripts\python.exe tools\verify_web_pages.py
+.\.venv\Scripts\python.exe tools\negative_control.py --all
 ```
 
-Each page's `<style>` block is hashed before and after the copy, so a CSS change cannot slip in by accident.
+The mutation command temporarily edits source files before restoring them. Run development checks in a disposable checkout under an isolated Windows test user or VM, not against a valuable working environment. A test must pass before mutation for its later failure to count as useful evidence. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Documentation
+## Limits of this snapshot
 
-- [`docs/WHY.md`](docs/WHY.md) — every product rule, the wording that decided it, and what it replaced (Traditional Chinese).
-- [`docs/規則分三層.md`](docs/規則分三層.md) — how rules reach the agents.
-- [`docs/模組劃分計畫.md`](docs/模組劃分計畫.md) — how the engine is split into modules.
-- [`docs/五節點測試.md`](docs/五節點測試.md) — the five-node run this project is built around.
-- [`README.zh-TW.md`](README.zh-TW.md) — the original Chinese readme.
+Import and sync path containment, installer folder ownership and the missing packaged `shell.js` were fixed after the review. Still open: deletion ownership, sensitive content reaching review prompts, archive resource limits and the other items in [SECURITY.md](SECURITY.md). These are disclosed defects, not features made safe by documentation. Read SECURITY.md before reuse.
 
-## Contributing, security, licence
+The deletion guard currently protects a few important locations (such as the Windows user profile). It is not yet "only the project folder, and anything else needs the user's confirmation".
 
-- [CONTRIBUTING.md](CONTRIBUTING.md) — how to set up, and the two rules every change must follow.
-- [SECURITY.md](SECURITY.md) — how to report a vulnerability.
-- [LICENSE](LICENSE) — MIT.
+The "forget LINE credentials" button currently has no effect; to remove LINE settings, delete the LINE settings file under `%APPDATA%\AIControlCenter` by hand.
+
+The app depends on external CLIs, their permission behavior and account limits; it is not a guarantee that an agent cannot touch other files. The role duties are fixed, the UI is not multilingual, and hitting usage limits requires user intervention. A hash-chained decision record can check retained links; it does not prove truth, completeness or resistance to a rewritten chain.
+
+## Read the repository
+
+| Location | What to look for |
+|---|---|
+| [`app/core/`](app/core/) | Workflow, roles, prompts, step dispatch and outcomes |
+| [`app/adapters/`](app/adapters/) | Vendor CLI process boundary |
+| [`app/services/`](app/services/) | Project state, knowledge, verification, evidence, imports and optional integrations |
+| [`app/ui/`](app/ui/) | Qt presentation and web-panel bridges |
+| [`design-pages/`](design-pages/) | Source HTML/CSS/JS; `app/ui/web/` is generated from it |
+| [`tests/`](tests/), [`tools/`](tools/) | Behavior checks, mutation recipes and inspection tools |
+| [`docs/`](docs/README.md) | Current architecture guide followed by historical design notes |
+| [`packaging/`](packaging/) | Build and installer definitions; what was fixed and what remains is in SECURITY.md |
+
+No regular updates or response times are promised. The historical roadmap records ideas, not a delivery commitment. Code is under the [MIT license](LICENSE); see [contribution guidance](CONTRIBUTING.md) for reuse.

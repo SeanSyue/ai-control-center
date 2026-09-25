@@ -226,6 +226,30 @@ class GoogleDriveFolderSync:
             and Path(settings.root_path).expanduser().is_dir()
         )
 
+    def _cloud_project_dir(self, root: Path, project_id: str) -> Path | None:
+        """`project_id` 在同步資料夾裡對應的位置；不安全就回 None。
+
+        2026-09-25 之前這裡直接把 `project_id` 接在路徑後面（外部審查 A11）。
+        它讀自 `.aicc/project.json`——一份可能被改過、或從別台電腦同步過來的
+        檔案。設成另一個絕對路徑時，Windows 的 `Path("root") / "C:/elsewhere"`
+        會把 root 整個丟掉，同步就寫到同步資料夾外面，而且回報成功。
+
+        兩道，缺一不可：
+        * 格式必須是 AICC 自己產生的那種 UUID（`project_registry` 用
+          `str(uuid.uuid4())`）。格式對了就不可能含路徑分隔、`..` 或磁碟代號。
+        * 解析之後必須**剛好**在 projects 資料夾下一層。格式擋不到一個名字
+          正常、但已經存在且指到別處的連結資料夾。
+        """
+        try:
+            canonical = str(uuid.UUID(project_id))
+        except (ValueError, AttributeError, TypeError):
+            return None
+        if canonical != project_id:
+            return None
+        projects = (root / self.APP_FOLDER_NAME / "projects").resolve()
+        candidate = (projects / project_id).resolve()
+        return candidate if candidate.parent == projects else None
+
     def sync_project(self, project_path: Path) -> SyncResult:
         with self._lock:
             return self._sync_project_locked(project_path)
@@ -271,12 +295,13 @@ class GoogleDriveFolderSync:
             metadata = self.ensure_project_metadata(local_project)
             project_id = metadata["project_id"]
             project_name = metadata["name"]
-            cloud_project = (
-                root
-                / self.APP_FOLDER_NAME
-                / "projects"
-                / project_id
-            )
+            cloud_project = self._cloud_project_dir(root, project_id)
+            if cloud_project is None:
+                return SyncResult(
+                    success=False,
+                    errors=[t("cloud.bad_project_id", project_id=project_id)],
+                    finished_at=finished_at,
+                )
             cloud_project.mkdir(parents=True, exist_ok=True)
 
             state_path = local_project / ".aicc" / "sync-state.json"
@@ -521,9 +546,12 @@ class GoogleDriveFolderSync:
             )
 
         root = Path(settings.root_path).expanduser().resolve()
-        cloud_project = (
-            root / self.APP_FOLDER_NAME / "projects" / project_id
-        )
+        cloud_project = self._cloud_project_dir(root, project_id)
+        if cloud_project is None:
+            return SyncResult(
+                success=False,
+                errors=[t("cloud.bad_project_id", project_id=project_id)],
+            )
         cloud_metadata = cloud_project / ".aicc" / "project.json"
         local_project = local_project.expanduser().resolve()
 

@@ -1,55 +1,39 @@
-# Contributing
+# Working with this snapshot
 
-Thanks for looking. This project is early: it runs, it is covered by tests, and it has not completed a full run end to end yet. Issues that tell me what broke on your machine are worth more than features right now.
+No regular maintenance, review time or acceptance of contributions is promised. You may study, fork and modify the code under the [MIT license](LICENSE). The author reports successful end-to-end use; private project outputs are not required or included.
 
-## Setup
+## Setup and verification
+
+Follow the source setup in [README.md](README.md). For development tests, use a disposable checkout under an isolated Windows user or VM. Do not use a profile containing valuable project data or credentials; tests include file operations and cleanup code.
 
 ```powershell
-py -3.14 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe -m pytest tests/ -q
+.\.venv\Scripts\python.exe tools\verify_web_pages.py
 ```
 
-The suite takes about four minutes.
+Record failures, skips, process exit codes and environment constraints honestly. The original verification declaration expects a clean pass; the review did not independently achieve a single-process all-green run. Current counts and limitations are in the README.
 
-## Two rules every change has to follow
-
-**1. Zero failures and zero skips.** A skipped test is a test nobody is reading. The exit code has to be 0 as well — this project once spent weeks treating a real crash-on-exit as "just a quirk of the shell".
-
-**2. A green test is not evidence until you have seen it red.** If you add or change a test, add a negative-control recipe that breaks the code it guards, and check the test actually turns red:
+For a behavior change, run the relevant existing checks and test the failure case where useful. Mutation recipes live in `tools/mutations/` (111 files, 853 items in the reviewed snapshot):
 
 ```powershell
 .\.venv\Scripts\python.exe tools\negative_control.py --all
 ```
 
-Recipes live in `tools/mutations/*.json`. A recipe is: in this file, replace this text with that text, then run this test and require a failure. The tool restores the file from a copy afterwards and checks the restore.
+This temporarily edits source before restoring it. First establish that the selected test passes without mutation; an already-failing baseline cannot show that the mutation was caught. Update stale or equivalent recipes and verify restoration. The current runner does not enforce all of those conditions automatically.
 
-If a recipe can no longer find its text because the code moved, **update the recipe to the new location** — do not delete it.
+## Editing the UI
 
-## What is not in this repository
-
-A handful of tests and negative-control recipes in the private working copy guard the maintainer's own workspace: a `CLAUDE.md` that sits above the repository, and a private folder of project memory. Those files are notes between one person and his agents, not product, so neither they nor the guards that read them ship here.
-
-Everything that guards the product itself is here, and it all runs from a clean clone.
-
-## Screens
-
-`app/ui/web/` is generated. Edit `design-pages/` and rebuild:
+`design-pages/` is the editable source. Rebuild the committed pages with:
 
 ```powershell
 .\.venv\Scripts\python.exe app\ui\web\build_pages.py
 .\.venv\Scripts\python.exe tools\verify_web_pages.py
 ```
 
-Each page's `<style>` block is hashed before and after, so an accidental CSS change fails the build.
+The builder checks the copied style blocks. For packaging changes, separately check required HTML/CSS/JS in the frozen output and test installation in a disposable Windows environment; source-page success is not enough.
 
-A field the engine sends must be read by the page: `tests/test_no_field_is_pushed_into_the_void.py` fails otherwise. That test exists because a field can be sent, never drawn, and the screen still looks fine.
+## Keep private state outside the release
 
-## Language
+The author's private project memory and project outputs are deliberately absent. Your projects supply their own context. Never commit vendor login files, LINE tokens, `.env` values, real conversations, run artifacts or personal project memory. Ignore rules are incomplete in this snapshot: inspect staged files, not just the ignore configuration.
 
-Code comments, documentation and the interface are in Traditional Chinese; the repository's front page and these guides are in English. Pull requests in either language are fine.
-
-## What this project will not take
-
-- Anything that makes AICC hold an API key or proxy a sign-in. It drives the official CLIs under the user's own account, deliberately.
-- Anything that sends project content to a service the user did not choose.
+Keep documentation consistent with [SECURITY.md](SECURITY.md). Historical design notes explain earlier choices; they do not override current known defects or maintenance status.
