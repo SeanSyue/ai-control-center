@@ -1,10 +1,10 @@
 [
   {
-    "label": "I1 拿掉「必須剛好是下一層」那道檢查（名字正常、但同名連結資料夾指到別處時，匯入會跟著寫出去）",
+    "label": "I1 移除最終路徑邊界：即使名稱處理退化，也不能建立資料夾外的新目的位置",
     "file": "app/services/workspace_portability.py",
     "replace": "if target.resolve().parent != destination_dir:",
     "with": "if False:",
-    "test": "tests/test_an_import_cannot_climb_out_of_its_folder.py::test_a_same_named_junction_cannot_lead_the_import_elsewhere"
+    "test": "tests/test_an_import_cannot_climb_out_of_its_folder.py::test_containment_also_checks_a_new_outside_destination"
   },
   {
     "label": "I2 專案名稱不再去掉結尾的點（`..` 原封不動留下來——2026-09-25 之前的樣子）",
@@ -19,5 +19,19 @@
     "replace": "if not cleaned or stem in cls._RESERVED_NAMES:",
     "with": "if not cleaned:",
     "test": "tests/test_an_import_cannot_climb_out_of_its_folder.py::test_the_project_folder_is_always_a_direct_child_of_the_chosen_folder"
+  },
+  {
+    "label": "I4 恢復同名目錄合併並覆蓋",
+    "file": "app/services/workspace_portability.py",
+    "replace": "target.mkdir()",
+    "with": "target.mkdir(exist_ok=True)",
+    "test": "tests/test_an_import_cannot_climb_out_of_its_folder.py::test_existing_destination_is_never_overwritten"
+  },
+  {
+    "label": "I5 放行壓縮檔內的 Windows 裝置名稱",
+    "file": "app/services/workspace_portability.py",
+    "replace": "                or stem in cls._RESERVED_NAMES",
+    "with": "                or False",
+    "test": "tests/test_an_import_cannot_climb_out_of_its_folder.py::test_windows_ambiguous_archive_members_are_rejected"
   }
 ]

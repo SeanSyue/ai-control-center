@@ -105,3 +105,51 @@ def test_an_ordinary_name_is_kept(tmp_path: Path) -> None:
 
     assert result.success is True
     assert Path(result.project_path) == destination.resolve() / "csv-summary"
+
+
+def test_containment_also_checks_a_new_outside_destination(tmp_path: Path, monkeypatch) -> None:
+    # Exercise containment independently of filename sanitizing and the existing
+    # directory guard: neither of those is a substitute for the path boundary.
+    service = WorkspacePortabilityService()
+    monkeypatch.setattr(service, "_safe_name", lambda name: "../outside")
+    result = service.import_project(_archive_named(tmp_path, "ordinary"), tmp_path / "dest")
+    assert result.success is False
+    assert not (tmp_path / "outside").exists()
+
+
+@pytest.mark.parametrize("existing_kind", ["directory", "file"])
+def test_existing_destination_is_never_overwritten(tmp_path: Path, existing_kind: str) -> None:
+    destination = tmp_path / "dest"
+    destination.mkdir()
+    target = destination / "csv-summary"
+    if existing_kind == "directory":
+        target.mkdir()
+        sentinel = target / "victim.txt"
+    else:
+        sentinel = target
+    sentinel.write_text("original", encoding="utf-8")
+    archive = _archive_named(tmp_path, "csv-summary")
+    result = WorkspacePortabilityService().import_project(archive, destination)
+    assert result.success is False
+    assert result.errors
+    assert sentinel.read_text(encoding="utf-8") == "original"
+
+
+@pytest.mark.parametrize("entry", [
+    "victim.txt:secret", "CON", "con.txt", "nested/NUL.txt", "COM1.log",
+    "LPT9", "COM¹.txt", "LPT²", "CONIN$", "CONOUT$",
+    "trailing.", "trailing ", "nested./victim.txt", "a/../victim.txt",
+    "bad\x01.txt", "wild*.txt", "question?.txt", "quote\".txt",
+])
+def test_windows_ambiguous_archive_members_are_rejected(tmp_path: Path, entry: str) -> None:
+    archive = tmp_path / "crafted.zip"
+    with zipfile.ZipFile(archive, "w") as zf:
+        zf.writestr("AICC_EXPORT_MANIFEST.json", json.dumps({"project_name": "safe"}))
+        zf.writestr(entry, "unsafe member")
+        zf.writestr("nested/正常.txt", "valid member")
+    result = WorkspacePortabilityService().import_project(archive, tmp_path / "dest")
+    assert result.success is True
+    assert entry in result.rejected_files
+    target = Path(result.project_path)
+    assert (target / "nested" / "正常.txt").read_text(encoding="utf-8") == "valid member"
+    assert not (target / "victim.txt:secret").exists()

@@ -1,6 +1,6 @@
 [
   {
-    "label": "N1 判斷「是不是 AICC 的資料夾」改成只看資料夾存不存在（任何資料夾都被當成自己的）",
+    "label": "N1 把產品辨識改成資料夾存在就放行",
     "file": "packaging/AI Control Center.iss",
     "replace": "Result := FileExists(AddBackslash(Dir) + '{#MyAppExeName}');",
     "with": "Result := DirExists(Dir);",
@@ -21,17 +21,24 @@
     "test": "tests/test_the_installer_only_moves_its_own_folder.py::test_a_silent_install_is_stopped_too"
   },
   {
-    "label": "N4 安裝資料夾只要存在就改名（2026-09-25 之前的樣子：裝完整棵刪掉，不管是誰的）",
+    "label": "N4 未辨認產品執行檔就搬移資料夾",
     "file": "packaging/AI Control Center.iss",
     "replace": "if IsAiccInstall(ExpandConstant('{app}')) then",
     "with": "if DirExists(ExpandConstant('{app}')) then",
     "test": "tests/test_the_installer_only_moves_its_own_folder.py::test_the_old_folder_is_only_renamed_when_it_is_an_aicc_install"
   },
   {
-    "label": "N5 已經存在的 .previous 不問是誰的就整棵刪掉",
+    "label": "N5 重新引入更新後刪除整個備份",
     "file": "packaging/AI Control Center.iss",
-    "replace": "if not IsAiccInstall(BackupDir) then",
-    "with": "if False then",
-    "test": "tests/test_the_installer_only_moves_its_own_folder.py::test_a_leftover_backup_is_only_deleted_when_it_is_ours"
+    "replace": "InstallCompleted := True;",
+    "with": "InstallCompleted := True;\n    DelTree(BackupDir, True, True, True);",
+    "test": "tests/test_the_installer_only_moves_its_own_folder.py::test_backups_and_partial_installations_are_not_deleted"
+  },
+  {
+    "label": "N6 辨識後額外強制放行",
+    "file": "packaging/AI Control Center.iss",
+    "replace": "Result := FileExists(AddBackslash(Dir) + '{#MyAppExeName}');",
+    "with": "Result := FileExists(AddBackslash(Dir) + '{#MyAppExeName}');\n  Result := True;",
+    "test": "tests/test_the_installer_only_moves_its_own_folder.py::test_ownership_is_proven_by_the_products_own_executable"
   }
 ]

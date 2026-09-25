@@ -4,7 +4,7 @@
 
 [繁體中文](README.zh-TW.md) · [Architecture and design ownership](docs/ARCHITECTURE.md) · [Documentation map](docs/README.md) · [Security and known issues](SECURITY.md)
 
-> **Portfolio snapshot; no scheduled maintenance.** The author reports successful end-to-end runs in a configured personal environment. Private project outputs and conversations are not included. This is a working prototype with known defects, not a production or security certification. Start from source; the packaged build has unresolved issues.
+> **Portfolio snapshot; no scheduled maintenance.** The author reports successful end-to-end runs in a configured personal environment. Private project outputs and conversations are not included. This is a working prototype with known defects, not a production or security certification. Start from source for evaluation; the installer still requires a normal Windows acceptance cycle.
 
 ![The line-up page](docs/images/lineup.png)
 
@@ -56,6 +56,8 @@ py -3.14 -m venv .venv
 
 After setup, `start.bat` starts the application using that environment. The committed `app/ui/web/` pages are included; building an installer is not a prerequisite for running from source.
 
+Importing an archive into an existing same-named project stops with an explanation. Choose another destination or rename the existing folder first; there is no merge/overwrite option. Invalid archive members are listed and skipped.
+
 For an initial trial, use a disposable project containing non-sensitive data, pair the intended vendor sessions, configure the roles, and declare the project's verification command. With no usable verification, a run must not be described as machine-verified. The author's private project memory is not required to install AICC; each project supplies its own context. LINE and Drive setup are optional and can remain disabled.
 
 The author reports successful configured runs. That experience does not establish that every fresh Windows machine, CLI version or task will behave identically.
@@ -70,9 +72,9 @@ The source contains automated tests, mutation recipes and a real QWebEngine page
 | Review of the original tests | 2,219 cases included in per-file execution; latest aggregate 2,200 passed, 19 failed, 0 skipped. 18 failing cases received narrower supplemental checks for environment/fixture constraints; those are not original-suite passes. One guard-boundary failure remains. The single-process run crashed in Qt. |
 | Mutation checks | All 853 items across 111 recipe files executed: 846 red, 7 green, 0 broken. 25 red results had an already-failing baseline and are not valid mutation kills. |
 | Source UI | 10/10 loading scenarios passed at each of two window sizes. |
-| Packaging | PyInstaller and Inno compilation succeeded; the frozen UI passed 8/10 scenarios because `shell.js` was omitted (fixed in the spec afterwards; the frozen build was not rebuilt). A full install/upgrade/cancel cycle was not independently completed. |
+| Packaging | PyInstaller and Inno compilation succeeded; the frozen UI passed 8/10 scenarios because `shell.js` was omitted (fixed in the spec afterwards; the follow-up frozen build subsequently passed 10/10). A full install/upgrade/cancel cycle was not independently completed. |
 
-After the review, four defects were fixed — import and sync path containment, installer folder ownership, and the missing packaged `shell.js`. Each fix has new tests and negative-control recipes, run in the maintainer's environment; the reviewer has not re-run them. Details in [CHANGELOG.md](CHANGELOG.md).
+The 2026-09-26 AI-assisted follow-up on `2d4d838` and subsequent fixes recorded **77 passing focused tests**, **15/15 targeted mutations detected** after a passing baseline, and **115 recipe files passing the target-consistency check**. A clean PyInstaller build, all **10 frozen page scenarios**, and Inno compilation passed. This was an isolated Windows AppContainer run, not a rerun of the entire historical suite or a normal desktop installation test. Details in [CHANGELOG.md](CHANGELOG.md).
 
 For development, the existing commands are:
 
@@ -86,7 +88,7 @@ The mutation command temporarily edits source files before restoring them. Run d
 
 ## Limits of this snapshot
 
-Import and sync path containment, installer folder ownership and the missing packaged `shell.js` were fixed after the review. Still open: deletion ownership, sensitive content reaching review prompts, archive resource limits and the other items in [SECURITY.md](SECURITY.md). These are disclosed defects, not features made safe by documentation. Read SECURITY.md before reuse.
+Import now refuses an existing destination and rejects unsafe Windows member names. Upgrades retain uniquely named backups instead of deleting whole old directories; failed upgrades preserve partial directories before attempting recovery. The packaged `shell.js` is present. **A11 remains open:** links below a valid sync project can redirect file operations; the possible future remedy is documented, not implemented. Other open items: deletion ownership, sensitive content reaching review prompts, archive resource limits and the other items in [SECURITY.md](SECURITY.md). These are disclosed defects, not features made safe by documentation. Read SECURITY.md before reuse.
 
 The deletion guard currently protects a few important locations (such as the Windows user profile). It is not yet "only the project folder, and anything else needs the user's confirmation".
 

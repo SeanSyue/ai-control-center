@@ -1,8 +1,18 @@
 # Changelog
 
+## 2026-09-26 — Follow-up fixes and bounded verification
+
+- **A10:** existing destination files/directories stop import instead of being merged or overwritten. Archive entries reject ADS colons, Windows device names, ambiguous trailing dots/spaces and invalid characters. Valid nested Unicode filenames remain supported. Unsafe entries are reported and skipped; staging and archive resource limits remain open.
+- **A12:** previous installation directories receive an unused `.previous` / `.previous.N` name and are retained. Backup failure aborts the upgrade. Failed upgrades retain a partial directory under `.incomplete` / `.incomplete.N` before attempting directory recovery. No custom recursive deletion of these directories remains. An executable filename is a recognition marker, not evidence that neighboring user files belong to the installer.
+- Installer structural tests now catch an unconditional `Result := True` bypass and reintroduced backup deletion. These tests do not execute the Pascal control flow; full installation acceptance is still required.
+- **A11 intentionally deferred:** UUID/root checks remain, but junctions below a valid sync project can redirect I/O. `cloud_sync.py` is unchanged in this follow-up. SECURITY.md describes future containment/reparse-point work without claiming it exists.
+- **A13:** no further code change needed. Clean rebuilt frozen assets pass all 10 page scenarios.
+
+Verification on the updated source: 77 focused tests pass in a Windows AppContainer; all 15 targeted mutations are detected after a passing baseline and restored byte-for-byte; all 115 recipe files pass consistency checks. PyInstaller and Inno compilation pass. The AppContainer runtime has a test-directory ACL adaptation and does not reproduce every normal desktop permission condition. The entire historical test/mutation suite was not rerun. A normal Windows install/upgrade/cancel/recovery cycle and real vendor/LINE/Drive integrations were not run in this follow-up.
+
 ## 2026-09-25 — Fixes after the external review
 
-Four defects from the external review were fixed. Nothing else in the product changed.
+The original reproducers for four findings were addressed in that revision. The follow-up below records remaining gaps and further fixes; this historical entry is not a claim that every variant was closed.
 
 - **Workspace import could write outside the chosen folder** (review A10). A manifest `project_name` of `..` passed the name filter, so the project root became the folder above the destination and archive entries overwrote files there. The name now drops trailing dots and Windows device names, and the project folder must resolve to a direct child of the destination — which also stops a same-named junction. [`workspace_portability.py`](app/services/workspace_portability.py)
 - **Drive sync could write outside the sync folder** (review A11). `project_id` came from project metadata and was joined onto the path unchecked; an absolute value made Windows discard the sync root. It must now be a canonical UUID and must resolve directly under `AIControlCenter/projects/`, for both sync and link. [`cloud_sync.py`](app/services/cloud_sync.py)

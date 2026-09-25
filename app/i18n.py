@@ -261,6 +261,7 @@ STRINGS: dict[str, str] = {
     "import.done": "匯入完成",
     "import.failed": "匯入失敗",
     "import.outside_destination": "這個壓縮檔的專案會落在選定資料夾外面（{path}），已停止匯入。",
+    "import.destination_exists": "目的位置已存在（{path}），為了保留原有檔案，已停止匯入。請選另一個目的資料夾，或先將既有資料夾改名。",
     "import.pick_destination": "選擇匯入目的資料夾",
     "import.pick_package": "選擇 AI Workspace 匯出包",
     "import.still_missing": "這幾件還沒好：",

@@ -121,17 +121,11 @@ Filename: "{app}\{#MyAppExeName}"; Description: "啟動 {#MyAppName} (Launch {#M
   the old ones with no version check, and a failure part-way through left a
   half-new, half-old install with no way back.
 
-  The approach here is rename-aside rather than copy-aside. The previous
-  install directory is renamed out of the way before any file is written, so
-  an upgrade costs a directory rename instead of copying ~150 MB, and the
-  fresh directory also clears out files that existed in the old build and no
-  longer exist in this one. It is safe to discard the whole directory because
-  the app keeps its registry, config and projects under %APPDATA%, never here.
-
-  If setup finishes, the backup is deleted. If it does not - a failure, or the
-  user cancelling on the progress page - the half-written directory is thrown
-  away and the backup is put back, so a failed update leaves the machine on
-  the version it started on.
+  Keep the old directory under a unique backup name. A product executable
+  is only a recognition marker: user files may live beside it, so setup never
+  recursively deletes a previous or partially installed directory. Failed
+  upgrades preserve the partial directory before attempting to restore the old
+  one. This is a file-tree recovery, not a transaction over registry/shortcuts.
   --------------------------------------------------------------------------- }
 
 var
@@ -184,15 +178,15 @@ begin
 end;
 
 { ---------------------------------------------------------------------------
-  Only ever move or delete a directory that is provably an AICC install.
+  Recognize likely AICC installs, without treating that as ownership of every file.
 
   Until 2026-09-25 the rename-aside above ran on whatever directory the user
   picked, as long as it existed: pick an existing folder by mistake and it was
   renamed to <folder>.previous and deleted once setup finished, and an existing
   <folder>.previous was deleted before that (external review A12).
 
-  The proof of ownership is the product's own executable. Every earlier build
-  put it there, so upgrades still work; an unrelated folder does not have it.
+  The executable allows older installations to be recognized. It does not
+  prove ownership of neighboring files; backups must always be retained.
   --------------------------------------------------------------------------- }
 
 function IsAiccInstall(Dir: String): Boolean;
@@ -243,13 +237,26 @@ begin
   end;
 end;
 
+function UnusedSibling(Dir, Suffix: String): String;
+var
+  Index: Integer;
+begin
+  Result := Dir + Suffix;
+  Index := 0;
+  while DirExists(Result) or FileExists(Result) do
+  begin
+    Index := Index + 1;
+    Result := Dir + Suffix + '.' + IntToStr(Index);
+  end;
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssInstall then
   begin
     BackupMade := False;
-    BackupDir := ExpandConstant('{app}') + '.previous';
-    { Checked again here: a silent install never shows the folder page. }
+    InstallCompleted := False;
+    { Silent installs must respect the same rule as the folder page. }
     if NotOursAndNotEmpty(ExpandConstant('{app}')) then
     begin
       SuppressibleMsgBox('安裝資料夾裡已經有別的東西，而且不是 {#MyAppName} 的安裝，已停止：' + #13#10 +
@@ -258,50 +265,53 @@ begin
     end;
     if IsAiccInstall(ExpandConstant('{app}')) then
     begin
-      { A backup left over from an interrupted earlier run would block the
-        rename. Clear it only if it is itself an AICC install. }
-      if DirExists(BackupDir) then
-      begin
-        if not IsAiccInstall(BackupDir) then
-        begin
-          SuppressibleMsgBox('已經有一個叫 ' + BackupDir + ' 的資料夾，而且不是 {#MyAppName} 的備份。' + #13#10 +
-                             '為了不動到它，安裝已停止。請先把它改名或移走。',
-                             mbError, MB_OK, IDOK);
-          Abort();
-        end;
-        DelTree(BackupDir, True, True, True);
-      end;
+      BackupDir := UnusedSibling(ExpandConstant('{app}'), '.previous');
       BackupMade := RenameFile(ExpandConstant('{app}'), BackupDir);
       if not BackupMade then
-        { Almost always because the app is still running and holding a file
-          open. Better to stop here than to overwrite with no way back. }
-        if MsgBox('無法備份現有版本（程式可能還開著）。' + #13#10 +
-                  '繼續的話，更新失敗時將無法自動回復。要繼續嗎？',
-                  mbConfirmation, MB_YESNO) <> IDYES then
-          Abort();
+      begin
+        SuppressibleMsgBox('無法保留現有版本（程式可能還開著）。為了避免覆蓋原有檔案，安裝已停止。',
+                           mbError, MB_OK, IDOK);
+        Abort();
+      end;
     end;
   end
   else if CurStep = ssPostInstall then
   begin
     InstallCompleted := True;
-    if BackupMade and DirExists(BackupDir) then
-      DelTree(BackupDir, True, True, True);
+    if BackupMade then
+    begin
+      Log('Previous installation retained at: ' + BackupDir);
+      SuppressibleMsgBox('先前版本與原有檔案已保留在：' + #13#10 + BackupDir + #13#10 +
+                         '確認新版可用並取回需要的檔案後，可自行清理這份備份。',
+                         mbInformation, MB_OK, IDOK);
+    end;
   end;
 end;
 
 procedure DeinitializeSetup();
+var
+  PartialDir: String;
 begin
+  PartialDir := '';
   if InstallCompleted or (not BackupMade) then
     Exit;
-  { Setup did not reach ssPostInstall: throw away whatever was written and put
-    the previous version back. }
+  { Preserve any partial directory as well; never delete unknown user files
+    to make room for rollback. A name collision makes RenameFile fail closed. }
   if DirExists(ExpandConstant('{app}')) then
-    DelTree(ExpandConstant('{app}'), True, True, True);
+  begin
+    PartialDir := UnusedSibling(ExpandConstant('{app}'), '.incomplete');
+    if not RenameFile(ExpandConstant('{app}'), PartialDir) then
+    begin
+      SuppressibleMsgBox('更新未完成，無法移開未完成的資料夾。先前版本仍完整保留在：' + #13#10 +
+                         BackupDir, mbError, MB_OK, IDOK);
+      Exit;
+    end;
+    Log('Incomplete installation retained at: ' + PartialDir);
+  end;
   if RenameFile(BackupDir, ExpandConstant('{app}')) then
-    MsgBox('更新沒有完成，已回復成先前安裝的版本。', mbInformation, MB_OK)
+    SuppressibleMsgBox('更新沒有完成，已回復先前安裝資料夾。未完成的檔案（若有）保留在：' + #13#10 +
+                       PartialDir, mbInformation, MB_OK, IDOK)
   else
-    MsgBox('更新沒有完成，而且回復失敗。' + #13#10 +
-           '先前的版本仍在：' + BackupDir + #13#10 +
-           '可以手動把它改名回 ' + ExpandConstant('{app}') + '。',
-           mbError, MB_OK);
+    SuppressibleMsgBox('更新沒有完成，而且資料夾回復失敗。先前版本仍保留在：' + #13#10 +
+                       BackupDir + #13#10 + '請確認檔案後再手動回復。', mbError, MB_OK, IDOK);
 end;

@@ -161,7 +161,7 @@ class WorkspaceImportResult:
             # Said out loud, not buried: an entry pointing outside the folder
             # means the archive tried to write somewhere it was not given.
             done += (
-                f"　已拒絕 {len(self.rejected_files)} 個指向資料夾外的項目"
+                f"　已拒絕 {len(self.rejected_files)} 個路徑不安全或檔名不合法的項目"
                 f"（{self.rejected_files[0]}）。"
             )
         return done
@@ -382,7 +382,16 @@ class WorkspacePortabilityService:
                         success=False,
                         errors=[t("import.outside_destination", path=target.resolve())],
                     )
-                target.mkdir(parents=True, exist_ok=True)
+                # Claim a new directory in one operation. An exists() check
+                # followed by exist_ok=True would still permit a racing import
+                # (or a second package with the same sanitized name) to merge.
+                try:
+                    target.mkdir()
+                except FileExistsError:
+                    return WorkspaceImportResult(
+                        success=False,
+                        errors=[t("import.destination_exists", path=target)],
+                    )
 
                 root = target.resolve()
                 for info in archive.infolist():
@@ -537,8 +546,8 @@ class WorkspacePortabilityService:
         )
         temp.replace(path)
 
-    @staticmethod
-    def _safe_destination(root: Path, name: str) -> Path | None:
+    @classmethod
+    def _safe_destination(cls, root: Path, name: str) -> Path | None:
         """Where `name` may be written, or None if it escapes `root`.
 
         An archive is untrusted input - the whole point of import is that it
@@ -557,6 +566,20 @@ class WorkspacePortabilityService:
         Windows 8.3 short names collapse during resolve(), so they cannot be
         used to sneak past the comparison either.
         """
+        # Validate every component before pathlib/Windows normalizes it.
+        # Colons create NTFS alternate streams; device names and trailing
+        # dots/spaces can refer to something other than the displayed name.
+        parts = name.replace("\\", "/").split("/")
+        for part in parts:
+            stem = part.split(".", 1)[0].rstrip(" ").upper()
+            if (
+                not part
+                or part in {".", ".."}
+                or part.endswith((".", " "))
+                or any(ord(c) < 32 or c in '<>:"|?*' for c in part)
+                or stem in cls._RESERVED_NAMES
+            ):
+                return None
         candidate = Path(name)
         if candidate.is_absolute() or candidate.drive or name.startswith(("/", "\\")):
             return None
@@ -663,9 +686,10 @@ class WorkspacePortabilityService:
 
     # Windows 的保留裝置名稱。拿它當資料夾名稱，寫進去的東西不會變成檔案。
     _RESERVED_NAMES = frozenset(
-        {"CON", "PRN", "AUX", "NUL"}
+        {"CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$"}
         | {f"COM{i}" for i in range(1, 10)}
         | {f"LPT{i}" for i in range(1, 10)}
+        | {f"{prefix}{digit}" for prefix in ("COM", "LPT") for digit in "¹²³"}
     )
 
     @classmethod

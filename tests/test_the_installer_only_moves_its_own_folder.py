@@ -1,4 +1,4 @@
-"""安裝程式只准搬、只准刪**看得出是 AICC 安裝**的資料夾。
+"""安裝程式辨認舊安裝，但不把這視為可以刪除整個資料夾的授權。
 
 ## 改壞的樣子
 
@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 
 ISS = Path(__file__).resolve().parents[1] / "packaging" / "AI Control Center.iss"
 
@@ -41,10 +42,15 @@ def _install_branch() -> str:
 
 
 def test_ownership_is_proven_by_the_products_own_executable() -> None:
+    # Legacy test name retained for recipe compatibility. This is recognition,
+    # not proof that every neighboring file belongs to AICC.
     body = _block(_code(), "function IsAiccInstall")
-    assert "FileExists(" in body and "{#MyAppExeName}" in body, (
-        "判斷「這是不是 AICC 的資料夾」不再看產品自己的執行檔"
-    )
+    body = re.sub(r"\{(?!#).*?\}|\(\*.*?\*\)|//[^\n]*", "", body, flags=re.S)
+    body = " ".join(body.split())
+    assert body == (
+        "function IsAiccInstall(Dir: String): Boolean; begin "
+        "Result := FileExists(AddBackslash(Dir) + '{#MyAppExeName}');"
+    ), "辨識函式不能被額外的 Result := True 繞過"
 
 
 def test_a_folder_that_is_not_ours_and_not_empty_is_what_gets_refused() -> None:
@@ -73,13 +79,36 @@ def test_the_old_folder_is_only_renamed_when_it_is_an_aicc_install() -> None:
     rename = branch.index("RenameFile(ExpandConstant('{app}'), BackupDir)")
     guard = branch.find("if IsAiccInstall(ExpandConstant('{app}')) then")
     assert 0 <= guard < rename, (
-        "安裝資料夾不確認是 AICC 的就被改名（然後裝完整棵刪掉）"
+        "安裝資料夾沒有辨認產品執行檔就被改名"
     )
 
 
-def test_a_leftover_backup_is_only_deleted_when_it_is_ours() -> None:
+def test_backups_and_partial_installations_are_not_deleted() -> None:
+    assert not re.search(r"\b(?:DelTree|DeleteFile|RemoveDir)\s*\(", _code(), re.I)
+    script = ISS.read_text(encoding="utf-8-sig")
+    assert "[InstallDelete]" not in script
+    assert "[UninstallDelete]" not in script
+
+
+def test_existing_backup_names_are_preserved() -> None:
+    body = _block(_code(), "function UnusedSibling")
+    assert "while DirExists(Result) or FileExists(Result) do" in body
+    assert "Index := Index + 1" in body
+    assert "Suffix + '.' + IntToStr(Index)" in body
+    assert "BackupDir := UnusedSibling(ExpandConstant('{app}'), '.previous')" in _install_branch()
+
+
+def test_backup_failure_stops_installation() -> None:
     branch = _install_branch()
-    delete = branch.index("DelTree(BackupDir")
-    guard = branch.find("if not IsAiccInstall(BackupDir) then")
-    assert 0 <= guard < delete, "已經存在的 .previous 不確認是誰的就被整棵刪掉"
-    assert "Abort();" in branch[guard:delete]
+    guard = branch.index("if not BackupMade then")
+    assert "Abort();" in branch[guard:]
+    assert "MB_YESNO" not in branch[guard:]
+
+
+def test_failed_upgrade_preserves_partial_directory_before_restoring() -> None:
+    body = _block(_code(), "procedure DeinitializeSetup")
+    preserve = body.index("if not RenameFile(ExpandConstant('{app}'), PartialDir) then")
+    restore = body.index("if RenameFile(BackupDir, ExpandConstant('{app}')) then")
+    assert preserve < restore
+    assert "Exit;" in body[preserve:restore]
+    assert "UnusedSibling(ExpandConstant('{app}'), '.incomplete')" in body
